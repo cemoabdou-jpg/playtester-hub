@@ -23,6 +23,8 @@ jobs:
 
       - name: Setup Android SDK and Build Environment
         run: |
+          chmod +x gradlew
+          
           # Generate debug.keystore in root directory if not present
           if [ ! -f "debug.keystore" ]; then
             keytool -genkeypair -v -keystore debug.keystore \
@@ -39,17 +41,12 @@ jobs:
               -dname "CN=PlayTesterHub, OU=Dev, O=PlayTester, L=City, S=State, C=US"
           fi
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: wrapper
-
       - name: Build Debug APK & Release Bundle (AAB)
         env:
           STORE_PASSWORD: "android123"
           KEY_PASSWORD: "android123"
         run: |
-          gradle :app:assembleDebug :app:bundleRelease --no-daemon --stacktrace
+          ./gradlew :app:assembleDebug :app:bundleRelease --no-daemon --stacktrace
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
