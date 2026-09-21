@@ -1,0 +1,7 @@
+{
+  "name": "PlayTester Hub",
+  "description": "منصة تبادل المختبرين لتلبية متطلبات الاختبار المغلق لجوجل بلاي (20 مختبراً لمدة 14 يوماً)",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
