@@ -96,6 +96,7 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
     val unreadNotificationsCount by viewModel.unreadNotificationsCount.collectAsStateWithLifecycle()
     val isSimplifiedMode by viewModel.isSimplifiedMode.collectAsStateWithLifecycle()
     val allDailyTestLogs by viewModel.allDailyTestLogs.collectAsStateWithLifecycle()
+    val allFeedback by viewModel.allFeedback.collectAsStateWithLifecycle()
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -239,7 +240,9 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                         onConfirmDailyTest = { test, duration, rating, notes ->
                             viewModel.confirmDailyTest(test, duration, rating, notes)
                         },
-                        onSendFeedback = { viewModel.sendFeedback(it) },
+                        onSendFeedback = { test, content, rating, type ->
+                            viewModel.sendFeedback(test, content, rating, type)
+                        },
                         onDeleteTest = { viewModel.deleteJoinedTest(it) },
                         onNavigateToCommunity = { currentTab = 0 }
                     )
@@ -248,6 +251,7 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                         allArtifacts = allArtifacts,
                         allInvitedTesters = allInvitedTesters,
                         allDailyTestLogs = allDailyTestLogs,
+                        allFeedback = allFeedback,
                         onAddAppClick = { showAddAppDialog = true },
                         onDeleteApp = { viewModel.deleteUserApp(it) },
                         onUploadArtifact = { appId, vName, vCode, aType, fName, fSize, rNotes, active ->

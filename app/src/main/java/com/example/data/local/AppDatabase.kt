@@ -12,6 +12,7 @@ import com.example.data.model.CommunityApp
 import com.example.data.model.DailyTestLog
 import com.example.data.model.InvitedTester
 import com.example.data.model.JoinedTest
+import com.example.data.model.TesterFeedback
 import com.example.data.model.UserApp
 import com.example.data.model.UserWallet
 import kotlinx.coroutines.CoroutineScope
@@ -28,9 +29,10 @@ import kotlinx.coroutines.launch
         AppBuildArtifact::class,
         InvitedTester::class,
         AppNotification::class,
-        DailyTestLog::class
+        DailyTestLog::class,
+        TesterFeedback::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

@@ -60,7 +60,7 @@ fun MyTestingScreen(
     joinedTests: List<JoinedTest>,
     onCheckIn: (JoinedTest) -> Unit = {},
     onConfirmDailyTest: ((JoinedTest, Int, Int, String) -> Unit)? = null,
-    onSendFeedback: (JoinedTest) -> Unit,
+    onSendFeedback: (JoinedTest, String, Int, String) -> Unit,
     onDeleteTest: (Int) -> Unit,
     onNavigateToCommunity: () -> Unit,
     modifier: Modifier = Modifier
@@ -279,8 +279,8 @@ fun MyTestingScreen(
         FeedbackDialog(
             test = test,
             onDismiss = { selectedTestForFeedback = null },
-            onSubmitFeedback = { _ ->
-                onSendFeedback(test)
+            onSubmitFeedback = { content, rating, type ->
+                onSendFeedback(test, content, rating, type)
                 selectedTestForFeedback = null
             }
         )

@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Android
+import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FactCheck
@@ -56,8 +57,10 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.AppBuildArtifact
 import com.example.data.model.DailyTestLog
 import com.example.data.model.InvitedTester
+import com.example.data.model.TesterFeedback
 import com.example.data.model.UserApp
 import com.example.ui.components.DailyTestLogsHistoryDialog
+import com.example.ui.components.ProductionReadinessReportDialog
 import com.example.ui.components.ShareInviteDialog
 import com.example.ui.components.TesterInvitationDialog
 import com.example.ui.components.VersionManagerDialog
@@ -77,6 +80,7 @@ fun MyAppsScreen(
     allArtifacts: List<AppBuildArtifact>,
     allInvitedTesters: List<InvitedTester>,
     allDailyTestLogs: List<DailyTestLog> = emptyList(),
+    allFeedback: List<TesterFeedback> = emptyList(),
     onAddAppClick: () -> Unit,
     onDeleteApp: (Int) -> Unit,
     onUploadArtifact: (
@@ -103,6 +107,7 @@ fun MyAppsScreen(
     var appForVersions by remember { mutableStateOf<UserApp?>(null) }
     var appForTesters by remember { mutableStateOf<UserApp?>(null) }
     var appForDailyLogs by remember { mutableStateOf<UserApp?>(null) }
+    var appForReadinessReport by remember { mutableStateOf<UserApp?>(null) }
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
@@ -510,6 +515,32 @@ fun MyAppsScreen(
                                 Text("المتجر")
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Production Readiness Report Button
+                        OutlinedButton(
+                            onClick = { appForReadinessReport = app },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("btn_readiness_report_${app.id}"),
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, if (isReadyForProduction) SuccessGreen else MaterialTheme.colorScheme.outline)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Assignment,
+                                contentDescription = null,
+                                tint = if (isReadyForProduction) SuccessGreen else CyanAccent,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "تصدير تقرير جاهزية الاختبار لـ Google Play",
+                                color = if (isReadyForProduction) SuccessGreen else MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp
+                            )
+                        }
                     }
                 }
             }
@@ -567,6 +598,22 @@ fun MyAppsScreen(
                 appForDailyLogs = null
             },
             onDismiss = { appForDailyLogs = null }
+        )
+    }
+
+    // Production Readiness Report dialog
+    appForReadinessReport?.let { app ->
+        val artifacts = allArtifacts.filter { it.userAppId == app.id }
+        val testers = allInvitedTesters.filter { it.userAppId == app.id }
+        val logs = allDailyTestLogs.filter { it.packageName == app.packageName }
+        val feedback = allFeedback.filter { it.packageName == app.packageName }
+        ProductionReadinessReportDialog(
+            app = app,
+            artifacts = artifacts,
+            invitedTesters = testers,
+            dailyLogs = logs,
+            feedbackList = feedback,
+            onDismiss = { appForReadinessReport = null }
         )
     }
 }

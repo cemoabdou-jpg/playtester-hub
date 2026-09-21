@@ -8,6 +8,7 @@ import com.example.data.model.CommunityApp
 import com.example.data.model.DailyTestLog
 import com.example.data.model.InvitedTester
 import com.example.data.model.JoinedTest
+import com.example.data.model.TesterFeedback
 import com.example.data.model.UserApp
 import com.example.data.model.UserWallet
 import kotlinx.coroutines.flow.Flow
@@ -27,6 +28,7 @@ class TesterRepository(private val dao: AppDao) {
     val notifications: Flow<List<AppNotification>> = dao.getAllNotifications()
     val unreadNotificationsCount: Flow<Int> = dao.getUnreadNotificationsCount()
     val allDailyTestLogs: Flow<List<DailyTestLog>> = dao.getAllDailyTestLogs()
+    val allFeedback: Flow<List<TesterFeedback>> = dao.getAllFeedback()
 
     fun getArtifactsForApp(appId: Int): Flow<List<AppBuildArtifact>> = dao.getArtifactsForApp(appId)
     fun getInvitedTestersForApp(appId: Int): Flow<List<InvitedTester>> = dao.getInvitedTestersForApp(appId)
@@ -274,6 +276,47 @@ class TesterRepository(private val dao: AppDao) {
     suspend fun markFeedbackSent(test: JoinedTest) {
         dao.updateJoinedTest(test.copy(feedbackSent = true))
         updateWalletPoints(15, incrementStreak = false)
+    }
+
+    suspend fun submitFeedback(
+        test: JoinedTest,
+        content: String,
+        rating: Int = 5,
+        feedbackType: String = "FEEDBACK",
+        testerEmail: String = "tester@example.com"
+    ): Result<String> {
+        if (content.isBlank()) {
+            return Result.failure(Exception("يرجى كتابة ملاحظتك أو تقرير المشكلة أولاً"))
+        }
+        val feedback = TesterFeedback(
+            userAppId = test.communityAppId,
+            packageName = test.packageName,
+            appName = test.appName,
+            testerEmail = testerEmail,
+            rating = rating,
+            feedbackType = feedbackType,
+            content = content.trim(),
+            submittedAt = System.currentTimeMillis()
+        )
+        dao.insertFeedback(feedback)
+        dao.updateJoinedTest(test.copy(feedbackSent = true))
+
+        // Notify developer of new feedback
+        dao.insertNotification(
+            AppNotification(
+                title = "ملاحظة وتقييم جديد من مختبر",
+                message = "قدم مختبر ملاحظات لتطبيق '${test.appName}' بتقييم $rating نجوم.",
+                type = "FEEDBACK",
+                actionRoute = "my_apps"
+            )
+        )
+
+        updateWalletPoints(20, incrementStreak = false)
+        return Result.success("تم إرسال الملاحظات بنجاح للمطور وحصلت على +20 نقطة!")
+    }
+
+    suspend fun deleteFeedback(id: Int) {
+        dao.deleteFeedback(id)
     }
 
     suspend fun publishApp(app: UserApp, featureWithPoints: Boolean): Result<String> {

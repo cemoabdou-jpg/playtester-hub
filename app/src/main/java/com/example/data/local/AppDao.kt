@@ -12,6 +12,7 @@ import com.example.data.model.CommunityApp
 import com.example.data.model.DailyTestLog
 import com.example.data.model.InvitedTester
 import com.example.data.model.JoinedTest
+import com.example.data.model.TesterFeedback
 import com.example.data.model.UserApp
 import com.example.data.model.UserWallet
 import kotlinx.coroutines.flow.Flow
@@ -167,4 +168,17 @@ interface AppDao {
 
     @Query("SELECT COUNT(*) FROM daily_test_logs WHERE testDate = :testDate")
     fun getTodayTestsCount(testDate: String): Flow<Int>
+
+    // Tester Feedback & Bug Reports
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertFeedback(feedback: TesterFeedback): Long
+
+    @Query("SELECT * FROM tester_feedback ORDER BY submittedAt DESC")
+    fun getAllFeedback(): Flow<List<TesterFeedback>>
+
+    @Query("SELECT * FROM tester_feedback WHERE packageName = :packageName ORDER BY submittedAt DESC")
+    fun getFeedbackForPackage(packageName: String): Flow<List<TesterFeedback>>
+
+    @Query("DELETE FROM tester_feedback WHERE id = :id")
+    suspend fun deleteFeedback(id: Int)
 }

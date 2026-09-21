@@ -12,6 +12,7 @@ import com.example.data.model.CommunityApp
 import com.example.data.model.DailyTestLog
 import com.example.data.model.InvitedTester
 import com.example.data.model.JoinedTest
+import com.example.data.model.TesterFeedback
 import com.example.data.model.UserApp
 import com.example.data.model.UserWallet
 import com.example.data.repository.TesterRepository
@@ -62,6 +63,9 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     val allDailyTestLogs: StateFlow<List<DailyTestLog>> = repository.allDailyTestLogs
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val allFeedback: StateFlow<List<TesterFeedback>> = repository.allFeedback
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val rawCommunityApps = repository.communityApps
@@ -264,14 +268,36 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
             val res = repository.sendDailyTestingReminder(app)
             res.onSuccess { msg ->
                 _userMessage.value = msg
+                NotificationHelper.showSystemNotification(
+                    getApplication(),
+                    "تذكير يومي عاجل للمختبرين ⏰",
+                    "يرجى فتح تطبيق '${app.name}' وتأكيد تجربة اليوم لضمان استيفاء شرط الـ 14 يوماً في Google Play."
+                )
             }
         }
     }
 
-    fun sendFeedback(test: JoinedTest) {
+    fun sendFeedback(
+        test: JoinedTest,
+        content: String = "التطبيق يعمل بشكل جيد ومستقر.",
+        rating: Int = 5,
+        feedbackType: String = "FEEDBACK"
+    ) {
         viewModelScope.launch {
-            repository.markFeedbackSent(test)
-            _userMessage.value = "شكراً لتقديم الملاحظات! تم توثيق تفاعلك مع المطور وربحت +15 نقطة!"
+            val userEmail = currentUser.value?.email ?: "tester@example.com"
+            val res = repository.submitFeedback(test, content, rating, feedbackType, userEmail)
+            res.onSuccess { msg ->
+                _userMessage.value = msg
+            }.onFailure { err ->
+                _userMessage.value = err.message ?: "فشل إرسال الملاحظات"
+            }
+        }
+    }
+
+    fun deleteFeedback(id: Int) {
+        viewModelScope.launch {
+            repository.deleteFeedback(id)
+            _userMessage.value = "تم حذف الملاحظة"
         }
     }
 
