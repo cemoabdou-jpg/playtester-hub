@@ -17,8 +17,8 @@ android {
     applicationId = "com.playtesterhub.app"
     minSdk = 24
     targetSdk = 36
-    versionCode = 5
-    versionName = "1.4"
+    versionCode = 6
+    versionName = "1.5"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -26,10 +26,18 @@ android {
   signingConfigs {
     create("release") {
       val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
-      storeFile = file(keystorePath)
-      storePassword = System.getenv("STORE_PASSWORD")
-      keyAlias = "upload"
-      keyPassword = System.getenv("KEY_PASSWORD")
+      val kFile = file(keystorePath)
+      if (kFile.exists()) {
+        storeFile = kFile
+        storePassword = System.getenv("STORE_PASSWORD") ?: "android"
+        keyAlias = "upload"
+        keyPassword = System.getenv("KEY_PASSWORD") ?: "android"
+      } else {
+        storeFile = file("${rootDir}/debug.keystore")
+        storePassword = "android"
+        keyAlias = "androiddebugkey"
+        keyPassword = "android"
+      }
     }
     create("debugConfig") {
       storeFile = file("${rootDir}/debug.keystore")
