@@ -41,10 +41,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.data.model.BadgeCalculator
 import com.example.data.model.JoinedTest
 import com.example.data.model.UserApp
 import com.example.ui.components.AddAppDialog
 import com.example.ui.components.AppHeader
+import com.example.ui.components.BadgesDialog
 import com.example.ui.components.DailyTestConfirmationDialog
 import com.example.ui.components.NotificationCenterDialog
 import com.example.ui.components.SimplifiedDashboardCard
@@ -78,6 +80,7 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
     var currentTab by remember { mutableIntStateOf(0) }
     var showAddAppDialog by remember { mutableStateOf(false) }
     var showNotificationsDialog by remember { mutableStateOf(false) }
+    var showBadgesDialog by remember { mutableStateOf(false) }
     var quickInviteApp by remember { mutableStateOf<UserApp?>(null) }
     var selectedTestForDailyConfirmation by remember { mutableStateOf<JoinedTest?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -139,6 +142,7 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                 unreadNotificationsCount = unreadNotificationsCount,
                 isSimplifiedMode = isSimplifiedMode,
                 onNotificationsClick = { showNotificationsDialog = true },
+                onBadgesClick = { showBadgesDialog = true },
                 onToggleSimplifiedMode = { viewModel.toggleSimplifiedMode() },
                 onLogout = { viewModel.logout() }
             )
@@ -256,6 +260,7 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                     )
                     1 -> MyTestingScreen(
                         joinedTests = joinedTests,
+                        currentStreak = wallet.currentStreak,
                         onCheckIn = { viewModel.checkIn(it) },
                         onConfirmDailyTest = { test, duration, rating, notes ->
                             viewModel.confirmDailyTest(test, duration, rating, notes)
@@ -301,6 +306,12 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                         adminApps = adminCommunityApps,
                         notifications = notifications,
                         isAdmin = currentUser?.role == "ADMIN",
+                        allDailyLogs = allDailyTestLogs,
+                        allFeedback = allFeedback,
+                        allArtifacts = allArtifacts,
+                        allInvitedTesters = allInvitedTesters,
+                        joinedTests = joinedTests,
+                        userApps = userApps,
                         onUpdatePriority = { appId, score ->
                             viewModel.updateAppPriority(appId, score)
                         },
@@ -323,6 +334,22 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                 }
             }
         }
+    }
+
+    if (showBadgesDialog) {
+        val badges = remember(wallet, joinedTests, allDailyTestLogs, allFeedback, userApps) {
+            BadgeCalculator.calculateBadges(
+                wallet = wallet,
+                joinedTests = joinedTests,
+                userApps = userApps,
+                feedbacks = allFeedback,
+                dailyLogs = allDailyTestLogs
+            )
+        }
+        BadgesDialog(
+            badges = badges,
+            onDismiss = { showBadgesDialog = false }
+        )
     }
 
     if (showNotificationsDialog) {

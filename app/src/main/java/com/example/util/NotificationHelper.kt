@@ -17,6 +17,46 @@ object NotificationHelper {
     const val CHANNEL_ID = "playtester_notifications"
     const val CHANNEL_NAME = "إشعارات PlayTester Hub"
     const val CHANNEL_DESC = "تنبيهات وتذكيرات الاختبار المغلق وقبول المختبرين"
+    private const val PREFS_NAME = "playtester_reminder_prefs"
+    private const val KEY_DAILY_REMINDER_ENABLED = "daily_reminder_enabled"
+    private const val KEY_REMINDER_HOUR = "reminder_hour"
+
+    fun isDailyReminderEnabled(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getBoolean(KEY_DAILY_REMINDER_ENABLED, true)
+    }
+
+    fun setDailyReminderEnabled(context: Context, enabled: Boolean) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putBoolean(KEY_DAILY_REMINDER_ENABLED, enabled).apply()
+    }
+
+    fun triggerDailyTestingReminder(
+        context: Context,
+        pendingAppsCount: Int,
+        currentStreak: Int
+    ): Boolean {
+        if (!isDailyReminderEnabled(context)) return false
+
+        val title = if (pendingAppsCount > 0) {
+            "⏰ تذكير الفحص اليومي ($pendingAppsCount تطبيق بانتظارك!)"
+        } else {
+            "🔥 ستريك الفحص اليومي مكتمل! ($currentStreak يوم)"
+        }
+
+        val message = if (pendingAppsCount > 0) {
+            "لديك $pendingAppsCount تطبيق يحتاج إلى فتح وتجربة اليوم لضمان عدم انقطاع شرط الـ 14 يوماً المتواصلة والحفاظ على الستريك $currentStreak يوم."
+        } else {
+            "رائع! لقد أكملت فحص جميع تطبيقاتك اليومية بنجاح. استمر في التميز ورفع نقاطك ورتبتك في المجتمع!"
+        }
+
+        return showSystemNotification(
+            context = context,
+            title = title,
+            message = message,
+            notificationId = 14001
+        )
+    }
 
     fun createNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

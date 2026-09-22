@@ -2,6 +2,7 @@ package com.example.ui.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Notifications
@@ -56,6 +58,7 @@ fun AppHeader(
     unreadNotificationsCount: Int = 0,
     isSimplifiedMode: Boolean = false,
     onNotificationsClick: (() -> Unit)? = null,
+    onBadgesClick: (() -> Unit)? = null,
     onToggleSimplifiedMode: (() -> Unit)? = null,
     onLogout: (() -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -139,7 +142,8 @@ fun AppHeader(
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = AmberGold.copy(alpha = 0.15f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, AmberGold.copy(alpha = 0.3f))
+                        border = androidx.compose.foundation.BorderStroke(1.dp, AmberGold.copy(alpha = 0.3f)),
+                        modifier = Modifier.clickable(enabled = onBadgesClick != null) { onBadgesClick?.invoke() }
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
@@ -165,7 +169,8 @@ fun AppHeader(
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = PlayGreen.copy(alpha = 0.15f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PlayGreen.copy(alpha = 0.3f))
+                        border = androidx.compose.foundation.BorderStroke(1.dp, PlayGreen.copy(alpha = 0.3f)),
+                        modifier = Modifier.clickable(enabled = onBadgesClick != null) { onBadgesClick?.invoke() }
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
@@ -183,6 +188,23 @@ fun AppHeader(
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = PlayGreen
+                            )
+                        }
+                    }
+
+                    // Badges / Trophy button
+                    if (onBadgesClick != null) {
+                        IconButton(
+                            onClick = onBadgesClick,
+                            modifier = Modifier
+                                .size(34.dp)
+                                .testTag("btn_badges_trophy")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.EmojiEvents,
+                                contentDescription = "الرتب والشارات",
+                                tint = AmberGold,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }

@@ -64,8 +64,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.AppBuildArtifact
 import com.example.data.model.AppNotification
 import com.example.data.model.CommunityApp
+import com.example.data.model.DailyTestLog
+import com.example.data.model.InvitedTester
+import com.example.data.model.JoinedTest
+import com.example.data.model.TesterFeedback
+import com.example.data.model.UserApp
+import com.example.ui.components.AdminAnalyticsView
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
@@ -82,10 +89,16 @@ fun AdminControlScreen(
     onBroadcastNotification: (title: String, message: String, context: Context) -> Unit,
     onDeleteNotification: (Int) -> Unit,
     isAdmin: Boolean = true,
+    allDailyLogs: List<DailyTestLog> = emptyList(),
+    allFeedback: List<TesterFeedback> = emptyList(),
+    allArtifacts: List<AppBuildArtifact> = emptyList(),
+    allInvitedTesters: List<InvitedTester> = emptyList(),
+    joinedTests: List<JoinedTest> = emptyList(),
+    userApps: List<UserApp> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var selectedTab by remember { mutableIntStateOf(0) } // 0: Apps & Priority, 1: Broadcast Notifications
+    var selectedTab by remember { mutableIntStateOf(0) } // 0: Apps & Priority, 1: Broadcast Notifications, 2: Analytics
     var showBroadcastDialog by remember { mutableStateOf(false) }
     var appToDelete by remember { mutableStateOf<CommunityApp?>(null) }
     var appToEditPriority by remember { mutableStateOf<CommunityApp?>(null) }
@@ -223,6 +236,30 @@ fun AdminControlScreen(
                             }
                         },
                         modifier = Modifier.testTag("admin_tab_notifications")
+                    )
+
+                    Tab(
+                        selected = selectedTab == 2,
+                        onClick = { selectedTab = 2 },
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("التحليلات والمخططات 📊", fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Surface(
+                                    shape = CircleShape,
+                                    color = AmberGold.copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = "جديد",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = AmberGold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        },
+                        modifier = Modifier.testTag("admin_tab_analytics")
                     )
                 }
             }
@@ -445,6 +482,17 @@ fun AdminControlScreen(
                         }
                     }
                 }
+            }
+            2 -> {
+                AdminAnalyticsView(
+                    adminApps = adminApps,
+                    allDailyLogs = allDailyLogs,
+                    allFeedback = allFeedback,
+                    allArtifacts = allArtifacts,
+                    allInvitedTesters = allInvitedTesters,
+                    joinedTests = joinedTests,
+                    userApps = userApps
+                )
             }
         }
     }

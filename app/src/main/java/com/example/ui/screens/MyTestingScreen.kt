@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.Info
@@ -29,7 +31,9 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -51,6 +56,7 @@ import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.PlayGreen
 import com.example.ui.theme.SuccessGreen
+import com.example.util.NotificationHelper
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -58,6 +64,7 @@ import java.util.Locale
 @Composable
 fun MyTestingScreen(
     joinedTests: List<JoinedTest>,
+    currentStreak: Int = 0,
     onCheckIn: (JoinedTest) -> Unit = {},
     onConfirmDailyTest: ((JoinedTest, Int, Int, String) -> Unit)? = null,
     onSendFeedback: (JoinedTest, String, Int, String) -> Unit,
@@ -65,8 +72,11 @@ fun MyTestingScreen(
     onNavigateToCommunity: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     var selectedTestForFeedback by remember { mutableStateOf<JoinedTest?>(null) }
     var selectedTestForDailyConfirmation by remember { mutableStateOf<JoinedTest?>(null) }
+    var reminderEnabled by remember { mutableStateOf(NotificationHelper.isDailyReminderEnabled(context)) }
+    var reminderSentNotice by remember { mutableStateOf(false) }
 
     val todayStr = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
     val activeCount = joinedTests.count { !it.isCompleted }
@@ -130,6 +140,111 @@ fun MyTestingScreen(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        }
+                    }
+                }
+            }
+
+            // Smart Daily Push Reminder Card
+            item {
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, PlayGreen.copy(alpha = 0.3f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("smart_daily_reminder_card")
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = PlayGreen.copy(alpha = 0.15f),
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.Alarm,
+                                            contentDescription = null,
+                                            tint = PlayGreen,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.size(10.dp))
+                                Column {
+                                    Text(
+                                        text = "نظام التذكير اليومي الذكي ⏰",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = if (pendingDailyConfirmCount > 0)
+                                            "لديك $pendingDailyConfirmCount تطبيق لم يتم فحصها اليوم"
+                                        else "أكملت فحص جميع التطبيقات اليومية اليوم ✓",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (pendingDailyConfirmCount > 0) AmberGold else PlayGreen
+                                    )
+                                }
+                            }
+
+                            Switch(
+                                checked = reminderEnabled,
+                                onCheckedChange = { isChecked ->
+                                    reminderEnabled = isChecked
+                                    NotificationHelper.setDailyReminderEnabled(context, isChecked)
+                                },
+                                modifier = Modifier.testTag("toggle_daily_reminders")
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    val sent = NotificationHelper.triggerDailyTestingReminder(
+                                        context = context,
+                                        pendingAppsCount = pendingDailyConfirmCount,
+                                        currentStreak = currentStreak
+                                    )
+                                    reminderSentNotice = true
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("btn_trigger_daily_reminder_now"),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.NotificationsActive,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = PlayGreen
+                                )
+                                Spacer(modifier = Modifier.size(6.dp))
+                                Text("إرسال تذكير تجريبي فوري", fontSize = 12.sp)
+                            }
+
+                            if (reminderSentNotice) {
+                                Text(
+                                    text = "تم إرسال الإشعار بنجاح ✓",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PlayGreen
+                                )
+                            }
                         }
                     }
                 }
