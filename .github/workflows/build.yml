@@ -37,14 +37,14 @@ jobs:
           if [ ! -f "my-upload-key.jks" ]; then
             keytool -genkeypair -v -keystore my-upload-key.jks \
               -alias upload -keyalg RSA -keysize 2048 -validity 10000 \
-              -storepass android123 -keypass android123 \
+              -storepass android -keypass android \
               -dname "CN=PlayTesterHub, OU=Dev, O=PlayTester, L=City, S=State, C=US"
           fi
 
       - name: Build Debug APK & Release Bundle (AAB)
         env:
-          STORE_PASSWORD: "android123"
-          KEY_PASSWORD: "android123"
+          STORE_PASSWORD: "android"
+          KEY_PASSWORD: "android"
         run: |
           ./gradlew :app:assembleDebug :app:bundleRelease --no-daemon --stacktrace
 
