@@ -21,12 +21,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -41,6 +43,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -70,12 +73,15 @@ fun AuthScreen(
     onGoogleSignIn: (email: String, name: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var selectedTab by remember { mutableIntStateOf(0) } // 0: Login, 1: Register
+    // 0: Register (حساب جديد - أولاً), 1: Login (تسجيل الدخول)
+    var selectedTab by remember { mutableIntStateOf(0) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     var displayName by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var successNotice by remember { mutableStateOf<String?>(null) }
 
     Surface(
         modifier = modifier
@@ -122,13 +128,48 @@ fun AuthScreen(
             )
 
             Text(
-                text = "منصة المطورين المعتمدة لتبادل الاختبار المغلق",
+                text = "بوابة المطورين الآمنة لتبادل الاختبار المغلق 14 يوماً",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)
             )
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Mandatory Account Step Notice
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.VpnKey,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "نظام الحساب الإلزامي للمطورين",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = "أنشئ حسابك أولاً، ثم سجّل الدخول لحفظ تطبيقاتك ومختبريك ومحفظتك بشكل دائم دون فقدان.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                        )
+                    }
+                }
+            }
 
             // Login / Register Card
             Card(
@@ -139,7 +180,7 @@ fun AuthScreen(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -159,38 +200,44 @@ fun AuthScreen(
                             onClick = {
                                 selectedTab = 0
                                 errorMessage = null
+                                successNotice = null
                             },
                             text = {
                                 Text(
-                                    "تسجيل الدخول",
+                                    "1. إنشاء حساب مطور",
                                     fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal
                                 )
                             },
-                            modifier = Modifier.testTag("tab_auth_login")
+                            modifier = Modifier.testTag("tab_auth_register")
                         )
                         Tab(
                             selected = selectedTab == 1,
                             onClick = {
                                 selectedTab = 1
                                 errorMessage = null
+                                successNotice = null
                             },
                             text = {
                                 Text(
-                                    "حساب جديد",
+                                    "2. تسجيل الدخول",
                                     fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
                                 )
                             },
-                            modifier = Modifier.testTag("tab_auth_register")
+                            modifier = Modifier.testTag("tab_auth_login")
                         )
                     }
 
                     // Display Name (Registration only)
-                    AnimatedVisibility(visible = selectedTab == 1) {
+                    AnimatedVisibility(visible = selectedTab == 0) {
                         Column {
                             OutlinedTextField(
                                 value = displayName,
-                                onValueChange = { displayName = it },
-                                label = { Text("اسم المطور أو الاستوديو") },
+                                onValueChange = {
+                                    displayName = it
+                                    errorMessage = null
+                                },
+                                label = { Text("اسم المطور أو اسم الاستوديو") },
+                                placeholder = { Text("مثال: ستوديو الأندرويد العربي") },
                                 leadingIcon = {
                                     Icon(Icons.Default.Person, contentDescription = null, tint = PlayGreen)
                                 },
@@ -211,7 +258,8 @@ fun AuthScreen(
                             email = it
                             errorMessage = null
                         },
-                        label = { Text("البريد الإلكتروني") },
+                        label = { Text("البريد الإلكتروني المعتمد") },
+                        placeholder = { Text("developer@example.com") },
                         leadingIcon = {
                             Icon(Icons.Default.Email, contentDescription = null, tint = PlayGreen)
                         },
@@ -232,6 +280,7 @@ fun AuthScreen(
                             errorMessage = null
                         },
                         label = { Text("كلمة المرور") },
+                        placeholder = { Text("6 أحرف أو أكثر") },
                         leadingIcon = {
                             Icon(Icons.Default.Lock, contentDescription = null, tint = PlayGreen)
                         },
@@ -248,10 +297,64 @@ fun AuthScreen(
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 16.dp)
+                            .padding(bottom = if (selectedTab == 0) 12.dp else 16.dp)
                             .testTag("input_auth_password"),
                         shape = RoundedCornerShape(12.dp)
                     )
+
+                    // Confirm Password (Registration only)
+                    AnimatedVisibility(visible = selectedTab == 0) {
+                        Column {
+                            OutlinedTextField(
+                                value = confirmPassword,
+                                onValueChange = {
+                                    confirmPassword = it
+                                    errorMessage = null
+                                },
+                                label = { Text("تأكيد كلمة المرور") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Lock, contentDescription = null, tint = PlayGreen)
+                                },
+                                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                                singleLine = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp)
+                                    .testTag("input_auth_confirm_password"),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                        }
+                    }
+
+                    // Success notice banner
+                    successNotice?.let { msg ->
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = msg,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+                    }
 
                     // Error Message banner
                     errorMessage?.let { msg ->
@@ -275,17 +378,27 @@ fun AuthScreen(
                     Button(
                         onClick = {
                             if (email.isBlank() || !email.contains("@")) {
-                                errorMessage = "يرجى إدخال بريد إلكتروني صحيح"
+                                errorMessage = "يرجى إدخال بريد إلكتروني صحيح وصالح"
                                 return@Button
                             }
                             if (password.length < 6) {
-                                errorMessage = "كلمة المرور يجب أن لا تقل عن 6 أحرف"
+                                errorMessage = "كلمة المرور يجب أن لا تقل عن 6 أحرف لحماية حسابك"
                                 return@Button
                             }
                             if (selectedTab == 0) {
-                                onLogin(email.trim(), password)
-                            } else {
+                                // Registration flow
+                                if (displayName.isBlank()) {
+                                    errorMessage = "يرجى إدخال اسم المطور أو الاستوديو"
+                                    return@Button
+                                }
+                                if (password != confirmPassword) {
+                                    errorMessage = "كلمتا المرور غير متطابقتين، يرجى التحقق"
+                                    return@Button
+                                }
                                 onRegister(displayName.trim(), email.trim(), password)
+                            } else {
+                                // Login flow
+                                onLogin(email.trim(), password)
                             }
                         },
                         modifier = Modifier
@@ -295,12 +408,59 @@ fun AuthScreen(
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PlayGreen)
                     ) {
+                        Icon(
+                            imageVector = if (selectedTab == 0) Icons.Default.Person else Icons.Default.VpnKey,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (selectedTab == 0) "تسجيل الدخول" else "إنشاء حساب جديد",
+                            text = if (selectedTab == 0) "إنشاء وحفظ حساب المطور" else "تسجيل الدخول والمتابعة",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Optional quick shortcut for testing developer signup/login
+                    Surface(
+                        onClick = {
+                            if (selectedTab == 0) {
+                                displayName = "مطور أندرويد"
+                            }
+                            email = "developer@playtesterhub.com"
+                            password = "password123"
+                            confirmPassword = "password123"
+                            errorMessage = null
+                            successNotice = "تمت تعبئة بيانات حساب مطور تجريبي!"
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("btn_fill_developer_credentials")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = PlayGreen,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "تعبئة سريعة للتجربة (حساب تجريبي)",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -311,7 +471,7 @@ fun AuthScreen(
                     ) {
                         Divider(modifier = Modifier.weight(1f))
                         Text(
-                            text = "أو للمتابعة السريعة",
+                            text = "أو باستخدام مزامنة Google",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 10.dp)
@@ -319,13 +479,13 @@ fun AuthScreen(
                         Divider(modifier = Modifier.weight(1f))
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     // Google OAuth Button
                     OutlinedButton(
                         onClick = {
                             val googleEmail = if (email.isNotBlank() && email.contains("@")) email.trim() else "developer@playtesterhub.com"
-                            val googleName = if (displayName.isNotBlank()) displayName else "مطور جوجل بلاي"
+                            val googleName = if (displayName.isNotBlank()) displayName else "المطور المعتمد"
                             onGoogleSignIn(googleEmail, googleName)
                         },
                         modifier = Modifier
@@ -345,7 +505,7 @@ fun AuthScreen(
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "المتابعة بحساب Google المعتمد",
+                            text = "ربط وتأكيد الحساب عبر Google",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -368,7 +528,7 @@ fun AuthScreen(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "بيانات اعتماد الاختبار محمية وفق إرشادات مطوري Google Play",
+                    text = "جميع بيانات المطورين وحزم التطبيقات مشفرة ومحفوظة محلياً ودائماً",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

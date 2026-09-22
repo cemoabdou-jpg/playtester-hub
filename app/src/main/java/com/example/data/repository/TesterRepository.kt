@@ -34,6 +34,18 @@ class TesterRepository(private val dao: AppDao) {
     fun getInvitedTestersForApp(appId: Int): Flow<List<InvitedTester>> = dao.getInvitedTestersForApp(appId)
     fun getLogsForJoinedTest(joinedTestId: Int): Flow<List<DailyTestLog>> = dao.getLogsForJoinedTest(joinedTestId)
 
+    companion object {
+        // Designated admin emails that get automatically assigned the ADMIN role
+        val ADMIN_EMAILS = setOf(
+            "cemoabdou@gmail.com",
+            "admin@playtesterhub.com"
+        )
+
+        fun isAdminEmail(email: String): Boolean {
+            return ADMIN_EMAILS.contains(email.trim().lowercase())
+        }
+    }
+
     // Auth methods
     suspend fun registerUser(name: String, email: String, password: String): Result<AuthUser> {
         val cleanEmail = email.trim().lowercase()
@@ -48,11 +60,13 @@ class TesterRepository(private val dao: AppDao) {
             return Result.failure(Exception("البريد الإلكتروني مسجل بالفعل، يرجى تسجيل الدخول"))
         }
         dao.logoutAllUsers()
+        val assignedRole = if (isAdminEmail(cleanEmail)) "ADMIN" else "DEVELOPER"
         val newUser = AuthUser(
             email = cleanEmail,
             passwordHash = password, // In client DB model
             displayName = if (name.isNotBlank()) name.trim() else cleanEmail.substringBefore("@"),
             authProvider = "EMAIL",
+            role = assignedRole,
             isLoggedIn = true
         )
         val id = dao.insertAuthUser(newUser)
@@ -63,13 +77,26 @@ class TesterRepository(private val dao: AppDao) {
         val cleanEmail = email.trim().lowercase()
         val user = dao.getUserByEmail(cleanEmail)
         if (user == null) {
-            return Result.failure(Exception("الحساب غير موجود، يرجى إنشاء حساب جديد"))
+            // Auto register default developer or user seamlessly
+            dao.logoutAllUsers()
+            val assignedRole = if (isAdminEmail(cleanEmail)) "ADMIN" else "DEVELOPER"
+            val newUser = AuthUser(
+                email = cleanEmail,
+                passwordHash = password,
+                displayName = cleanEmail.substringBefore("@").replace(".", " "),
+                authProvider = "EMAIL",
+                role = assignedRole,
+                isLoggedIn = true
+            )
+            val id = dao.insertAuthUser(newUser)
+            return Result.success(newUser.copy(id = id.toInt()))
         }
         if (user.passwordHash.isNotEmpty() && user.passwordHash != password) {
             return Result.failure(Exception("كلمة المرور غير صحيحة"))
         }
         dao.logoutAllUsers()
-        val loggedInUser = user.copy(isLoggedIn = true)
+        val assignedRole = if (isAdminEmail(cleanEmail)) "ADMIN" else user.role
+        val loggedInUser = user.copy(isLoggedIn = true, role = assignedRole)
         dao.updateAuthUser(loggedInUser)
         return Result.success(loggedInUser)
     }
@@ -77,14 +104,17 @@ class TesterRepository(private val dao: AppDao) {
     suspend fun loginWithGoogle(email: String, displayName: String): Result<AuthUser> {
         val cleanEmail = email.trim().lowercase()
         dao.logoutAllUsers()
+        val assignedRole = if (isAdminEmail(cleanEmail)) "ADMIN" else "DEVELOPER"
         val existing = dao.getUserByEmail(cleanEmail)
         val userToLogin = if (existing != null) {
-            existing.copy(isLoggedIn = true, displayName = displayName)
+            val role = if (isAdminEmail(cleanEmail)) "ADMIN" else existing.role
+            existing.copy(isLoggedIn = true, displayName = displayName, role = role)
         } else {
             AuthUser(
                 email = cleanEmail,
                 displayName = displayName,
                 authProvider = "GOOGLE",
+                role = assignedRole,
                 isLoggedIn = true
             )
         }
@@ -400,5 +430,35 @@ class TesterRepository(private val dao: AppDao) {
         val current = dao.getWalletOnce() ?: UserWallet(id = 1)
         val newPoints = (current.points - pointsToDeduct).coerceAtLeast(0)
         dao.insertOrUpdateWallet(current.copy(points = newPoints))
+    }
+
+    // --- Admin / Owner Control Methods ---
+    val allCommunityAppsAdmin: Flow<List<CommunityApp>> = dao.getAllCommunityAppsAdmin()
+
+    suspend fun updateAppPriority(appId: Int, priorityScore: Int): Result<String> {
+        dao.updateAppPriority(appId, priorityScore)
+        return Result.success("تم تحديث أولوية ظهور التطبيق بنجاح")
+    }
+
+    suspend fun toggleAppFeatured(appId: Int, isFeatured: Boolean): Result<String> {
+        dao.toggleAppFeatured(appId, isFeatured)
+        val msg = if (isFeatured) "تم تثبيت التطبيق في الصدارة (مميز)" else "تم إلغاء تثبيت التطبيق من الصدارة"
+        return Result.success(msg)
+    }
+
+    suspend fun toggleAppVisibility(appId: Int, isHidden: Boolean): Result<String> {
+        dao.toggleAppHidden(appId, isHidden)
+        val msg = if (isHidden) "تم إخفاء التطبيق من سوق التبادل" else "تم إظهار التطبيق في سوق التبادل"
+        return Result.success(msg)
+    }
+
+    suspend fun deleteCommunityAppByAdmin(appId: Int): Result<String> {
+        dao.deleteCommunityApp(appId)
+        return Result.success("تم حذف التطبيق نهائياً من قبل صاحب المنصة")
+    }
+
+    suspend fun broadcastNotification(title: String, message: String, type: String = "INFO"): Result<String> {
+        addNotification(title = title, message = message, type = type)
+        return Result.success("تم إرسال الإشعار العام لجميع المطورين بنجاح!")
     }
 }

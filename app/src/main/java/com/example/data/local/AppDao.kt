@@ -19,9 +19,12 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AppDao {
-    // Community Apps
-    @Query("SELECT * FROM community_apps ORDER BY isFeatured DESC, id DESC")
+    // Community Apps (Ordered by Owner Priority Score, then Featured, then ID)
+    @Query("SELECT * FROM community_apps WHERE isHidden = 0 ORDER BY priorityScore DESC, isFeatured DESC, id DESC")
     fun getAllCommunityApps(): Flow<List<CommunityApp>>
+
+    @Query("SELECT * FROM community_apps ORDER BY priorityScore DESC, isFeatured DESC, id DESC")
+    fun getAllCommunityAppsAdmin(): Flow<List<CommunityApp>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCommunityApp(app: CommunityApp): Long
@@ -31,6 +34,18 @@ interface AppDao {
 
     @Update
     suspend fun updateCommunityApp(app: CommunityApp)
+
+    @Query("DELETE FROM community_apps WHERE id = :id")
+    suspend fun deleteCommunityApp(id: Int)
+
+    @Query("UPDATE community_apps SET priorityScore = :score WHERE id = :appId")
+    suspend fun updateAppPriority(appId: Int, score: Int)
+
+    @Query("UPDATE community_apps SET isFeatured = :isFeatured WHERE id = :appId")
+    suspend fun toggleAppFeatured(appId: Int, isFeatured: Boolean)
+
+    @Query("UPDATE community_apps SET isHidden = :isHidden WHERE id = :appId")
+    suspend fun toggleAppHidden(appId: Int, isHidden: Boolean)
 
     @Query("UPDATE community_apps SET testersCurrent = testersCurrent + 1 WHERE id = :appId")
     suspend fun incrementCommunityAppTesters(appId: Int)

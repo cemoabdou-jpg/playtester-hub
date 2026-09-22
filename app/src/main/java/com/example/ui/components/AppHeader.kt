@@ -99,12 +99,29 @@ fun AppHeader(
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
-                        Text(
-                            text = "PlayTester Hub",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "PlayTester Hub",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            if (currentUser?.role == "ADMIN") {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = AmberGold
+                                ) {
+                                    Text(
+                                        text = "صاحب المنصة 👑",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.Black,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
                         Text(
                             text = currentUser?.displayName ?: "تبادل المختبرين لـ 20 مختبراً",
                             style = MaterialTheme.typography.labelSmall,

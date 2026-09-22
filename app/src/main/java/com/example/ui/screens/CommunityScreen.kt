@@ -36,10 +36,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.data.model.AuthUser
 import com.example.data.model.CommunityApp
 import com.example.data.model.JoinedTest
 import com.example.ui.components.HeroBannerCard
 import com.example.ui.components.TesterCard
+import com.example.ui.theme.AmberGold
 import com.example.ui.theme.PlayGreen
 
 @Composable
@@ -48,10 +50,12 @@ fun CommunityScreen(
     joinedTests: List<JoinedTest>,
     searchQuery: String,
     selectedCategory: String,
+    currentUser: AuthUser? = null,
     onSearchChange: (String) -> Unit,
     onCategorySelect: (String) -> Unit,
     onJoinApp: (CommunityApp) -> Unit,
     onPublishClick: () -> Unit,
+    onOpenAdmin: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val joinedAppIds = joinedTests.map { it.communityAppId }.toSet()
@@ -132,6 +136,24 @@ fun CommunityScreen(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+
+                    if (currentUser?.role == "ADMIN" && onOpenAdmin != null) {
+                        Surface(
+                            onClick = onOpenAdmin,
+                            shape = RoundedCornerShape(8.dp),
+                            color = AmberGold.copy(alpha = 0.2f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, AmberGold),
+                            modifier = Modifier.testTag("btn_open_admin_panel")
+                        ) {
+                            Text(
+                                text = "👑 لوحة تحكم المالك",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = AmberGold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
                 }
             }
 

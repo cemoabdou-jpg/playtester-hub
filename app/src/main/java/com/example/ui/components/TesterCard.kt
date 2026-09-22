@@ -124,6 +124,25 @@ fun TesterCard(
                             }
                         }
                     }
+
+                    if (app.priorityScore > 0) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = PlayGreen.copy(alpha = 0.15f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "⚡ أولوية #${app.priorityScore}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = PlayGreen,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
                 }
 
                 // Reward points

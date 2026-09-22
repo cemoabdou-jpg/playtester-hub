@@ -32,7 +32,7 @@ import kotlinx.coroutines.launch
         DailyTestLog::class,
         TesterFeedback::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -182,11 +182,33 @@ abstract class AppDatabase : RoomDatabase() {
             )
             val userAppId = dao.insertUserApp(sampleUserApp).toInt()
 
-            // Seed default logged in developer user
+            // Seed owner/admin account and default developer account
+            val adminOwner = AuthUser(
+                email = "cemoabdou@gmail.com",
+                passwordHash = "password123",
+                displayName = "المدير العام",
+                authProvider = "EMAIL",
+                role = "ADMIN",
+                isLoggedIn = false
+            )
+            dao.insertAuthUser(adminOwner)
+
+            val legacyAdmin = AuthUser(
+                email = "admin@playtesterhub.com",
+                passwordHash = "admin123",
+                displayName = "مدير المنصة",
+                authProvider = "EMAIL",
+                role = "ADMIN",
+                isLoggedIn = false
+            )
+            dao.insertAuthUser(legacyAdmin)
+
             val defaultUser = AuthUser(
                 email = "developer@playtesterhub.com",
+                passwordHash = "password123",
                 displayName = "المطور المعتمد",
-                authProvider = "GOOGLE",
+                authProvider = "EMAIL",
+                role = "DEVELOPER",
                 isLoggedIn = true
             )
             dao.insertAuthUser(defaultUser)

@@ -24,7 +24,8 @@ val DarkNavyBorder = Color(0xFF334155)
 val LightBg = Color(0xFFF8FAFC)
 val LightSurface = Color(0xFFFFFFFF)
 val LightCard = Color(0xFFF1F5F9)
-val LightBorder = Color(0xFFE2E8F0)
+val LightBorder = Color(0xFF64748B) // High contrast visible border
+val LightBorderVariant = Color(0xFF94A3B8)
 
 val TextPrimaryDark = Color(0xFFF1F5F9)
 val TextSecondaryDark = Color(0xFF94A3B8)

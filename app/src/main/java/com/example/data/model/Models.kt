@@ -11,6 +11,7 @@ data class AuthUser(
     val displayName: String,
     val authProvider: String = "EMAIL", // "EMAIL", "GOOGLE", "GITHUB"
     val avatarUrl: String = "",
+    val role: String = "DEVELOPER", // "ADMIN" (صاحب التطبيق), "DEVELOPER"
     val isLoggedIn: Boolean = true,
     val registeredAt: Long = System.currentTimeMillis()
 )
@@ -56,6 +57,8 @@ data class CommunityApp(
     val testersTarget: Int = 20,
     val rewardPoints: Int = 50,
     val isFeatured: Boolean = false,
+    val priorityScore: Int = 0, // 0 = standard, positive = higher rank/top display
+    val isHidden: Boolean = false, // Owner can hide/disable an app
     val createdAt: Long = System.currentTimeMillis()
 )
 

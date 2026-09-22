@@ -50,6 +50,9 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
     val currentUser: StateFlow<AuthUser?> = repository.currentUser
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    val adminCommunityApps: StateFlow<List<CommunityApp>> = repository.allCommunityAppsAdmin
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val allArtifacts: StateFlow<List<AppBuildArtifact>> = repository.allArtifacts
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -398,6 +401,45 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
             } else {
                 "تم إضافة الإشعار في مركز الإشعارات (تأكد من تفعيل إذن الإشعارات لإظهارها في شريط النظام)"
             }
+        }
+    }
+
+    // --- Admin / Owner Controls ---
+    fun updateAppPriority(appId: Int, priorityScore: Int) {
+        viewModelScope.launch {
+            val res = repository.updateAppPriority(appId, priorityScore)
+            res.onSuccess { msg -> _userMessage.value = msg }
+        }
+    }
+
+    fun toggleAppFeatured(appId: Int, isFeatured: Boolean) {
+        viewModelScope.launch {
+            val res = repository.toggleAppFeatured(appId, isFeatured)
+            res.onSuccess { msg -> _userMessage.value = msg }
+        }
+    }
+
+    fun toggleAppVisibility(appId: Int, isHidden: Boolean) {
+        viewModelScope.launch {
+            val res = repository.toggleAppVisibility(appId, isHidden)
+            res.onSuccess { msg -> _userMessage.value = msg }
+        }
+    }
+
+    fun deleteCommunityAppByAdmin(appId: Int) {
+        viewModelScope.launch {
+            val res = repository.deleteCommunityAppByAdmin(appId)
+            res.onSuccess { msg -> _userMessage.value = msg }
+        }
+    }
+
+    fun broadcastNotification(title: String, message: String, context: Context?) {
+        viewModelScope.launch {
+            val res = repository.broadcastNotification(title, message, type = "MILESTONE")
+            context?.let { ctx ->
+                NotificationHelper.showSystemNotification(ctx, title, message)
+            }
+            res.onSuccess { msg -> _userMessage.value = msg }
         }
     }
 }

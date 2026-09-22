@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.RocketLaunch
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +49,7 @@ import com.example.ui.components.DailyTestConfirmationDialog
 import com.example.ui.components.NotificationCenterDialog
 import com.example.ui.components.SimplifiedDashboardCard
 import com.example.ui.components.TesterInvitationDialog
+import com.example.ui.screens.AdminControlScreen
 import com.example.ui.screens.AuthScreen
 import com.example.ui.screens.CommunityScreen
 import com.example.ui.screens.GuideScreen
@@ -85,6 +87,7 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
     val allInvitedTesters by viewModel.allInvitedTesters.collectAsStateWithLifecycle()
 
     val communityApps by viewModel.filteredCommunityApps.collectAsStateWithLifecycle()
+    val adminCommunityApps by viewModel.adminCommunityApps.collectAsStateWithLifecycle()
     val joinedTests by viewModel.joinedTests.collectAsStateWithLifecycle()
     val userApps by viewModel.userApps.collectAsStateWithLifecycle()
     val wallet by viewModel.wallet.collectAsStateWithLifecycle()
@@ -195,6 +198,21 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                     label = { Text("دليل 14 يوم") },
                     modifier = Modifier.testTag("tab_guide")
                 )
+
+                if (currentUser?.role == "ADMIN") {
+                    NavigationBarItem(
+                        selected = currentTab == 4,
+                        onClick = { currentTab = 4 },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Security,
+                                contentDescription = "لوحة المالك"
+                            )
+                        },
+                        label = { Text("لوحة المالك") },
+                        modifier = Modifier.testTag("tab_admin_owner")
+                    )
+                }
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -229,10 +247,12 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                         joinedTests = joinedTests,
                         searchQuery = searchQuery,
                         selectedCategory = selectedCategory,
+                        currentUser = currentUser,
                         onSearchChange = { viewModel.setSearchQuery(it) },
                         onCategorySelect = { viewModel.setSelectedCategory(it) },
                         onJoinApp = { viewModel.joinApp(it) },
-                        onPublishClick = { showAddAppDialog = true }
+                        onPublishClick = { showAddAppDialog = true },
+                        onOpenAdmin = if (currentUser?.role == "ADMIN") { { currentTab = 4 } } else null
                     )
                     1 -> MyTestingScreen(
                         joinedTests = joinedTests,
@@ -277,6 +297,29 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                         }
                     )
                     3 -> GuideScreen()
+                    4 -> AdminControlScreen(
+                        adminApps = adminCommunityApps,
+                        notifications = notifications,
+                        isAdmin = currentUser?.role == "ADMIN",
+                        onUpdatePriority = { appId, score ->
+                            viewModel.updateAppPriority(appId, score)
+                        },
+                        onToggleFeatured = { appId, isFeatured ->
+                            viewModel.toggleAppFeatured(appId, isFeatured)
+                        },
+                        onToggleVisibility = { appId, isHidden ->
+                            viewModel.toggleAppVisibility(appId, isHidden)
+                        },
+                        onDeleteApp = { appId ->
+                            viewModel.deleteCommunityAppByAdmin(appId)
+                        },
+                        onBroadcastNotification = { title, message, ctx ->
+                            viewModel.broadcastNotification(title, message, ctx)
+                        },
+                        onDeleteNotification = { notifId ->
+                            viewModel.deleteNotification(notifId)
+                        }
+                    )
                 }
             }
         }
