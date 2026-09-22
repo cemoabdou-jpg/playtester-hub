@@ -17,8 +17,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Android
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Shop
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -29,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -155,15 +162,30 @@ fun AddAppDialog(
                     }
                 }
 
+                val fieldColors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = PlayGreen,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+                    focusedLabelColor = PlayGreen,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                val fieldShape = RoundedCornerShape(12.dp)
+
                 // App Name
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it; errorMessage = null },
                     label = { Text("اسم التطبيق *") },
                     placeholder = { Text("مثال: حاسبة المصاريف الذكية") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Apps, contentDescription = null, tint = PlayGreen)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("input_app_name"),
+                    shape = fieldShape,
+                    colors = fieldColors,
                     singleLine = true
                 )
 
@@ -173,9 +195,14 @@ fun AddAppDialog(
                     onValueChange = { packageName = it.trim(); errorMessage = null },
                     label = { Text("اسم الحزمة (Package Name) *") },
                     placeholder = { Text("مثال: com.developer.budgetapp") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Android, contentDescription = null, tint = PlayGreen)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("input_package_name"),
+                    shape = fieldShape,
+                    colors = fieldColors,
                     singleLine = true
                 )
 
@@ -216,9 +243,14 @@ fun AddAppDialog(
                     onValueChange = { googleGroupUrl = it.trim(); errorMessage = null },
                     label = { Text("رابط مجموعة Google Group *") },
                     placeholder = { Text("https://groups.google.com/g/...") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Group, contentDescription = null, tint = PlayGreen)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("input_google_group"),
+                    shape = fieldShape,
+                    colors = fieldColors,
                     singleLine = true
                 )
 
@@ -228,9 +260,14 @@ fun AddAppDialog(
                     onValueChange = { webOptInUrl = it.trim(); errorMessage = null },
                     label = { Text("رابط الانضمام عبر الويب (Web Opt-in)") },
                     placeholder = { Text("https://play.google.com/apps/testing/...") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Language, contentDescription = null, tint = CyanAccent)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("input_web_url"),
+                    shape = fieldShape,
+                    colors = fieldColors,
                     singleLine = true
                 )
 
@@ -240,9 +277,14 @@ fun AddAppDialog(
                     onValueChange = { androidOptInUrl = it.trim(); errorMessage = null },
                     label = { Text("رابط التطبيق على متجر Play (Android link)") },
                     placeholder = { Text("https://play.google.com/store/apps/details?id=...") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Shop, contentDescription = null, tint = PlayGreen)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("input_android_url"),
+                    shape = fieldShape,
+                    colors = fieldColors,
                     singleLine = true
                 )
 
@@ -252,7 +294,12 @@ fun AddAppDialog(
                     onValueChange = { instructions = it },
                     label = { Text("تعليمات للمختبرين (اختياري)") },
                     placeholder = { Text("مثال: يرجى تجربة حفظ ملف والضغط على زر التقارير") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Description, contentDescription = null, tint = AmberGold)
+                    },
                     modifier = Modifier.fillMaxWidth(),
+                    shape = fieldShape,
+                    colors = fieldColors,
                     maxLines = 3
                 )
 
