@@ -57,6 +57,7 @@ import com.example.ui.screens.CommunityScreen
 import com.example.ui.screens.GuideScreen
 import com.example.ui.screens.MyAppsScreen
 import com.example.ui.screens.MyTestingScreen
+import com.example.ui.screens.OnboardingScreen
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.viewmodel.TesterViewModel
 
@@ -81,11 +82,13 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
     var showAddAppDialog by remember { mutableStateOf(false) }
     var showNotificationsDialog by remember { mutableStateOf(false) }
     var showBadgesDialog by remember { mutableStateOf(false) }
+    var showOnboardingExplicitly by remember { mutableStateOf(false) }
     var quickInviteApp by remember { mutableStateOf<UserApp?>(null) }
     var selectedTestForDailyConfirmation by remember { mutableStateOf<JoinedTest?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+    val isOnboardingCompleted by viewModel.isOnboardingCompleted.collectAsStateWithLifecycle()
     val allArtifacts by viewModel.allArtifacts.collectAsStateWithLifecycle()
     val allInvitedTesters by viewModel.allInvitedTesters.collectAsStateWithLifecycle()
 
@@ -131,6 +134,17 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
         return
     }
 
+    // If onboarding is not completed or user explicitly reopened it, show OnboardingScreen
+    if (!isOnboardingCompleted || showOnboardingExplicitly) {
+        OnboardingScreen(
+            onFinishOnboarding = {
+                viewModel.setOnboardingCompleted(true)
+                showOnboardingExplicitly = false
+            }
+        )
+        return
+    }
+
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
@@ -143,6 +157,7 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                 isSimplifiedMode = isSimplifiedMode,
                 onNotificationsClick = { showNotificationsDialog = true },
                 onBadgesClick = { showBadgesDialog = true },
+                onOpenOnboarding = { showOnboardingExplicitly = true },
                 onToggleSimplifiedMode = { viewModel.toggleSimplifiedMode() },
                 onLogout = { viewModel.logout() }
             )
@@ -301,7 +316,9 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                             viewModel.sendDailyTestingReminder(app)
                         }
                     )
-                    3 -> GuideScreen()
+                    3 -> GuideScreen(
+                        onOpenOnboarding = { showOnboardingExplicitly = true }
+                    )
                     4 -> AdminControlScreen(
                         adminApps = adminCommunityApps,
                         notifications = notifications,

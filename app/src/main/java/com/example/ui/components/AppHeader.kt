@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
@@ -59,6 +60,7 @@ fun AppHeader(
     isSimplifiedMode: Boolean = false,
     onNotificationsClick: (() -> Unit)? = null,
     onBadgesClick: (() -> Unit)? = null,
+    onOpenOnboarding: (() -> Unit)? = null,
     onToggleSimplifiedMode: (() -> Unit)? = null,
     onLogout: (() -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -255,6 +257,23 @@ fun AppHeader(
                                 imageVector = if (isSimplifiedMode) Icons.Default.ViewAgenda else Icons.Default.ViewCompact,
                                 contentDescription = if (isSimplifiedMode) "الوضع المفصل" else "الوضع المبسط",
                                 tint = if (isSimplifiedMode) PlayGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+
+                    // Help / Onboarding Tour button
+                    if (onOpenOnboarding != null) {
+                        IconButton(
+                            onClick = onOpenOnboarding,
+                            modifier = Modifier
+                                .size(34.dp)
+                                .testTag("btn_open_onboarding_header")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.HelpOutline,
+                                contentDescription = "شرح التطبيق وشروط الـ 14 يوماً",
+                                tint = CyanAccent,
                                 modifier = Modifier.size(20.dp)
                             )
                         }

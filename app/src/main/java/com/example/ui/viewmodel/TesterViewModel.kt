@@ -28,6 +28,15 @@ import kotlinx.coroutines.launch
 class TesterViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: TesterRepository
+    private val prefs = application.getSharedPreferences("playtester_prefs", Context.MODE_PRIVATE)
+
+    private val _isOnboardingCompleted = MutableStateFlow(prefs.getBoolean("onboarding_completed", false))
+    val isOnboardingCompleted: StateFlow<Boolean> = _isOnboardingCompleted.asStateFlow()
+
+    fun setOnboardingCompleted(completed: Boolean) {
+        prefs.edit().putBoolean("onboarding_completed", completed).apply()
+        _isOnboardingCompleted.value = completed
+    }
 
     init {
         val db = AppDatabase.getInstance(application)

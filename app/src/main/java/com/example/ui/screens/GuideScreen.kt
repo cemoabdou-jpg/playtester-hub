@@ -58,6 +58,7 @@ data class GuideStep(
 
 @Composable
 fun GuideScreen(
+    onOpenOnboarding: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val steps = remember {
@@ -138,6 +139,19 @@ fun GuideScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    androidx.compose.material3.Button(
+                        onClick = onOpenOnboarding,
+                        shape = RoundedCornerShape(10.dp),
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = PlayGreen),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("btn_reopen_onboarding")
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("عرض الجولة الترحيبية وشرح الـ 14 يوماً 🚀", color = Color.Black, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
         }

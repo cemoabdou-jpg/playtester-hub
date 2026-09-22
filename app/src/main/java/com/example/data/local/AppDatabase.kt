@@ -32,7 +32,7 @@ import kotlinx.coroutines.launch
         DailyTestLog::class,
         TesterFeedback::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -209,7 +209,7 @@ abstract class AppDatabase : RoomDatabase() {
                 displayName = "المطور المعتمد",
                 authProvider = "EMAIL",
                 role = "DEVELOPER",
-                isLoggedIn = true
+                isLoggedIn = false
             )
             dao.insertAuthUser(defaultUser)
 

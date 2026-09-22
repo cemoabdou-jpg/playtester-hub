@@ -75,24 +75,18 @@ class TesterRepository(private val dao: AppDao) {
 
     suspend fun loginWithEmail(email: String, password: String): Result<AuthUser> {
         val cleanEmail = email.trim().lowercase()
+        if (cleanEmail.isBlank() || !cleanEmail.contains("@")) {
+            return Result.failure(Exception("يرجى إدخال بريد إلكتروني صحيح"))
+        }
+        if (password.isBlank()) {
+            return Result.failure(Exception("يرجى إدخال كلمة المرور"))
+        }
         val user = dao.getUserByEmail(cleanEmail)
         if (user == null) {
-            // Auto register default developer or user seamlessly
-            dao.logoutAllUsers()
-            val assignedRole = if (isAdminEmail(cleanEmail)) "ADMIN" else "DEVELOPER"
-            val newUser = AuthUser(
-                email = cleanEmail,
-                passwordHash = password,
-                displayName = cleanEmail.substringBefore("@").replace(".", " "),
-                authProvider = "EMAIL",
-                role = assignedRole,
-                isLoggedIn = true
-            )
-            val id = dao.insertAuthUser(newUser)
-            return Result.success(newUser.copy(id = id.toInt()))
+            return Result.failure(Exception("هذا البريد غير مسجل، يرجى التبديل إلى تبويب 'إنشاء حساب جديد' أولاً"))
         }
         if (user.passwordHash.isNotEmpty() && user.passwordHash != password) {
-            return Result.failure(Exception("كلمة المرور غير صحيحة"))
+            return Result.failure(Exception("كلمة المرور غير صحيحة، يرجى التحقق وإعادة المحاولة"))
         }
         dao.logoutAllUsers()
         val assignedRole = if (isAdminEmail(cleanEmail)) "ADMIN" else user.role

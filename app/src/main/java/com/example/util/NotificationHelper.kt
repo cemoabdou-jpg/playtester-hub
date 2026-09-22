@@ -6,6 +6,8 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -64,6 +66,9 @@ object NotificationHelper {
             val channel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, importance).apply {
                 description = CHANNEL_DESC
                 enableVibration(true)
+                enableLights(true)
+                lightColor = android.graphics.Color.parseColor("#00C853")
+                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
             }
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
@@ -100,14 +105,31 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // Load app logo bitmap for LargeIcon in notification shade
+        val appLogoBitmap: Bitmap? = try {
+            BitmapFactory.decodeResource(context.resources, R.drawable.playtester_app_icon_1789977058621)
+                ?: BitmapFactory.decodeResource(context.resources, R.drawable.ic_tester_logo)
+        } catch (e: Exception) {
+            null
+        }
+
+        val brandColor = ContextCompat.getColor(context, R.color.play_green)
+
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_stat_playtester)
             .setContentTitle(title)
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setColor(brandColor)
             .setAutoCancel(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setContentIntent(pendingIntent)
+
+        if (appLogoBitmap != null) {
+            builder.setLargeIcon(appLogoBitmap)
+        }
 
         try {
             val notificationManager = NotificationManagerCompat.from(context)
