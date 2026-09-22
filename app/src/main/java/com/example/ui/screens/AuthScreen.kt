@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -86,6 +87,7 @@ fun AuthScreen(
     Surface(
         modifier = modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .imePadding()
             .testTag("auth_screen"),
         color = MaterialTheme.colorScheme.background
@@ -421,46 +423,6 @@ fun AuthScreen(
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Optional quick shortcut for testing developer signup/login
-                    Surface(
-                        onClick = {
-                            if (selectedTab == 0) {
-                                displayName = "مطور أندرويد"
-                            }
-                            email = "developer@playtesterhub.com"
-                            password = "password123"
-                            confirmPassword = "password123"
-                            errorMessage = null
-                            successNotice = "تمت تعبئة بيانات حساب مطور تجريبي!"
-                        },
-                        shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("btn_fill_developer_credentials")
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                tint = PlayGreen,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "تعبئة سريعة للتجربة (حساب تجريبي)",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))

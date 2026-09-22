@@ -57,6 +57,8 @@ import com.example.ui.theme.PlayGreen
 @Composable
 fun AddAppDialog(
     userPoints: Int,
+    officialGoogleGroupUrl: String = "https://groups.google.com/g/player-test-hup",
+    officialGoogleGroupEmail: String = "player-test-hup@googlegroups.com",
     onDismiss: () -> Unit,
     onConfirm: (
         name: String,
@@ -72,12 +74,14 @@ fun AddAppDialog(
     var name by remember { mutableStateOf("") }
     var packageName by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("أدوات") }
-    var googleGroupUrl by remember { mutableStateOf("") }
+    var googleGroupUrl by remember(officialGoogleGroupUrl) { mutableStateOf(officialGoogleGroupUrl) }
     var webOptInUrl by remember { mutableStateOf("") }
     var androidOptInUrl by remember { mutableStateOf("") }
     var instructions by remember { mutableStateOf("") }
     var isFeatured by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    var testingMethod by remember { mutableStateOf(0) } // 0: Google Group, 1: Email List / Direct
 
     val categories = listOf("أدوات", "إنتاجية", "مالية", "ألعاب", "تعليم", "نمط حياة")
 
@@ -93,7 +97,7 @@ fun AddAppDialog(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "نشر تطبيق للاختبار المغلق",
+                    text = "إضافة تطبيقك للاختبار المغلق",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -127,13 +131,13 @@ fun AddAppDialog(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "رفع التطبيقات متاح مجاناً وبدون أي شروط",
+                                text = "إضافة التطبيق لجمع 20 مختبراً",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "يمكن لجميع الأعضاء المسجلين نشر تطبيقاتهم وطلب مختبرين فوراً بدون خصم أي نقاط أو اشتراطات مسبقة.",
+                                text = "أضف قائمتك أو مجموعتك ليتمكن المطورون الآخرون من الانضمام لاختبار تطبيقك لمدة 14 يوماً.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -141,11 +145,29 @@ fun AddAppDialog(
                     }
                 }
 
+                // Testing List Method Selector
                 Text(
-                    text = "أدخل بيانات تطبيقك من Google Play Console ليتمكن المطورون الآخرون من الانضمام لاختباره لمدة 14 يوماً.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "طريقة إدارة المختبرين في Google Play Console:",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold
                 )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    FilterChip(
+                        selected = testingMethod == 0,
+                        onClick = { testingMethod = 0 },
+                        label = { Text("مجموعة Google Group") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = testingMethod == 1,
+                        onClick = { testingMethod = 1 },
+                        label = { Text("قائمة بريدية / رابط مباشر") },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
 
                 if (errorMessage != null) {
                     Surface(
@@ -237,12 +259,18 @@ fun AddAppDialog(
                     }
                 }
 
-                // Google Group URL
+                // Testers List / Group Link
                 OutlinedTextField(
                     value = googleGroupUrl,
                     onValueChange = { googleGroupUrl = it.trim(); errorMessage = null },
-                    label = { Text("رابط مجموعة Google Group *") },
-                    placeholder = { Text("https://groups.google.com/g/...") },
+                    label = { Text("رابط مجموعة Google Group للمختبرين") },
+                    placeholder = { Text(officialGoogleGroupUrl) },
+                    supportingText = {
+                        Text(
+                            text = "مجموعة المنصة الرسمية ($officialGoogleGroupEmail) تم ربطها تلقائياً",
+                            color = PlayGreen
+                        )
+                    },
                     leadingIcon = {
                         Icon(Icons.Default.Group, contentDescription = null, tint = PlayGreen)
                     },
@@ -258,7 +286,7 @@ fun AddAppDialog(
                 OutlinedTextField(
                     value = webOptInUrl,
                     onValueChange = { webOptInUrl = it.trim(); errorMessage = null },
-                    label = { Text("رابط الانضمام عبر الويب (Web Opt-in)") },
+                    label = { Text("رابط اشتراك الويب (Web Opt-in Link)") },
                     placeholder = { Text("https://play.google.com/apps/testing/...") },
                     leadingIcon = {
                         Icon(Icons.Default.Language, contentDescription = null, tint = CyanAccent)
@@ -357,20 +385,22 @@ fun AddAppDialog(
                         errorMessage = "يرجى إدخال اسم حزمة صحيح (مثال: com.example.app)"
                         return@Button
                     }
-                    if (googleGroupUrl.isBlank()) {
-                        errorMessage = "يرجى إدخال رابط مجموعة Google Group للمختبرين"
+                    if (googleGroupUrl.isBlank() && webOptInUrl.isBlank() && androidOptInUrl.isBlank()) {
+                        errorMessage = "يرجى إدخال رابط واحد على الأقل (رابط المجموعة، رابط الويب، أو رابط متجر Google Play)"
                         return@Button
                     }
-                    if (webOptInUrl.isBlank() && androidOptInUrl.isBlank()) {
-                        errorMessage = "يرجى إدخال أحد رابطي الاختبار (Web أو Android)"
-                        return@Button
+
+                    val effectiveGroupUrl = if (googleGroupUrl.isNotBlank()) {
+                        googleGroupUrl
+                    } else {
+                        officialGoogleGroupUrl
                     }
 
                     onConfirm(
                         name,
                         packageName,
                         category,
-                        googleGroupUrl,
+                        effectiveGroupUrl,
                         webOptInUrl,
                         androidOptInUrl,
                         instructions,
@@ -380,7 +410,7 @@ fun AddAppDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
                 modifier = Modifier.testTag("confirm_publish_app")
             ) {
-                Text("نشر التطبيق (مجاناً)")
+                Text("نشر وإضافة التطبيق")
             }
         },
         dismissButton = {

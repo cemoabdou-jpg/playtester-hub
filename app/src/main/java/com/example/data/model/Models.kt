@@ -12,7 +12,7 @@ data class AuthUser(
     val authProvider: String = "EMAIL", // "EMAIL", "GOOGLE", "GITHUB"
     val avatarUrl: String = "",
     val role: String = "DEVELOPER", // "ADMIN" (صاحب التطبيق), "DEVELOPER"
-    val isLoggedIn: Boolean = true,
+    val isLoggedIn: Boolean = false,
     val registeredAt: Long = System.currentTimeMillis()
 )
 
@@ -131,3 +131,10 @@ data class DailyTestLog(
     val notes: String = "",
     val verifiedAt: Long = System.currentTimeMillis()
 )
+
+@Entity(tableName = "app_settings")
+data class AppSetting(
+    @PrimaryKey val key: String,
+    val value: String
+)
+

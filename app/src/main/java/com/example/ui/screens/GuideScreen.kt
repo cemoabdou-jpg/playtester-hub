@@ -64,9 +64,9 @@ fun GuideScreen(
     val steps = remember {
         listOf(
             GuideStep(
-                title = "1. إنشاء مجموعة Google Groups للمختبرين",
-                summary = "مجموعة جوجل هي أفضل وأسهل طريقة لإدارة المختبرين العشرين",
-                details = "توجه إلى groups.google.com وأنشئ مجموعة جديدة. في إعدادات الوصول (Access Settings)، اختر أن يتمكن أي شخص لديه الرابط من الانضمام (Anyone can ask/join). هذا الرابط هو الذي ستشاركه مع المختبرين."
+                title = "1. ربط مجموعة Google Groups المركزية بالمنصة",
+                summary = "استخدم البريد الرسمي الموحد للمنصة (player-test-hup@googlegroups.com) بكونسول المطورين",
+                details = "تستخدم منصة PlayTester Hub مجموعة Google موحدة ورسمية كمرجع لكافة المختبرين. في Google Play Console داخل مسار الاختبار المغلق الخاص بتطبيقك، أضف بريد المجموعة الرسمي الموحد: player-test-hup@googlegroups.com. لن تحتاج لإنشاء وإدارة مجموعة خاصة بك!"
             ),
             GuideStep(
                 title = "2. إنشاء مسار الاختبار المغلق (Closed Track)",
@@ -74,9 +74,9 @@ fun GuideScreen(
                 details = "داخل كونسول المطور، اذهب إلى: اختبار (Testing) > اختبار مغلق (Closed testing) > إنشاء مسار (Create track). سمّ المسار Alpha أو Closed Beta."
             ),
             GuideStep(
-                title = "3. ربط المجموعة وتفعيل رابط الاشتراك (Opt-in Link)",
-                summary = "أضف عنوان البريد الخاص بمجموعتك إلى قائمة المختبرين",
-                details = "في قسم 'المختبرون' (Testers) داخل المسار، اختر Google Groups وأدخل بريد مجموعتك. بعد الحفظ، ستجد رابطين في الأسفل: Join on the web و Join on Android. انسخهما."
+                title = "3. إضافة بريد المجموعة الموحد وتنسيق روابط الاشتراك (Opt-in Links)",
+                summary = "أضف البريد player-test-hup@googlegroups.com ثم انسخ روابط Join on the web و Join on Android",
+                details = "في قسم 'المختبرون' (Testers) داخل المسار، اختر Google Groups وأدخل بريد المجموعة الرسمي للمنصة (player-test-hup@googlegroups.com). بعد الحفظ، ستجد رابطين في الأسفل: Join on the web و Join on Android. انسخهما وضعهما عند نشر تطبيقك في المنصة."
             ),
             GuideStep(
                 title = "4. رفع حزمة التطبيق الموقعة (AAB) للمراجعة",

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -21,6 +22,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ElevatedFilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -172,22 +175,42 @@ fun CommunityScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Icon(
-                                imageVector = Icons.Default.SwapHoriz,
+                                imageVector = if (searchQuery.isBlank() && selectedCategory == "الكل") Icons.Default.SwapHoriz else Icons.Default.Search,
                                 contentDescription = null,
                                 modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = MaterialTheme.colorScheme.primary
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                text = "لا توجد تطبيقات مطابقة لبحثك",
-                                style = MaterialTheme.typography.titleSmall,
+                                text = if (searchQuery.isBlank() && selectedCategory == "الكل")
+                                    "لا توجد تطبيقات في المجتمع حالياً"
+                                else
+                                    "لا توجد نتائج مطابقة للبحث",
+                                style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "جرب تغيير كلمات البحث أو اختر تصنيفاً آخر",
+                                text = if (searchQuery.isBlank() && selectedCategory == "الكل")
+                                    "كن أول من ينشر تطبيقه للحصول على 20 مختبراً حقيقياً من المطورين!"
+                                else
+                                    "جرب تغيير كلمات البحث أو اختيار تصنيف آخر",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
+                            if (searchQuery.isBlank() && selectedCategory == "الكل") {
+                                Spacer(modifier = Modifier.height(14.dp))
+                                Button(
+                                    onClick = onPublishClick,
+                                    colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("أضف تطبيقك الآن", fontWeight = FontWeight.Bold)
+                                }
+                            }
                         }
                     }
                 }

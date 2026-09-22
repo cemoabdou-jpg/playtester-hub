@@ -1,7 +1,10 @@
 package com.example.ui.screens
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,11 +28,16 @@ import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Visibility
@@ -77,6 +85,15 @@ import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
+import com.example.ui.theme.SuccessGreen
+
+private fun openUrl(context: Context, url: String) {
+    try {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        context.startActivity(intent)
+    } catch (_: Exception) {
+    }
+}
 
 @Composable
 fun AdminControlScreen(
@@ -95,10 +112,14 @@ fun AdminControlScreen(
     allInvitedTesters: List<InvitedTester> = emptyList(),
     joinedTests: List<JoinedTest> = emptyList(),
     userApps: List<UserApp> = emptyList(),
+    officialGoogleGroupUrl: String = "https://groups.google.com/g/player-test-hup",
+    officialGoogleGroupEmail: String = "player-test-hup@googlegroups.com",
+    onUpdateGoogleGroup: (url: String, email: String) -> Unit = { _, _ -> },
+    onResetGoogleGroup: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var selectedTab by remember { mutableIntStateOf(0) } // 0: Apps & Priority, 1: Broadcast Notifications, 2: Analytics
+    var selectedTab by remember { mutableIntStateOf(0) } // 0: Apps, 1: Notifications, 2: Analytics, 3: Google Group Settings
     var showBroadcastDialog by remember { mutableStateOf(false) }
     var appToDelete by remember { mutableStateOf<CommunityApp?>(null) }
     var appToEditPriority by remember { mutableStateOf<CommunityApp?>(null) }
@@ -243,7 +264,7 @@ fun AdminControlScreen(
                         onClick = { selectedTab = 2 },
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("التحليلات والمخططات 📊", fontWeight = FontWeight.Bold)
+                                Text("التحليلات 📊", fontWeight = FontWeight.Bold)
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Surface(
                                     shape = CircleShape,
@@ -260,6 +281,24 @@ fun AdminControlScreen(
                             }
                         },
                         modifier = Modifier.testTag("admin_tab_analytics")
+                    )
+
+                    Tab(
+                        selected = selectedTab == 3,
+                        onClick = { selectedTab = 3 },
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Group,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = PlayGreen
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("مجموعة Google 👥", fontWeight = FontWeight.Bold)
+                            }
+                        },
+                        modifier = Modifier.testTag("admin_tab_google_group")
                     )
                 }
             }
@@ -492,6 +531,16 @@ fun AdminControlScreen(
                     allInvitedTesters = allInvitedTesters,
                     joinedTests = joinedTests,
                     userApps = userApps
+                )
+            }
+            3 -> {
+                // Official Google Group Management
+                AdminGoogleGroupManagerView(
+                    currentUrl = officialGoogleGroupUrl,
+                    currentEmail = officialGoogleGroupEmail,
+                    isAdmin = isAdmin,
+                    onSave = onUpdateGoogleGroup,
+                    onReset = onResetGoogleGroup
                 )
             }
         }
@@ -921,3 +970,283 @@ private fun AdminAppItemCard(
         }
     }
 }
+
+@Composable
+fun AdminGoogleGroupManagerView(
+    currentUrl: String,
+    currentEmail: String,
+    isAdmin: Boolean,
+    onSave: (url: String, email: String) -> Unit,
+    onReset: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    var urlText by remember(currentUrl) { mutableStateOf(currentUrl) }
+    var emailText by remember(currentEmail) { mutableStateOf(currentEmail) }
+    var saveSuccessMessage by remember { mutableStateOf<String?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(top = 16.dp, bottom = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            // Main Info Card
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                border = BorderStroke(1.5.dp, PlayGreen.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = CircleShape,
+                            color = PlayGreen.copy(alpha = 0.15f),
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Group,
+                                    contentDescription = null,
+                                    tint = PlayGreen,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "إدارة مجموعة Google Groups الموحدة",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "الرابط والبريد المركزي لجميع مختبري وتطبيقات المنصة",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "📌 بموجب سياسة Google Play للاختبار المغلق، يجب أن ينضم المختبر أولاً لمجموعة Google هذه حتى يفتح له رابط التحميل بالمتجر. يمكنك بصفتك صاحب المنصة تعديل الرابط والبريد في أي وقت ليتم تعميمه فوراً على كافة شاشات وأزرار المنصة.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 18.sp
+                    )
+                }
+            }
+        }
+
+        item {
+            // Current Active Settings Summary Card
+            Card(
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Text(
+                        text = "البيانات المفعلة حالياً بالمنصة:",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    // Email Display
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Email,
+                            contentDescription = null,
+                            tint = CyanAccent,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("بريد المجموعة الرسمي", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(currentEmail, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
+
+                    // URL Display
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Link,
+                            contentDescription = null,
+                            tint = PlayGreen,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("رابط انضمام الويب", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(currentUrl, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
+
+                    // Test Open Button
+                    OutlinedButton(
+                        onClick = { openUrl(context, currentUrl) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("تجربة فتح رابط المجموعة الحالي في المتصفح")
+                    }
+                }
+            }
+        }
+
+        if (isAdmin) {
+            item {
+                // Edit Form Card (Admin Only)
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = Icons.Default.Edit, contentDescription = null, tint = AmberGold, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "تعديل رابط وبريد المجموعة (صلاحية الأدمن)",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        if (errorMessage != null) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.errorContainer,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = errorMessage ?: "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
+                        }
+
+                        if (saveSuccessMessage != null) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = SuccessGreen.copy(alpha = 0.15f),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = saveSuccessMessage ?: "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = SuccessGreen,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
+                        }
+
+                        OutlinedTextField(
+                            value = emailText,
+                            onValueChange = { emailText = it.trim(); errorMessage = null; saveSuccessMessage = null },
+                            label = { Text("بريد المجموعة الإلكتروني (Google Group Email)") },
+                            placeholder = { Text("player-test-hup@googlegroups.com") },
+                            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = CyanAccent) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("admin_input_group_email"),
+                            shape = RoundedCornerShape(10.dp),
+                            singleLine = true
+                        )
+
+                        OutlinedTextField(
+                            value = urlText,
+                            onValueChange = { urlText = it.trim(); errorMessage = null; saveSuccessMessage = null },
+                            label = { Text("رابط الانضمام عبر الويب (Web Group URL)") },
+                            placeholder = { Text("https://groups.google.com/g/player-test-hup") },
+                            leadingIcon = { Icon(Icons.Default.Link, contentDescription = null, tint = PlayGreen) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("admin_input_group_url"),
+                            shape = RoundedCornerShape(10.dp),
+                            singleLine = true
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    if (emailText.isBlank() || !emailText.contains("@")) {
+                                        errorMessage = "يرجى إدخال بريد إلكتروني صالح للمجموعة"
+                                        return@Button
+                                    }
+                                    if (urlText.isBlank()) {
+                                        errorMessage = "يرجى إدخال رابط صالح للمجموعة"
+                                        return@Button
+                                    }
+                                    onSave(urlText, emailText)
+                                    saveSuccessMessage = "تم حفظ الرابط والبريد بنجاح وتحديث النظام بالكامل!"
+                                    errorMessage = null
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("admin_save_group_btn")
+                            ) {
+                                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("حفظ وتعميم التعديلات")
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    onReset()
+                                    urlText = "https://groups.google.com/g/player-test-hup"
+                                    emailText = "player-test-hup@googlegroups.com"
+                                    saveSuccessMessage = "تمت استعادة الرابط الافتراضي بنجاح"
+                                    errorMessage = null
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.testTag("admin_reset_group_btn")
+                            ) {
+                                Text("استعادة الافتراضي")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

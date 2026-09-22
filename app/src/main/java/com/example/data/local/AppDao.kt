@@ -105,6 +105,9 @@ interface AppDao {
     @Update
     suspend fun updateAuthUser(user: AuthUser)
 
+    @androidx.room.Delete
+    suspend fun deleteAuthUser(user: AuthUser)
+
     @Query("UPDATE auth_users SET isLoggedIn = 0")
     suspend fun logoutAllUsers()
 
@@ -196,4 +199,14 @@ interface AppDao {
 
     @Query("DELETE FROM tester_feedback WHERE id = :id")
     suspend fun deleteFeedback(id: Int)
+
+    // Platform System Settings (e.g. Official Google Group URL & Email)
+    @Query("SELECT value FROM app_settings WHERE `key` = :key LIMIT 1")
+    fun getSettingFlow(key: String): Flow<String?>
+
+    @Query("SELECT value FROM app_settings WHERE `key` = :key LIMIT 1")
+    suspend fun getSettingOnce(key: String): String?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveSetting(setting: com.example.data.model.AppSetting)
 }

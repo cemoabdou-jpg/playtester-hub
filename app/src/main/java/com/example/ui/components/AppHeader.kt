@@ -12,20 +12,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.ViewAgenda
-import androidx.compose.material.icons.filled.ViewCompact
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -60,6 +59,7 @@ fun AppHeader(
     isSimplifiedMode: Boolean = false,
     onNotificationsClick: (() -> Unit)? = null,
     onBadgesClick: (() -> Unit)? = null,
+    onProfileClick: (() -> Unit)? = null,
     onOpenOnboarding: (() -> Unit)? = null,
     onToggleSimplifiedMode: (() -> Unit)? = null,
     onLogout: (() -> Unit)? = null,
@@ -68,232 +68,184 @@ fun AppHeader(
     Surface(
         modifier = modifier
             .fillMaxWidth()
+            .statusBarsPadding()
             .testTag("app_header"),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 2.dp
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(horizontal = 14.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Top branding row
+            // Left branding & User Identity
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clickable(enabled = onProfileClick != null) { onProfileClick?.invoke() }
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(PlayGreen, CyanAccent)
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Shield,
-                            contentDescription = "شعار التطبيق",
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "PlayTester Hub",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(
+                            Brush.linearGradient(
+                                listOf(PlayGreen, CyanAccent)
                             )
-                            if (currentUser?.role == "ADMIN") {
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = AmberGold
-                                ) {
-                                    Text(
-                                        text = "صاحب المنصة 👑",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.Black,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Shield,
+                        contentDescription = "شعار التطبيق",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "PlayTester Hub",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        if (currentUser?.role == "ADMIN") {
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = AmberGold
+                            ) {
+                                Text(
+                                    text = "👑 مالك",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.Black,
+                                    fontSize = 10.sp,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                )
                             }
                         }
+                    }
+                    Text(
+                        text = currentUser?.displayName ?: "تبادل المختبرين",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 11.sp
+                    )
+                }
+            }
+
+            // Right Action Controls & Stats Pill
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Points pill
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = AmberGold.copy(alpha = 0.15f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, AmberGold.copy(alpha = 0.3f)),
+                    modifier = Modifier.clickable(enabled = onBadgesClick != null) { onBadgesClick?.invoke() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MonetizationOn,
+                            contentDescription = "النقاط",
+                            tint = AmberGold,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
                         Text(
-                            text = currentUser?.displayName ?: "تبادل المختبرين لـ 20 مختبراً",
+                            text = "${wallet.points}",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            fontWeight = FontWeight.Bold,
+                            color = AmberGold
                         )
                     }
                 }
 
-                // Points & Streak chips + Logout
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                // Streak pill
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = PlayGreen.copy(alpha = 0.15f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, PlayGreen.copy(alpha = 0.3f)),
+                    modifier = Modifier.clickable(enabled = onBadgesClick != null) { onBadgesClick?.invoke() }
                 ) {
-                    // Points badge
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = AmberGold.copy(alpha = 0.15f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, AmberGold.copy(alpha = 0.3f)),
-                        modifier = Modifier.clickable(enabled = onBadgesClick != null) { onBadgesClick?.invoke() }
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MonetizationOn,
-                                contentDescription = "النقاط",
-                                tint = AmberGold,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "${wallet.points}",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = AmberGold
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.Bolt,
+                            contentDescription = "أيام الاستمرار",
+                            tint = PlayGreen,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "${wallet.currentStreak}d",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = PlayGreen
+                        )
                     }
+                }
 
-                    // Streak badge
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = PlayGreen.copy(alpha = 0.15f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PlayGreen.copy(alpha = 0.3f)),
-                        modifier = Modifier.clickable(enabled = onBadgesClick != null) { onBadgesClick?.invoke() }
+                // Notification Bell with unread badge
+                if (onNotificationsClick != null) {
+                    IconButton(
+                        onClick = onNotificationsClick,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .testTag("btn_notifications_bell")
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Bolt,
-                                contentDescription = "أيام الاستمرار",
-                                tint = PlayGreen,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "${wallet.currentStreak}d",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = PlayGreen
-                            )
-                        }
-                    }
-
-                    // Badges / Trophy button
-                    if (onBadgesClick != null) {
-                        IconButton(
-                            onClick = onBadgesClick,
-                            modifier = Modifier
-                                .size(34.dp)
-                                .testTag("btn_badges_trophy")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.EmojiEvents,
-                                contentDescription = "الرتب والشارات",
-                                tint = AmberGold,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-
-                    // Notification Bell with unread counter
-                    if (onNotificationsClick != null) {
-                        IconButton(
-                            onClick = onNotificationsClick,
-                            modifier = Modifier
-                                .size(34.dp)
-                                .testTag("btn_notifications_bell")
-                        ) {
-                            BadgedBox(
-                                badge = {
-                                    if (unreadNotificationsCount > 0) {
-                                        Badge(
-                                            containerColor = CyanAccent,
-                                            contentColor = Color.Black
-                                        ) {
-                                            Text(
-                                                text = if (unreadNotificationsCount > 9) "9+" else "$unreadNotificationsCount",
-                                                fontSize = 9.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
+                        BadgedBox(
+                            badge = {
+                                if (unreadNotificationsCount > 0) {
+                                    Badge(
+                                        containerColor = CyanAccent,
+                                        contentColor = Color.Black
+                                    ) {
+                                        Text(
+                                            text = if (unreadNotificationsCount > 9) "9+" else "$unreadNotificationsCount",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
                                     }
                                 }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Notifications,
-                                    contentDescription = "الإشعارات",
-                                    tint = if (unreadNotificationsCount > 0) CyanAccent else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp)
-                                )
                             }
-                        }
-                    }
-
-                    // Simplified Screen Mode toggle button
-                    if (onToggleSimplifiedMode != null) {
-                        IconButton(
-                            onClick = onToggleSimplifiedMode,
-                            modifier = Modifier
-                                .size(34.dp)
-                                .testTag("btn_toggle_simplified_mode")
                         ) {
                             Icon(
-                                imageVector = if (isSimplifiedMode) Icons.Default.ViewAgenda else Icons.Default.ViewCompact,
-                                contentDescription = if (isSimplifiedMode) "الوضع المفصل" else "الوضع المبسط",
-                                tint = if (isSimplifiedMode) PlayGreen else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp)
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "الإشعارات",
+                                tint = if (unreadNotificationsCount > 0) CyanAccent else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(19.dp)
                             )
                         }
                     }
+                }
 
-                    // Help / Onboarding Tour button
-                    if (onOpenOnboarding != null) {
-                        IconButton(
-                            onClick = onOpenOnboarding,
-                            modifier = Modifier
-                                .size(34.dp)
-                                .testTag("btn_open_onboarding_header")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.HelpOutline,
-                                contentDescription = "شرح التطبيق وشروط الـ 14 يوماً",
-                                tint = CyanAccent,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-
-                    // Logout button
-                    if (onLogout != null && currentUser != null) {
-                        IconButton(
-                            onClick = onLogout,
-                            modifier = Modifier
-                                .size(34.dp)
-                                .testTag("btn_logout")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ExitToApp,
-                                contentDescription = "تسجيل الخروج",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                // Profile / Settings shortcut
+                if (onProfileClick != null) {
+                    IconButton(
+                        onClick = onProfileClick,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .testTag("btn_header_settings")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "الإعدادات",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(19.dp)
+                        )
                     }
                 }
             }

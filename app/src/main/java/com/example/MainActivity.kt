@@ -17,8 +17,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -58,6 +60,7 @@ import com.example.ui.screens.GuideScreen
 import com.example.ui.screens.MyAppsScreen
 import com.example.ui.screens.MyTestingScreen
 import com.example.ui.screens.OnboardingScreen
+import com.example.ui.screens.ProfileSettingsScreen
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.viewmodel.TesterViewModel
 
@@ -106,6 +109,13 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
     val isSimplifiedMode by viewModel.isSimplifiedMode.collectAsStateWithLifecycle()
     val allDailyTestLogs by viewModel.allDailyTestLogs.collectAsStateWithLifecycle()
     val allFeedback by viewModel.allFeedback.collectAsStateWithLifecycle()
+
+    val deviceModel by viewModel.deviceModel.collectAsStateWithLifecycle()
+    val androidVersion by viewModel.androidVersion.collectAsStateWithLifecycle()
+    val dailyReminderEnabled by viewModel.dailyReminderEnabled.collectAsStateWithLifecycle()
+    val hapticEnabled by viewModel.hapticEnabled.collectAsStateWithLifecycle()
+    val officialGoogleGroupUrl by viewModel.officialGoogleGroupUrl.collectAsStateWithLifecycle()
+    val officialGoogleGroupEmail by viewModel.officialGoogleGroupEmail.collectAsStateWithLifecycle()
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -157,6 +167,7 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                 isSimplifiedMode = isSimplifiedMode,
                 onNotificationsClick = { showNotificationsDialog = true },
                 onBadgesClick = { showBadgesDialog = true },
+                onProfileClick = { currentTab = 4 },
                 onOpenOnboarding = { showOnboardingExplicitly = true },
                 onToggleSimplifiedMode = { viewModel.toggleSimplifiedMode() },
                 onLogout = { viewModel.logout() }
@@ -218,10 +229,23 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                     modifier = Modifier.testTag("tab_guide")
                 )
 
+                NavigationBarItem(
+                    selected = currentTab == 4,
+                    onClick = { currentTab = 4 },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "الإعدادات"
+                        )
+                    },
+                    label = { Text("الإعدادات") },
+                    modifier = Modifier.testTag("tab_settings")
+                )
+
                 if (currentUser?.role == "ADMIN") {
                     NavigationBarItem(
-                        selected = currentTab == 4,
-                        onClick = { currentTab = 4 },
+                        selected = currentTab == 5,
+                        onClick = { currentTab = 5 },
                         icon = {
                             Icon(
                                 imageVector = Icons.Default.Security,
@@ -271,7 +295,7 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                         onCategorySelect = { viewModel.setSelectedCategory(it) },
                         onJoinApp = { viewModel.joinApp(it) },
                         onPublishClick = { showAddAppDialog = true },
-                        onOpenAdmin = if (currentUser?.role == "ADMIN") { { currentTab = 4 } } else null
+                        onOpenAdmin = if (currentUser?.role == "ADMIN") { { currentTab = 5 } } else null
                     )
                     1 -> MyTestingScreen(
                         joinedTests = joinedTests,
@@ -319,7 +343,28 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                     3 -> GuideScreen(
                         onOpenOnboarding = { showOnboardingExplicitly = true }
                     )
-                    4 -> AdminControlScreen(
+                    4 -> ProfileSettingsScreen(
+                        currentUser = currentUser,
+                        wallet = wallet,
+                        deviceModel = deviceModel,
+                        androidVersion = androidVersion,
+                        dailyReminderEnabled = dailyReminderEnabled,
+                        hapticEnabled = hapticEnabled,
+                        isSimplifiedMode = isSimplifiedMode,
+                        onUpdateProfile = { viewModel.updateProfile(it) },
+                        onChangePassword = { oldPass, newPass ->
+                            viewModel.changePassword(oldPass, newPass)
+                        },
+                        onUpdatePreferences = { device, androidVer, reminder, haptic ->
+                            viewModel.updatePreferences(device, androidVer, reminder, haptic)
+                        },
+                        onToggleSimplifiedMode = { viewModel.toggleSimplifiedMode() },
+                        onOpenOnboarding = { showOnboardingExplicitly = true },
+                        onOpenBadges = { showBadgesDialog = true },
+                        onLogout = { viewModel.logout() },
+                        onDeleteAccount = { viewModel.deleteAccount() }
+                    )
+                    5 -> AdminControlScreen(
                         adminApps = adminCommunityApps,
                         notifications = notifications,
                         isAdmin = currentUser?.role == "ADMIN",
@@ -329,6 +374,14 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                         allInvitedTesters = allInvitedTesters,
                         joinedTests = joinedTests,
                         userApps = userApps,
+                        officialGoogleGroupUrl = officialGoogleGroupUrl,
+                        officialGoogleGroupEmail = officialGoogleGroupEmail,
+                        onUpdateGoogleGroup = { u, e ->
+                            viewModel.updateOfficialGoogleGroup(u, e)
+                        },
+                        onResetGoogleGroup = {
+                            viewModel.resetOfficialGoogleGroup()
+                        },
                         onUpdatePriority = { appId, score ->
                             viewModel.updateAppPriority(appId, score)
                         },
@@ -409,6 +462,8 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
     if (showAddAppDialog) {
         AddAppDialog(
             userPoints = wallet.points,
+            officialGoogleGroupUrl = officialGoogleGroupUrl,
+            officialGoogleGroupEmail = officialGoogleGroupEmail,
             onDismiss = { showAddAppDialog = false },
             onConfirm = { name, pkg, cat, groupUrl, webUrl, androidUrl, instructions, isFeatured ->
                 viewModel.publishApp(

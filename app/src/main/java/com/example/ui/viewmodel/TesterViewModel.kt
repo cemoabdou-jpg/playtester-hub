@@ -42,6 +42,9 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         val db = AppDatabase.getInstance(application)
         repository = TesterRepository(db.appDao())
         NotificationHelper.createNotificationChannel(application)
+        viewModelScope.launch {
+            repository.observeAndSyncRemoteApps()
+        }
     }
 
     private val _searchQuery = MutableStateFlow("")
@@ -79,6 +82,12 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
 
     val allFeedback: StateFlow<List<TesterFeedback>> = repository.allFeedback
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val officialGoogleGroupUrl: StateFlow<String> = repository.officialGoogleGroupUrl
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TesterRepository.DEFAULT_GOOGLE_GROUP_URL)
+
+    val officialGoogleGroupEmail: StateFlow<String> = repository.officialGoogleGroupEmail
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TesterRepository.DEFAULT_GOOGLE_GROUP_EMAIL)
 
     val rawCommunityApps = repository.communityApps
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -152,6 +161,71 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
                 _userMessage.value = "تم تسجيل الدخول بحساب Google (${user.email}) بنجاح!"
             }.onFailure { err ->
                 _userMessage.value = err.message ?: "فشل تسجيل الدخول عبر Google"
+            }
+        }
+    }
+
+    private val _deviceModel = MutableStateFlow(prefs.getString("device_model", "Samsung Galaxy S23 / Pixel 8") ?: "Samsung Galaxy S23 / Pixel 8")
+    val deviceModel: StateFlow<String> = _deviceModel.asStateFlow()
+
+    private val _androidVersion = MutableStateFlow(prefs.getString("android_version", "Android 14 (API 34)") ?: "Android 14 (API 34)")
+    val androidVersion: StateFlow<String> = _androidVersion.asStateFlow()
+
+    private val _dailyReminderEnabled = MutableStateFlow(prefs.getBoolean("daily_reminder_enabled", true))
+    val dailyReminderEnabled: StateFlow<Boolean> = _dailyReminderEnabled.asStateFlow()
+
+    private val _hapticEnabled = MutableStateFlow(prefs.getBoolean("haptic_enabled", true))
+    val hapticEnabled: StateFlow<Boolean> = _hapticEnabled.asStateFlow()
+
+    fun updatePreferences(
+        device: String,
+        androidVer: String,
+        dailyReminder: Boolean,
+        haptic: Boolean
+    ) {
+        prefs.edit()
+            .putString("device_model", device)
+            .putString("android_version", androidVer)
+            .putBoolean("daily_reminder_enabled", dailyReminder)
+            .putBoolean("haptic_enabled", haptic)
+            .apply()
+
+        _deviceModel.value = device
+        _androidVersion.value = androidVer
+        _dailyReminderEnabled.value = dailyReminder
+        _hapticEnabled.value = haptic
+        _userMessage.value = "تم حفظ تفضيلاتك الشخصية بنجاح"
+    }
+
+    fun updateProfile(displayName: String) {
+        viewModelScope.launch {
+            val res = repository.updateUserProfile(displayName)
+            res.onSuccess {
+                _userMessage.value = "تم تحديث الاسم الشخصي بنجاح"
+            }.onFailure { err ->
+                _userMessage.value = err.message ?: "فشل تحديث البيانات"
+            }
+        }
+    }
+
+    fun changePassword(oldPass: String, newPass: String) {
+        viewModelScope.launch {
+            val res = repository.changePassword(oldPass, newPass)
+            res.onSuccess {
+                _userMessage.value = "تم تغيير كلمة المرور بنجاح"
+            }.onFailure { err ->
+                _userMessage.value = err.message ?: "فشل تغيير كلمة المرور"
+            }
+        }
+    }
+
+    fun deleteAccount() {
+        viewModelScope.launch {
+            val res = repository.deleteAccount()
+            res.onSuccess {
+                _userMessage.value = "تم حذف الحساب بنجاح"
+            }.onFailure { err ->
+                _userMessage.value = err.message ?: "فشل حذف الحساب"
             }
         }
     }
@@ -448,6 +522,21 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
             context?.let { ctx ->
                 NotificationHelper.showSystemNotification(ctx, title, message)
             }
+            res.onSuccess { msg -> _userMessage.value = msg }
+        }
+    }
+
+    fun updateOfficialGoogleGroup(url: String, email: String) {
+        viewModelScope.launch {
+            val res = repository.updateOfficialGoogleGroup(url, email)
+            res.onSuccess { msg -> _userMessage.value = msg }
+            res.onFailure { err -> _userMessage.value = err.message ?: "حدث خطأ أثناء تحديث رابط المجموعة" }
+        }
+    }
+
+    fun resetOfficialGoogleGroup() {
+        viewModelScope.launch {
+            val res = repository.resetOfficialGoogleGroup()
             res.onSuccess { msg -> _userMessage.value = msg }
         }
     }

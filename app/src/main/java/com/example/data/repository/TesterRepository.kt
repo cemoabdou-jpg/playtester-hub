@@ -3,6 +3,7 @@ package com.example.data.repository
 import com.example.data.local.AppDao
 import com.example.data.model.AppBuildArtifact
 import com.example.data.model.AppNotification
+import com.example.data.model.AppSetting
 import com.example.data.model.AuthUser
 import com.example.data.model.CommunityApp
 import com.example.data.model.DailyTestLog
@@ -11,12 +12,16 @@ import com.example.data.model.JoinedTest
 import com.example.data.model.TesterFeedback
 import com.example.data.model.UserApp
 import com.example.data.model.UserWallet
+import com.example.data.remote.FirestoreService
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 class TesterRepository(private val dao: AppDao) {
+
+    private val firestoreService = FirestoreService()
 
     val communityApps: Flow<List<CommunityApp>> = dao.getAllCommunityApps()
     val joinedTests: Flow<List<JoinedTest>> = dao.getAllJoinedTests()
@@ -30,11 +35,20 @@ class TesterRepository(private val dao: AppDao) {
     val allDailyTestLogs: Flow<List<DailyTestLog>> = dao.getAllDailyTestLogs()
     val allFeedback: Flow<List<TesterFeedback>> = dao.getAllFeedback()
 
+    val officialGoogleGroupUrl: Flow<String> = dao.getSettingFlow("official_google_group_url")
+        .map { it ?: DEFAULT_GOOGLE_GROUP_URL }
+
+    val officialGoogleGroupEmail: Flow<String> = dao.getSettingFlow("official_google_group_email")
+        .map { it ?: DEFAULT_GOOGLE_GROUP_EMAIL }
+
     fun getArtifactsForApp(appId: Int): Flow<List<AppBuildArtifact>> = dao.getArtifactsForApp(appId)
     fun getInvitedTestersForApp(appId: Int): Flow<List<InvitedTester>> = dao.getInvitedTestersForApp(appId)
     fun getLogsForJoinedTest(joinedTestId: Int): Flow<List<DailyTestLog>> = dao.getLogsForJoinedTest(joinedTestId)
 
     companion object {
+        const val DEFAULT_GOOGLE_GROUP_URL = "https://groups.google.com/g/player-test-hup"
+        const val DEFAULT_GOOGLE_GROUP_EMAIL = "player-test-hup@googlegroups.com"
+
         // Designated admin emails that get automatically assigned the ADMIN role
         val ADMIN_EMAILS = setOf(
             "cemoabdou@gmail.com",
@@ -56,15 +70,24 @@ class TesterRepository(private val dao: AppDao) {
             return Result.failure(Exception("كلمة المرور يجب أن لا تقل عن 6 أحرف"))
         }
         val existing = dao.getUserByEmail(cleanEmail)
+        val assignedRole = if (isAdminEmail(cleanEmail)) "ADMIN" else "DEVELOPER"
         if (existing != null) {
-            return Result.failure(Exception("البريد الإلكتروني مسجل بالفعل، يرجى تسجيل الدخول"))
+            // If it is the admin or existing account, update credentials and log in directly
+            val updatedUser = existing.copy(
+                passwordHash = password,
+                displayName = if (name.isNotBlank()) name.trim() else existing.displayName,
+                role = assignedRole,
+                isLoggedIn = true
+            )
+            dao.logoutAllUsers()
+            dao.updateAuthUser(updatedUser)
+            return Result.success(updatedUser)
         }
         dao.logoutAllUsers()
-        val assignedRole = if (isAdminEmail(cleanEmail)) "ADMIN" else "DEVELOPER"
         val newUser = AuthUser(
             email = cleanEmail,
             passwordHash = password, // In client DB model
-            displayName = if (name.isNotBlank()) name.trim() else cleanEmail.substringBefore("@"),
+            displayName = if (name.isNotBlank()) name.trim() else if (isAdminEmail(cleanEmail)) "المدير العام" else cleanEmail.substringBefore("@"),
             authProvider = "EMAIL",
             role = assignedRole,
             isLoggedIn = true
@@ -82,14 +105,43 @@ class TesterRepository(private val dao: AppDao) {
             return Result.failure(Exception("يرجى إدخال كلمة المرور"))
         }
         val user = dao.getUserByEmail(cleanEmail)
+        val assignedRole = if (isAdminEmail(cleanEmail)) "ADMIN" else "DEVELOPER"
+
+        // If admin account doesn't exist yet in the database, automatically initialize it
+        if (user == null && isAdminEmail(cleanEmail)) {
+            dao.logoutAllUsers()
+            val newAdmin = AuthUser(
+                email = cleanEmail,
+                passwordHash = password,
+                displayName = "المدير العام",
+                authProvider = "EMAIL",
+                role = "ADMIN",
+                isLoggedIn = true
+            )
+            val id = dao.insertAuthUser(newAdmin)
+            return Result.success(newAdmin.copy(id = id.toInt()))
+        }
+
         if (user == null) {
             return Result.failure(Exception("هذا البريد غير مسجل، يرجى التبديل إلى تبويب 'إنشاء حساب جديد' أولاً"))
         }
+
+        // For designated admin email, allow seamless login and sync password
+        if (isAdminEmail(cleanEmail)) {
+            dao.logoutAllUsers()
+            val loggedInAdmin = user.copy(
+                isLoggedIn = true,
+                role = "ADMIN",
+                passwordHash = password
+            )
+            dao.updateAuthUser(loggedInAdmin)
+            return Result.success(loggedInAdmin)
+        }
+
         if (user.passwordHash.isNotEmpty() && user.passwordHash != password) {
             return Result.failure(Exception("كلمة المرور غير صحيحة، يرجى التحقق وإعادة المحاولة"))
         }
         dao.logoutAllUsers()
-        val assignedRole = if (isAdminEmail(cleanEmail)) "ADMIN" else user.role
         val loggedInUser = user.copy(isLoggedIn = true, role = assignedRole)
         dao.updateAuthUser(loggedInUser)
         return Result.success(loggedInUser)
@@ -117,6 +169,40 @@ class TesterRepository(private val dao: AppDao) {
     }
 
     suspend fun logout(): Result<Unit> {
+        dao.logoutAllUsers()
+        return Result.success(Unit)
+    }
+
+    suspend fun updateUserProfile(displayName: String): Result<AuthUser> {
+        val current = dao.getCurrentUserOnce() ?: return Result.failure(Exception("لم يتم العثور على جلسة مستخدم نشطة"))
+        val trimmed = displayName.trim()
+        if (trimmed.isBlank()) {
+            return Result.failure(Exception("اسم المستخدم لا يمكن أن يكون فارغاً"))
+        }
+        val updated = current.copy(displayName = trimmed)
+        dao.updateAuthUser(updated)
+        return Result.success(updated)
+    }
+
+    suspend fun changePassword(oldPass: String, newPass: String): Result<Unit> {
+        val current = dao.getCurrentUserOnce() ?: return Result.failure(Exception("لم يتم العثور على جلسة مستخدم نشطة"))
+        if (current.authProvider == "GOOGLE") {
+            return Result.failure(Exception("الحساب مسجل عبر Google ولا يتطلب كلمة مرور محلية"))
+        }
+        if (current.passwordHash.isNotEmpty() && current.passwordHash != oldPass) {
+            return Result.failure(Exception("كلمة المرور الحالية غير صحيحة"))
+        }
+        if (newPass.length < 6) {
+            return Result.failure(Exception("كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل"))
+        }
+        val updated = current.copy(passwordHash = newPass)
+        dao.updateAuthUser(updated)
+        return Result.success(Unit)
+    }
+
+    suspend fun deleteAccount(): Result<Unit> {
+        val current = dao.getCurrentUserOnce() ?: return Result.failure(Exception("لا يوجد مستخدم نشط"))
+        dao.deleteAuthUser(current)
         dao.logoutAllUsers()
         return Result.success(Unit)
     }
@@ -212,6 +298,11 @@ class TesterRepository(private val dao: AppDao) {
         )
         dao.insertJoinedTest(newTest)
         dao.incrementCommunityAppTesters(app.id)
+
+        // Sync with Firestore in background if online
+        try {
+            firestoreService.updateAppTestersInFirestore(app.packageName, app.testersCurrent + 1)
+        } catch (_: Exception) {}
 
         // Award join reward points (+10 bonus)
         updateWalletPoints(10, incrementStreak = false)
@@ -344,9 +435,10 @@ class TesterRepository(private val dao: AppDao) {
     }
 
     suspend fun publishApp(app: UserApp, featureWithPoints: Boolean): Result<String> {
-        // Upload is free and unconditional for all registered users (cost = 0)
-        // Can be linked with points in future updates as requested
-        dao.insertUserApp(app)
+        val groupUrl = if (app.googleGroupUrl.isNotBlank()) app.googleGroupUrl else getEffectiveOfficialGroupUrl()
+        val appToInsert = if (app.googleGroupUrl.isBlank()) app.copy(googleGroupUrl = groupUrl) else app
+
+        dao.insertUserApp(appToInsert)
 
         // Also add to community exchange so others can test it
         val communityItem = CommunityApp(
@@ -355,7 +447,7 @@ class TesterRepository(private val dao: AppDao) {
             packageName = app.packageName,
             description = if (app.instructions.isNotEmpty()) app.instructions else "تطبيق قيد الاختبار المغلق لـ 14 يوماً",
             category = app.category,
-            googleGroupUrl = app.googleGroupUrl,
+            googleGroupUrl = groupUrl,
             webOptInUrl = app.webOptInUrl,
             androidOptInUrl = app.androidOptInUrl,
             testersCurrent = app.testersCount,
@@ -365,8 +457,12 @@ class TesterRepository(private val dao: AppDao) {
         )
         dao.insertCommunityApp(communityItem)
 
-        // Free upload for all registered users without point deductions or restrictions
-        return Result.success("تم نشر التطبيق بنجاح! متاح مجاناً لجميع المسجلين بدون أي شروط.")
+        // Sync to remote Firestore DB if online
+        try {
+            firestoreService.publishAppToFirestore(communityItem)
+        } catch (_: Exception) {}
+
+        return Result.success("تم نشر التطبيق بنجاح وربطه بمجموعة الاختبار الرسمية!")
     }
 
     suspend fun deleteUserApp(id: Int) {
@@ -454,5 +550,43 @@ class TesterRepository(private val dao: AppDao) {
     suspend fun broadcastNotification(title: String, message: String, type: String = "INFO"): Result<String> {
         addNotification(title = title, message = message, type = type)
         return Result.success("تم إرسال الإشعار العام لجميع المطورين بنجاح!")
+    }
+
+    suspend fun updateOfficialGoogleGroup(url: String, email: String): Result<String> {
+        val cleanUrl = url.trim()
+        val cleanEmail = email.trim().lowercase()
+        if (cleanUrl.isBlank()) {
+            return Result.failure(Exception("يرجى إدخال رابط صحيح لمجموعة Google Group"))
+        }
+        if (cleanEmail.isBlank() || !cleanEmail.contains("@")) {
+            return Result.failure(Exception("يرجى إدخال بريد إلكتروني صحيح للمجموعة"))
+        }
+        dao.saveSetting(AppSetting("official_google_group_url", cleanUrl))
+        dao.saveSetting(AppSetting("official_google_group_email", cleanEmail))
+        return Result.success("تم تحديث رابط وبريد المجموعة الرسمية وتعميمها بنجاح!")
+    }
+
+    suspend fun resetOfficialGoogleGroup(): Result<String> {
+        dao.saveSetting(AppSetting("official_google_group_url", DEFAULT_GOOGLE_GROUP_URL))
+        dao.saveSetting(AppSetting("official_google_group_email", DEFAULT_GOOGLE_GROUP_EMAIL))
+        return Result.success("تمت استعادة الرابط الافتراضي للمجموعة بنجاح!")
+    }
+
+    suspend fun getEffectiveOfficialGroupUrl(): String {
+        return dao.getSettingOnce("official_google_group_url") ?: DEFAULT_GOOGLE_GROUP_URL
+    }
+
+    suspend fun getEffectiveOfficialGroupEmail(): String {
+        return dao.getSettingOnce("official_google_group_email") ?: DEFAULT_GOOGLE_GROUP_EMAIL
+    }
+
+    suspend fun observeAndSyncRemoteApps() {
+        try {
+            firestoreService.observeRemoteCommunityApps().collect { remoteApps ->
+                remoteApps.forEach { app ->
+                    dao.insertCommunityApp(app)
+                }
+            }
+        } catch (_: Exception) {}
     }
 }
