@@ -17,8 +17,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.NotificationAdd
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Star
@@ -195,7 +195,7 @@ fun DailyTestLogsHistoryDialog(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
-                                imageVector = Icons.Default.FactCheck,
+                                imageVector = Icons.AutoMirrored.Filled.FactCheck,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.outlineVariant,
                                 modifier = Modifier.size(48.dp)

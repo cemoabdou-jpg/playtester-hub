@@ -12,32 +12,32 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = PlayGreenLight,
-    onPrimary = Color.Black,
-    primaryContainer = PlayGreenDark,
-    onPrimaryContainer = PlayGreenLight,
-    secondary = CyanAccent,
+    primary = CrimsonRedLight,
+    onPrimary = Color.White,
+    primaryContainer = CrimsonRedDark,
+    onPrimaryContainer = Color.White,
+    secondary = SilverAccent,
     onSecondary = Color.Black,
-    tertiary = AmberGold,
-    onTertiary = Color.Black,
+    tertiary = CrimsonRed,
+    onTertiary = Color.White,
     background = DarkNavyBg,
     onBackground = TextPrimaryDark,
     surface = DarkNavySurface,
     onSurface = TextPrimaryDark,
     surfaceVariant = DarkNavyCard,
     onSurfaceVariant = TextSecondaryDark,
-    outline = Color(0xFF64748B),
-    outlineVariant = Color(0xFF475569)
+    outline = DarkNavyBorder,
+    outlineVariant = Color(0xFF52525B)
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = PlayGreen,
+    primary = CrimsonRed,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFD1FAE5),
-    onPrimaryContainer = PlayGreenDark,
-    secondary = CyanAccent,
+    primaryContainer = Color(0xFFFEE2E2),
+    onPrimaryContainer = CrimsonRedDark,
+    secondary = SlateGray,
     onSecondary = Color.White,
-    tertiary = AmberGold,
+    tertiary = CrimsonRedLight,
     onTertiary = Color.White,
     background = LightBg,
     onBackground = TextPrimaryLight,
@@ -52,7 +52,7 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun MyApplicationTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false, // Use our custom cohesive developer branding
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val colorScheme = when {
@@ -66,4 +66,3 @@ fun MyApplicationTheme(
 
     MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
 }
-

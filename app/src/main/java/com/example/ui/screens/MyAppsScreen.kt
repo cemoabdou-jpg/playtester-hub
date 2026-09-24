@@ -17,12 +17,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Android
-import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.Layers
@@ -59,6 +59,7 @@ import com.example.data.model.DailyTestLog
 import com.example.data.model.InvitedTester
 import com.example.data.model.TesterFeedback
 import com.example.data.model.UserApp
+import com.example.ui.components.AppHealthDiagnosticsCard
 import com.example.ui.components.DailyTestLogsHistoryDialog
 import com.example.ui.components.ProductionReadinessReportDialog
 import com.example.ui.components.ShareInviteDialog
@@ -348,6 +349,18 @@ fun MyAppsScreen(
                         val appTesters = allInvitedTesters.filter { it.userAppId == app.id }
                         val activeArtifact = appArtifacts.find { it.isActiveForTesting }
 
+                        // Health & Google Play Compliance Diagnostics Card
+                        AppHealthDiagnosticsCard(
+                            app = app,
+                            artifacts = appArtifacts,
+                            testers = appTesters,
+                            onOpenReadinessReport = { appForReadinessReport = app },
+                            onInviteTesterClick = { appForTesters = app },
+                            onManageVersionsClick = { appForVersions = app }
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
                         Surface(
                             shape = RoundedCornerShape(10.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
@@ -430,7 +443,7 @@ fun MyAppsScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
-                                            imageVector = Icons.Default.FactCheck,
+                                            imageVector = Icons.AutoMirrored.Filled.FactCheck,
                                             contentDescription = null,
                                             tint = if (todayLogsCount > 0) SuccessGreen else AmberGold,
                                             modifier = Modifier.size(16.dp)
@@ -528,7 +541,7 @@ fun MyAppsScreen(
                             border = BorderStroke(1.dp, if (isReadyForProduction) SuccessGreen else MaterialTheme.colorScheme.outline)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Assignment,
+                                imageVector = Icons.AutoMirrored.Filled.Assignment,
                                 contentDescription = null,
                                 tint = if (isReadyForProduction) SuccessGreen else CyanAccent,
                                 modifier = Modifier.size(18.dp)

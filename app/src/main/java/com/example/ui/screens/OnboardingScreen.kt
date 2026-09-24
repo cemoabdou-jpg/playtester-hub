@@ -28,11 +28,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.Security
@@ -97,7 +97,7 @@ fun OnboardingScreen(
             mainDescription = "تفرض شركة Google على جميع حسابات المطورين الشخصية المنشأة بعد نوفمبر 2023 تجربة التطبيق مع 20 مختبراً نشطاً لمدة 14 يوماً متواصلة على الأقل قبل الموافقة على طرحه للعامة في متجر Play.",
             keyPoints = listOf(
                 Icons.Default.Groups to "توفير 20 مختبراً حقيقياً مسجلين في قائمة الاختبار المغلق.",
-                Icons.Default.FactCheck to "التزام المختبرين بفتح التطبيق وتجربته طوال الـ 14 يوماً دون انقطاع.",
+                Icons.AutoMirrored.Filled.FactCheck to "التزام المختبرين بفتح التطبيق وتجربته طوال الـ 14 يوماً دون انقطاع.",
                 Icons.Default.Star to "جمع تقارير أداء وملاحظات واقعية لتحسين التطبيق وتفادي الرفض."
             ),
             highlightNote = "تطبيق PlayTester Hub صُمم خصيصاً ليحل هذه العقبة للمطورين العرب بمجتمع متكامل."

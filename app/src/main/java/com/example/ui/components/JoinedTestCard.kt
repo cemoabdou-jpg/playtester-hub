@@ -23,12 +23,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.LockClock
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Schedule
@@ -178,7 +178,7 @@ fun JoinedTestCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
-                        imageVector = if (isCheckedToday) Icons.Default.CheckCircle else Icons.Default.FactCheck,
+                        imageVector = if (isCheckedToday) Icons.Default.CheckCircle else Icons.AutoMirrored.Filled.FactCheck,
                         contentDescription = null,
                         tint = if (isCheckedToday) SuccessGreen else AmberGold,
                         modifier = Modifier.size(18.dp)
@@ -314,7 +314,7 @@ fun JoinedTestCard(
                         )
                     } else {
                         Icon(
-                            imageVector = Icons.Default.FactCheck,
+                            imageVector = Icons.AutoMirrored.Filled.FactCheck,
                             contentDescription = "تأكيد التجربة اليومية",
                             modifier = Modifier.size(20.dp),
                             tint = Color.Black

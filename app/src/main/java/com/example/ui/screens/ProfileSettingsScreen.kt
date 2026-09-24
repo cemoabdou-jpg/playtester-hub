@@ -24,6 +24,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Bolt
@@ -31,9 +34,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MonetizationOn
@@ -44,7 +45,6 @@ import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.ViewAgenda
 import androidx.compose.material.icons.filled.Visibility
@@ -54,8 +54,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -88,6 +88,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.data.model.AuthUser
 import com.example.data.model.UserWallet
+import com.example.ui.components.DeveloperXpRankCard
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
@@ -157,7 +158,7 @@ fun ProfileSettingsScreen(
 
     val registeredDateFormatted = remember(currentUser?.registeredAt) {
         val time = currentUser?.registeredAt ?: System.currentTimeMillis()
-        val sdf = SimpleDateFormat("dd MMMM yyyy", Locale("ar"))
+        val sdf = SimpleDateFormat("dd MMMM yyyy", Locale.forLanguageTag("ar"))
         sdf.format(Date(time))
     }
 
@@ -185,6 +186,14 @@ fun ProfileSettingsScreen(
             )
         }
 
+        // --- 2.5 Developer XP Level & Rank Card ---
+        item {
+            DeveloperXpRankCard(
+                points = wallet.points,
+                streakDays = wallet.currentStreak
+            )
+        }
+
         // --- 3. Personal Account Settings ---
         item {
             SettingsSectionHeader(title = "الحساب والأمان", icon = Icons.Default.Security)
@@ -205,7 +214,7 @@ fun ProfileSettingsScreen(
                         }
                     )
 
-                    Divider(modifier = Modifier.padding(vertical = 10.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                     SettingsRowItem(
                         icon = Icons.Default.Lock,
@@ -309,12 +318,12 @@ fun ProfileSettingsScreen(
                             .fillMaxWidth()
                             .testTag("btn_send_test_notification")
                     ) {
-                        Icon(imageVector = Icons.Default.Send, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(16.dp))
+                        Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("إرسال إشعار تجريبي فوري للتأكد", fontWeight = FontWeight.SemiBold)
                     }
 
-                    Divider(modifier = Modifier.padding(vertical = 2.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                     // Daily Reminder Toggle
                     Row(
@@ -369,7 +378,7 @@ fun ProfileSettingsScreen(
                         }
                     }
 
-                    Divider(modifier = Modifier.padding(vertical = 2.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                     // New Testers Joined Toggle
                     Row(
@@ -479,7 +488,7 @@ fun ProfileSettingsScreen(
                             .testTag("input_android_version")
                     )
 
-                    Divider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -553,10 +562,10 @@ fun ProfileSettingsScreen(
                         )
                     }
 
-                    Divider(modifier = Modifier.padding(vertical = 10.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                     SettingsActionRow(
-                        icon = Icons.Default.HelpOutline,
+                        icon = Icons.AutoMirrored.Filled.HelpOutline,
                         iconTint = CyanAccent,
                         title = "إعادة جولة الشرح التفاعلية",
                         subtitle = "تعرف على شروط الـ 20 مختبراً وطريقة نشر وقبول التطبيقات",
@@ -621,7 +630,7 @@ fun ProfileSettingsScreen(
 
         // --- 7. Danger Zone / Logout & Delete ---
         item {
-            SettingsSectionHeader(title = "إجراءات الحساب", icon = Icons.Default.ExitToApp)
+            SettingsSectionHeader(title = "إجراءات الحساب", icon = Icons.AutoMirrored.Filled.ExitToApp)
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f)),
@@ -636,7 +645,7 @@ fun ProfileSettingsScreen(
                             .fillMaxWidth()
                             .testTag("btn_settings_logout")
                     ) {
-                        Icon(imageVector = Icons.Default.ExitToApp, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("تسجيل الخروج من الحساب", fontWeight = FontWeight.Bold)
                     }

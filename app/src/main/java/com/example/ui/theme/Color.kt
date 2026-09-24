@@ -2,37 +2,44 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Brand palette for Google Play Tester Exchange
-val PlayGreen = Color(0xFF00A86B)
-val PlayGreenLight = Color(0xFF34D399)
-val PlayGreenDark = Color(0xFF065F46)
+// Primary Crimson Red & Black Palette (تدرج الأحادي الفخم: أحمر، أسود، رمادي، أبيض)
+val CrimsonRed = Color(0xFFE50914)         // Bold Red (Netflix/Play Console style)
+val CrimsonRedLight = Color(0xFFEF4444)    // Accent Bright Red
+val CrimsonRedDark = Color(0xFF991B1B)     // Deep Burgundy / Crimson Dark
 
-val CyanAccent = Color(0xFF06B6D4)
-val CyanAccentLight = Color(0xFF67E8F9)
+val PlayGreen = Color(0xFFE50914)          // Re-mapped to Crimson Red for instant app-wide theme change
+val PlayGreenLight = Color(0xFFEF4444)
+val PlayGreenDark = Color(0xFF991B1B)
 
-val IndigoAccent = Color(0xFF6366F1)
-val AmberGold = Color(0xFFF59E0B)
-val AmberGoldLight = Color(0xFFFDE68A)
+val SlateGray = Color(0xFF64748B)          // Cool Slate Gray
+val SlateGrayLight = Color(0xFF94A3B8)     // Light Slate Gray
+val SilverAccent = Color(0xFFCBD5E1)       // Premium Metallic Silver
 
-// Dark Theme Surfaces
-val DarkNavyBg = Color(0xFF0A0F1D)
-val DarkNavySurface = Color(0xFF111827)
-val DarkNavyCard = Color(0xFF1E293B)
-val DarkNavyBorder = Color(0xFF334155)
+val CyanAccent = Color(0xFFEF4444)         // Vibrant Crimson
+val CyanAccentLight = Color(0xFFF87171)
 
-// Light Theme Surfaces
-val LightBg = Color(0xFFF8FAFC)
-val LightSurface = Color(0xFFFFFFFF)
-val LightCard = Color(0xFFF1F5F9)
-val LightBorder = Color(0xFF64748B) // High contrast visible border
-val LightBorderVariant = Color(0xFF94A3B8)
+val IndigoAccent = Color(0xFFB91C1C)
+val AmberGold = Color(0xFFDC2626)          // Crimson Accent
+val AmberGoldLight = Color(0xFFFCA5A5)
 
-val TextPrimaryDark = Color(0xFFF1F5F9)
-val TextSecondaryDark = Color(0xFF94A3B8)
-val TextPrimaryLight = Color(0xFF0F172A)
-val TextSecondaryLight = Color(0xFF64748B)
+// Dark Theme Surfaces (Sleek Obsidian Black & Graphite)
+val DarkNavyBg = Color(0xFF0F0F12)         // Deep Obsidian Black Background
+val DarkNavySurface = Color(0xFF18181C)    // Dark Graphite Surface
+val DarkNavyCard = Color(0xFF24242A)       // Card Surface
+val DarkNavyBorder = Color(0xFF3F3F46)     // Border
 
-val SuccessGreen = Color(0xFF22C55E)
+// Light Theme Surfaces (Pure Crisp White & Slate Gray)
+val LightBg = Color(0xFFF4F4F5)            // Soft Crisp Gray
+val LightSurface = Color(0xFFFFFFFF)       // Pure White Surface
+val LightCard = Color(0xFFE4E4E7)          // Subtle Card Gray
+val LightBorder = Color(0xFFA1A1AA)        // Visible Border
+val LightBorderVariant = Color(0xFFD4D4D8)
+
+val TextPrimaryDark = Color(0xFFFAFAFA)    // Pure White Text
+val TextSecondaryDark = Color(0xFFA1A1AA)  // Cool Muted Gray Text
+val TextPrimaryLight = Color(0xFF09090B)   // Jet Black Text
+val TextSecondaryLight = Color(0xFF71717A) // Slate Gray Text
+
+val SuccessGreen = Color(0xFF10B981)       // Positive Status Indicator
 val WarningOrange = Color(0xFFF97316)
 val DangerRed = Color(0xFFEF4444)
-

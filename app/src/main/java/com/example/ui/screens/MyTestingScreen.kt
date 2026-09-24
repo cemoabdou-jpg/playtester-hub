@@ -49,6 +49,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.JoinedTest
+import com.example.ui.components.DailyMissionsCard
+import com.example.ui.components.DeveloperXpRankCard
 import com.example.ui.components.DailyTestConfirmationDialog
 import com.example.ui.components.FeedbackDialog
 import com.example.ui.components.JoinedTestCard
@@ -143,6 +145,28 @@ fun MyTestingScreen(
                         }
                     }
                 }
+            }
+
+            // Developer XP Level & Rank
+            item {
+                val totalPoints = joinedTests.sumOf { it.daysCompleted * 25 } + (currentStreak * 25)
+                DeveloperXpRankCard(
+                    points = totalPoints,
+                    streakDays = currentStreak
+                )
+            }
+
+            // Daily Developer Missions Card
+            item {
+                DailyMissionsCard(
+                    joinedTests = joinedTests,
+                    currentStreak = currentStreak,
+                    todayStr = todayStr,
+                    onNavigateToCommunity = onNavigateToCommunity,
+                    onQuickFeedbackClick = if (joinedTests.isNotEmpty()) {
+                        { selectedTestForFeedback = joinedTests.first() }
+                    } else null
+                )
             }
 
             // Smart Daily Push Reminder Card
