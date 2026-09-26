@@ -21,19 +21,35 @@ import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Android
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Spellcheck
+import androidx.compose.material.icons.filled.Update
+import androidx.compose.material.icons.filled.Warning
+import com.example.ui.components.ChangelogGeneratorDialog
+import com.example.ui.components.DeviceDiversityMatrixDialog
+import com.example.ui.components.PlayPolicyLinterDialog
+import com.example.ui.components.PreFlightChecklistDialog
+import com.example.ui.components.PrivacyPolicyGeneratorDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -103,16 +119,24 @@ fun MyAppsScreen(
     onUpdateTesterStatus: (testerId: Int, status: String) -> Unit,
     onRemoveTester: (testerId: Int) -> Unit,
     onSendDailyReminder: (UserApp) -> Unit = {},
+    onUploadLocalApps: (((Boolean, String) -> Unit) -> Unit)? = null,
+    isUploadingLocalApps: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val todayStr = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
+    var uploadStatusMsg by remember { mutableStateOf<String?>(null) }
     var appToShare by remember { mutableStateOf<UserApp?>(null) }
     var appForVersions by remember { mutableStateOf<UserApp?>(null) }
     var appForTesters by remember { mutableStateOf<UserApp?>(null) }
     var appForDailyLogs by remember { mutableStateOf<UserApp?>(null) }
     var appForReadinessReport by remember { mutableStateOf<UserApp?>(null) }
     var appForValidator by remember { mutableStateOf<UserApp?>(null) }
+    var appForPrivacyPolicy by remember { mutableStateOf<UserApp?>(null) }
+    var appForPolicyLinter by remember { mutableStateOf<UserApp?>(null) }
+    var appForChangelog by remember { mutableStateOf<UserApp?>(null) }
+    var appForPreFlight by remember { mutableStateOf<UserApp?>(null) }
+    var appForDiversity by remember { mutableStateOf<UserApp?>(null) }
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
@@ -150,30 +174,71 @@ fun MyAppsScreen(
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "تطبيقاتك المنشورة (${userApps.size})",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "نشر التطبيقات متاح مجاناً وبدون أي شروط لجميع المطورين المسجلين",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = PlayGreen
-                            )
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "تطبيقاتك المنشورة (${userApps.size})",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "نشر التطبيقات متاح مجاناً وبدون أي شروط لجميع المطورين المسجلين",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = PlayGreen
+                                )
+                            }
+
+                            if (userApps.isNotEmpty() && onUploadLocalApps != null) {
+                                OutlinedButton(
+                                    onClick = {
+                                        onUploadLocalApps.invoke { _, msg ->
+                                            uploadStatusMsg = msg
+                                        }
+                                    },
+                                    enabled = !isUploadingLocalApps,
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                    modifier = Modifier.testTag("btn_my_apps_upload_cloud")
+                                ) {
+                                    if (isUploadingLocalApps) {
+                                        CircularProgressIndicator(modifier = Modifier.size(14.dp), color = PlayGreen, strokeWidth = 2.dp)
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("جاري الرفع...", fontSize = 11.sp, color = PlayGreen)
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.CloudSync,
+                                            contentDescription = "رفع للسحابة",
+                                            tint = PlayGreen,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("رفع للسحابة ☁️", fontSize = 11.sp, color = PlayGreen)
+                                    }
+                                }
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.RocketLaunch,
+                                    contentDescription = null,
+                                    tint = PlayGreen,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
                         }
 
-                        Icon(
-                            imageVector = Icons.Default.RocketLaunch,
-                            contentDescription = null,
-                            tint = PlayGreen,
-                            modifier = Modifier.size(32.dp)
-                        )
+                        uploadStatusMsg?.let { msg ->
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = msg,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (msg.contains("نجاح")) SuccessGreen else DangerRed,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
@@ -424,6 +489,74 @@ fun MyAppsScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
+                        // Safety Buffer & Risk Calculator
+                        val safetyBuffer = app.testersCount - 20
+                        val isBufferSafe = safetyBuffer >= 3
+                        val isBufferCritical = safetyBuffer in 0..2
+                        val isBufferDanger = safetyBuffer < 0
+
+                        val bufferBgColor = if (isBufferSafe) SuccessGreen else if (isBufferCritical) AmberGold else DangerRed
+
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = bufferBgColor.copy(alpha = 0.10f),
+                            border = BorderStroke(1.dp, bufferBgColor.copy(alpha = 0.35f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("card_safety_buffer_${app.id}")
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = if (isBufferSafe) Icons.Default.Security else Icons.Default.Warning,
+                                            contentDescription = null,
+                                            tint = bufferBgColor,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "معامل أمان الـ 20 مختبراً (Buffer):",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = bufferBgColor.copy(alpha = 0.2f)
+                                    ) {
+                                        Text(
+                                            text = if (isBufferSafe) "آمن (+${safetyBuffer} احتياطي) 🟢"
+                                            else if (isBufferCritical) "حرج (+${safetyBuffer} فقط) 🟡"
+                                            else "خطر (${safetyBuffer} تحت الـ20) 🔴",
+                                            color = bufferBgColor,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(3.dp))
+                                Text(
+                                    text = if (isBufferSafe)
+                                        "لديك هامش أمان ممتاز يحميك من توقف عداد جوجل بلاي إذا انسحب أي مختبر."
+                                    else if (isBufferCritical)
+                                        "تحذير: إذا قام مختبر واحد بحذف التطبيق أو مغادرة المجموعة، سيتوقف عداد الـ 14 يوماً فوراً! ينصح بزيادة المختبرين إلى 23+."
+                                    else
+                                        "تحذير شديد: عدد المختبرين أقل من 20، لن تحتسب Google Play أيام الاختبار حتى تكتمل الـ 20 مختبراً.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
                         // Daily Test Verification Status for Google Play compliance
                         val appLogs = allDailyTestLogs.filter { it.packageName == app.packageName }
                         val todayLogsCount = appLogs.count { it.testDate == todayStr }
@@ -580,6 +713,102 @@ fun MyAppsScreen(
                                 )
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Google Play Developer Toolkit Suite (5 Essential Tools)
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                            modifier = Modifier.fillMaxWidth().testTag("toolkit_suite_${app.id}")
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AutoAwesome,
+                                        contentDescription = null,
+                                        tint = PlayGreen,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "مجموعة أدوات كونسول Google Play:",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = { appForPrivacyPolicy = app },
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                                        modifier = Modifier.weight(1f).testTag("btn_policy_gen_${app.id}")
+                                    ) {
+                                        Icon(Icons.Default.Policy, contentDescription = null, modifier = Modifier.size(14.dp), tint = PlayGreen)
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("سياسة الخصوصية", fontSize = 10.sp)
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = { appForPolicyLinter = app },
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                                        modifier = Modifier.weight(1f).testTag("btn_policy_linter_${app.id}")
+                                    ) {
+                                        Icon(Icons.Default.Spellcheck, contentDescription = null, modifier = Modifier.size(14.dp), tint = AmberGold)
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("مدقق الكلمات", fontSize = 10.sp)
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = { appForChangelog = app },
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                                        modifier = Modifier.weight(1f).testTag("btn_changelog_${app.id}")
+                                    ) {
+                                        Icon(Icons.Default.Update, contentDescription = null, modifier = Modifier.size(14.dp), tint = CyanAccent)
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("سجل التحديث", fontSize = 10.sp)
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = { appForPreFlight = app },
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                                        modifier = Modifier.weight(1f).testTag("btn_preflight_${app.id}")
+                                    ) {
+                                        Icon(Icons.Default.FactCheck, contentDescription = null, modifier = Modifier.size(14.dp), tint = SuccessGreen)
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("فحص الامتثال", fontSize = 10.sp)
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = { appForDiversity = app },
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                                        modifier = Modifier.weight(1f).testTag("btn_diversity_${app.id}")
+                                    ) {
+                                        Icon(Icons.Default.Devices, contentDescription = null, modifier = Modifier.size(14.dp), tint = CyanAccent)
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("تنوع الأجهزة", fontSize = 10.sp)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -670,6 +899,46 @@ fun MyAppsScreen(
         OptInLinkValidatorDialog(
             app = app,
             onDismiss = { appForValidator = null }
+        )
+    }
+
+    // Privacy Policy Generator & Validator dialog
+    appForPrivacyPolicy?.let { app ->
+        PrivacyPolicyGeneratorDialog(
+            app = app,
+            onDismiss = { appForPrivacyPolicy = null }
+        )
+    }
+
+    // Play Policy Linter dialog
+    appForPolicyLinter?.let { app ->
+        PlayPolicyLinterDialog(
+            app = app,
+            onDismiss = { appForPolicyLinter = null }
+        )
+    }
+
+    // Changelog Generator dialog
+    appForChangelog?.let { app ->
+        ChangelogGeneratorDialog(
+            app = app,
+            onDismiss = { appForChangelog = null }
+        )
+    }
+
+    // Pre-Flight Review Checklist dialog
+    appForPreFlight?.let { app ->
+        PreFlightChecklistDialog(
+            app = app,
+            onDismiss = { appForPreFlight = null }
+        )
+    }
+
+    // Device Diversity Matrix dialog
+    appForDiversity?.let { app ->
+        DeviceDiversityMatrixDialog(
+            app = app,
+            onDismiss = { appForDiversity = null }
         )
     }
 }

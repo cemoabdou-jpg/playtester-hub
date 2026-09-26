@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,11 +20,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Shop
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
@@ -32,6 +37,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -47,7 +53,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.ui.theme.AmberGold
@@ -82,6 +90,20 @@ fun AddAppDialog(
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     var testingMethod by remember { mutableStateOf(0) } // 0: Google Group, 1: Email List / Direct
+    val clipboardManager = LocalClipboardManager.current
+    var isGroupEmailCopied by remember { mutableStateOf(false) }
+
+    fun extractPackageFromUrl(url: String): String? {
+        val regexTesting = "play\\.google\\.com/apps/testing/([a-zA-Z0-9._]+)".toRegex()
+        val matchTesting = regexTesting.find(url)
+        if (matchTesting != null) return matchTesting.groupValues[1]
+
+        val regexDetails = "play\\.google\\.com/store/apps/details\\?id=([a-zA-Z0-9._]+)".toRegex()
+        val matchDetails = regexDetails.find(url)
+        if (matchDetails != null) return matchDetails.groupValues[1]
+
+        return null
+    }
 
     val categories = listOf("أدوات", "إنتاجية", "مالية", "ألعاب", "تعليم", "نمط حياة")
 
@@ -228,6 +250,31 @@ fun AddAppDialog(
                     singleLine = true
                 )
 
+                // Quick Auto-Generate Suggested Links
+                if (packageName.contains(".") && (webOptInUrl.isBlank() || androidOptInUrl.isBlank())) {
+                    OutlinedButton(
+                        onClick = {
+                            if (webOptInUrl.isBlank()) {
+                                webOptInUrl = "https://play.google.com/apps/testing/$packageName"
+                            }
+                            if (androidOptInUrl.isBlank()) {
+                                androidOptInUrl = "https://play.google.com/store/apps/details?id=$packageName"
+                            }
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                        modifier = Modifier.fillMaxWidth().testTag("btn_auto_generate_links")
+                    ) {
+                        Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "⚡ توليد روابط اختبار Google Play تلقائياً من اسم الحزمة",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = PlayGreen
+                        )
+                    }
+                }
+
                 // Category selection
                 Text(
                     text = "التصنيف:",
@@ -259,20 +306,116 @@ fun AddAppDialog(
                     }
                 }
 
+                // Automated Group Linking Info Card
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = PlayGreen.copy(alpha = 0.08f),
+                    border = BorderStroke(1.dp, PlayGreen.copy(alpha = 0.35f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = PlayGreen,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "✅ ربط مجموعة Google Groups تلقائي بالكامل",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "رابط مجموعة المنصة مدرج تلقائياً في الأسفل. كل ما عليك في Google Play Console (المسار المغلق > المختبرون > Google Groups) هو إضافة بريد المجموعة:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = officialGoogleGroupEmail,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                OutlinedButton(
+                                    onClick = {
+                                        clipboardManager.setText(AnnotatedString(officialGoogleGroupEmail))
+                                        isGroupEmailCopied = true
+                                    },
+                                    shape = RoundedCornerShape(6.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                    modifier = Modifier
+                                        .height(32.dp)
+                                        .testTag("btn_copy_group_email_dialog")
+                                ) {
+                                    Icon(
+                                        imageVector = if (isGroupEmailCopied) Icons.Default.Check else Icons.Default.ContentCopy,
+                                        contentDescription = "نسخ",
+                                        modifier = Modifier.size(14.dp),
+                                        tint = if (isGroupEmailCopied) PlayGreen else MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = if (isGroupEmailCopied) "تم النسخ!" else "نسخ البريد",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (isGroupEmailCopied) PlayGreen else MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Testers List / Group Link
                 OutlinedTextField(
                     value = googleGroupUrl,
                     onValueChange = { googleGroupUrl = it.trim(); errorMessage = null },
-                    label = { Text("رابط مجموعة Google Group للمختبرين") },
+                    label = { Text("رابط مجموعة Google Group للمختبرين (مدرج تلقائياً)") },
                     placeholder = { Text(officialGoogleGroupUrl) },
                     supportingText = {
                         Text(
-                            text = "مجموعة المنصة الرسمية ($officialGoogleGroupEmail) تم ربطها تلقائياً",
+                            text = if (googleGroupUrl == officialGoogleGroupUrl)
+                                "⚡ تم ربط مجموعة المنصة الرسمية الموحدة تلقائياً"
+                            else
+                                "تم تعديل الرابط - يمكنك الضغط على زر الاستعادة للعودة للرابط الموحد",
                             color = PlayGreen
                         )
                     },
                     leadingIcon = {
                         Icon(Icons.Default.Group, contentDescription = null, tint = PlayGreen)
+                    },
+                    trailingIcon = {
+                        if (googleGroupUrl != officialGoogleGroupUrl) {
+                            IconButton(
+                                onClick = { googleGroupUrl = officialGoogleGroupUrl },
+                                modifier = Modifier.testTag("btn_restore_default_group_url")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.RestartAlt,
+                                    contentDescription = "استعادة رابط المجموعة الافتراضي",
+                                    tint = PlayGreen
+                                )
+                            }
+                        }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -285,7 +428,16 @@ fun AddAppDialog(
                 // Web Opt-in URL
                 OutlinedTextField(
                     value = webOptInUrl,
-                    onValueChange = { webOptInUrl = it.trim(); errorMessage = null },
+                    onValueChange = { input ->
+                        val trimmed = input.trim()
+                        webOptInUrl = trimmed
+                        errorMessage = null
+                        if (packageName.isBlank()) {
+                            extractPackageFromUrl(trimmed)?.let { extracted ->
+                                packageName = extracted
+                            }
+                        }
+                    },
                     label = { Text("رابط اشتراك الويب (Web Opt-in Link)") },
                     placeholder = { Text("https://play.google.com/apps/testing/...") },
                     leadingIcon = {
@@ -302,7 +454,16 @@ fun AddAppDialog(
                 // Android Opt-in URL
                 OutlinedTextField(
                     value = androidOptInUrl,
-                    onValueChange = { androidOptInUrl = it.trim(); errorMessage = null },
+                    onValueChange = { input ->
+                        val trimmed = input.trim()
+                        androidOptInUrl = trimmed
+                        errorMessage = null
+                        if (packageName.isBlank()) {
+                            extractPackageFromUrl(trimmed)?.let { extracted ->
+                                packageName = extracted
+                            }
+                        }
+                    },
                     label = { Text("رابط التطبيق على متجر Play (Android link)") },
                     placeholder = { Text("https://play.google.com/store/apps/details?id=...") },
                     leadingIcon = {

@@ -5,6 +5,7 @@ import com.example.data.model.AppBuildArtifact
 import com.example.data.model.AppNotification
 import com.example.data.model.AppSetting
 import com.example.data.model.AuthUser
+import com.example.data.model.CloudDiagnosticResult
 import com.example.data.model.CommunityApp
 import com.example.data.model.DailyTestLog
 import com.example.data.model.InvitedTester
@@ -476,7 +477,9 @@ class TesterRepository(private val dao: AppDao) {
         dao.insertUserApp(appToInsert)
 
         // Also add to community exchange so others can test it
+        val existingCommunityApp = dao.getCommunityAppByPackage(app.packageName)
         val communityItem = CommunityApp(
+            id = existingCommunityApp?.id ?: 0,
             name = app.name,
             developerName = "أنا (مطور التطبيق)",
             packageName = app.packageName,
@@ -492,12 +495,14 @@ class TesterRepository(private val dao: AppDao) {
         )
         dao.insertCommunityApp(communityItem)
 
-        // Sync to remote Firestore DB if online
-        try {
-            firestoreService.publishAppToFirestore(communityItem)
-        } catch (_: Exception) {}
-
-        return Result.success("تم نشر التطبيق بنجاح وربطه بمجموعة الاختبار الرسمية!")
+        // Sync to remote Firestore DB so other developers see it
+        val remoteRes = firestoreService.publishAppToFirestore(communityItem)
+        return if (remoteRes.isSuccess) {
+            Result.success("تم نشر التطبيق ومزامنته مع السيرفر السحابي بنجاح! سيظهر لجميع المطورين والمختبرين فوراً.")
+        } else {
+            val err = remoteRes.exceptionOrNull()?.message ?: "تنبيه في الاتصال"
+            Result.success("تم حفظ التطبيق محلياً في جهازك بنجاح. (ملاحظة السحابة: $err - يرجى الضغط على زر المزامنة عند توفر الإنترنت)")
+        }
     }
 
     suspend fun deleteUserApp(id: Int) {
@@ -615,13 +620,272 @@ class TesterRepository(private val dao: AppDao) {
         return dao.getSettingOnce("official_google_group_email") ?: DEFAULT_GOOGLE_GROUP_EMAIL
     }
 
+    suspend fun checkCloudConnection(): CloudDiagnosticResult {
+        return firestoreService.checkCloudConnectionStatus()
+    }
+
+    suspend fun reuploadAllUserAppsToCloud(): Result<Pair<Int, Int>> {
+        val userAppsList = dao.getAllUserAppsOnce()
+        if (userAppsList.isEmpty()) {
+            return Result.failure(Exception("لا توجد تطبيقات محلية مسجلة في جهازك لرفعها."))
+        }
+        val groupUrl = getEffectiveOfficialGroupUrl()
+        val communityAppsToUpload = userAppsList.map { app ->
+            CommunityApp(
+                id = 0,
+                name = app.name,
+                developerName = "أنا (مطور التطبيق)",
+                packageName = app.packageName,
+                description = if (app.instructions.isNotEmpty()) app.instructions else "تطبيق قيد الاختبار المغلق لـ 14 يوماً",
+                category = app.category,
+                googleGroupUrl = if (app.googleGroupUrl.isNotBlank()) app.googleGroupUrl else groupUrl,
+                webOptInUrl = app.webOptInUrl,
+                androidOptInUrl = app.androidOptInUrl,
+                testersCurrent = app.testersCount,
+                testersTarget = app.targetTesters,
+                rewardPoints = 40,
+                isFeatured = false
+            )
+        }
+        return firestoreService.publishAllAppsToFirestore(communityAppsToUpload)
+    }
+
     suspend fun observeAndSyncRemoteApps() {
         try {
+            firestoreService.ensureFirebaseAuth()
             firestoreService.observeRemoteCommunityApps().collect { remoteApps ->
-                remoteApps.forEach { app ->
-                    dao.insertCommunityApp(app)
+                remoteApps.forEach { remoteApp ->
+                    val existing = dao.getCommunityAppByPackage(remoteApp.packageName)
+                    val appToInsert = if (existing != null) remoteApp.copy(id = existing.id) else remoteApp
+                    dao.insertCommunityApp(appToInsert)
                 }
             }
         } catch (_: Exception) {}
+    }
+
+    suspend fun syncRemoteAppsNow(): Result<Int> {
+        val res = firestoreService.fetchCommunityAppsOnce()
+        return if (res.isSuccess) {
+            val apps = res.getOrDefault(emptyList())
+            var count = 0
+            apps.forEach { remoteApp ->
+                val existing = dao.getCommunityAppByPackage(remoteApp.packageName)
+                val appToInsert = if (existing != null) remoteApp.copy(id = existing.id) else remoteApp
+                dao.insertCommunityApp(appToInsert)
+                count++
+            }
+            Result.success(count)
+        } else {
+            val ex = res.exceptionOrNull() ?: Exception("فشل الاتصال بقاعدة بيانات التطبيقات السحابية")
+            Result.failure(ex)
+        }
+    }
+
+    suspend fun importCommunityAppDirectly(
+        input: String,
+        customName: String,
+        developerName: String,
+        category: String
+    ): Result<CommunityApp> {
+        val trimmed = input.trim()
+        val pkg = when {
+            trimmed.contains("id=") -> trimmed.substringAfter("id=").substringBefore("&")
+            trimmed.contains("play.google.com/apps/testing/") -> trimmed.substringAfter("play.google.com/apps/testing/").substringBefore("?").substringBefore("/")
+            trimmed.contains(".") -> trimmed
+            else -> ""
+        }
+
+        if (pkg.isBlank()) {
+            return Result.failure(Exception("لم نتمكن من استخراج اسم الحزمة (Package Name) من الرابط المدخل. يرجى التأكد من الرابط."))
+        }
+
+        val existing = dao.getCommunityAppByPackage(pkg)
+        val officialGroupUrl = getEffectiveOfficialGroupUrl()
+        val webOptIn = "https://play.google.com/apps/testing/$pkg"
+        val androidOptIn = "https://play.google.com/store/apps/details?id=$pkg"
+
+        val appName = if (customName.isNotBlank()) customName else if (existing != null) existing.name else "تطبيق $pkg"
+        val devName = if (developerName.isNotBlank()) developerName else if (existing != null) existing.developerName else "مطور من المجتمع"
+
+        val imported = CommunityApp(
+            id = existing?.id ?: 0,
+            name = appName,
+            developerName = devName,
+            packageName = pkg,
+            description = "تطبيق تمت إضافته مباشرة لاختبار الـ 14 يوماً عبر الرابط",
+            category = category.ifBlank { "أدوات" },
+            googleGroupUrl = officialGroupUrl,
+            webOptInUrl = webOptIn,
+            androidOptInUrl = androidOptIn,
+            testersCurrent = existing?.testersCurrent ?: 1,
+            testersTarget = 20,
+            rewardPoints = 40,
+            isFeatured = false
+        )
+
+        val insertedId = dao.insertCommunityApp(imported)
+        val finalApp = imported.copy(id = if (imported.id != 0) imported.id else insertedId.toInt())
+
+        // Also push to Firestore so others benefit as well
+        try {
+            firestoreService.publishAppToFirestore(finalApp)
+        } catch (_: Exception) {}
+
+        return Result.success(finalApp)
+    }
+
+    suspend fun exportBackupJson(): String {
+        return try {
+            val root = org.json.JSONObject()
+            root.put("version", 1)
+            root.put("exportedAt", System.currentTimeMillis())
+
+            val wallet = dao.getWalletOnce()
+            if (wallet != null) {
+                val walletJson = org.json.JSONObject()
+                walletJson.put("points", wallet.points)
+                walletJson.put("testsCompleted", wallet.testsCompleted)
+                walletJson.put("currentStreak", wallet.currentStreak)
+                root.put("wallet", walletJson)
+            }
+
+            val userApps = dao.getAllUserAppsOnce()
+            val appsArray = org.json.JSONArray()
+            userApps.forEach { app ->
+                val o = org.json.JSONObject()
+                o.put("name", app.name)
+                o.put("packageName", app.packageName)
+                o.put("category", app.category)
+                o.put("googleGroupUrl", app.googleGroupUrl)
+                o.put("webOptInUrl", app.webOptInUrl)
+                o.put("androidOptInUrl", app.androidOptInUrl)
+                o.put("testersCount", app.testersCount)
+                o.put("daysElapsed", app.daysElapsed)
+                appsArray.put(o)
+            }
+            root.put("userApps", appsArray)
+
+            val joinedTests = dao.getJoinedTestsOnce()
+            val testsArray = org.json.JSONArray()
+            joinedTests.forEach { test ->
+                val o = org.json.JSONObject()
+                o.put("communityAppId", test.communityAppId)
+                o.put("appName", test.appName)
+                o.put("packageName", test.packageName)
+                o.put("category", test.category)
+                o.put("daysCompleted", test.daysCompleted)
+                o.put("lastCheckInDate", test.lastCheckInDate)
+                o.put("checkedDaysCsv", test.checkedDaysCsv)
+                o.put("isCompleted", test.isCompleted)
+                testsArray.put(o)
+            }
+            root.put("joinedTests", testsArray)
+
+            val dailyLogs = dao.getAllDailyTestLogsOnce()
+            val logsArray = org.json.JSONArray()
+            dailyLogs.forEach { log ->
+                val o = org.json.JSONObject()
+                o.put("joinedTestId", log.joinedTestId)
+                o.put("appName", log.appName)
+                o.put("packageName", log.packageName)
+                o.put("dayNumber", log.dayNumber)
+                o.put("testDate", log.testDate)
+                o.put("durationMinutes", log.durationMinutes)
+                o.put("rating", log.rating)
+                o.put("notes", log.notes)
+                logsArray.put(o)
+            }
+            root.put("dailyLogs", logsArray)
+
+            val feedbackList = dao.getAllFeedbackOnce()
+            val fbArray = org.json.JSONArray()
+            feedbackList.forEach { fb ->
+                val o = org.json.JSONObject()
+                o.put("packageName", fb.packageName)
+                o.put("appName", fb.appName)
+                o.put("testerEmail", fb.testerEmail)
+                o.put("rating", fb.rating)
+                o.put("feedbackType", fb.feedbackType)
+                o.put("content", fb.content)
+                fbArray.put(o)
+            }
+            root.put("feedback", fbArray)
+
+            root.toString(2)
+        } catch (e: Exception) {
+            "{\"error\": \"${e.message}\"}"
+        }
+    }
+
+    suspend fun restoreBackupJson(jsonString: String): Result<String> {
+        return try {
+            val root = org.json.JSONObject(jsonString.trim())
+
+            var restoredApps = 0
+            if (root.has("userApps")) {
+                val arr = root.getJSONArray("userApps")
+                val list = mutableListOf<UserApp>()
+                for (i in 0 until arr.length()) {
+                    val o = arr.getJSONObject(i)
+                    list.add(
+                        UserApp(
+                            name = o.optString("name", "تطبيق"),
+                            packageName = o.optString("packageName", "com.example.app"),
+                            category = o.optString("category", "أدوات"),
+                            googleGroupUrl = o.optString("googleGroupUrl", DEFAULT_GOOGLE_GROUP_URL),
+                            webOptInUrl = o.optString("webOptInUrl", ""),
+                            androidOptInUrl = o.optString("androidOptInUrl", ""),
+                            testersCount = o.optInt("testersCount", 1),
+                            daysElapsed = o.optInt("daysElapsed", 1)
+                        )
+                    )
+                }
+                if (list.isNotEmpty()) {
+                    dao.insertUserApps(list)
+                    restoredApps = list.size
+                }
+            }
+
+            var restoredLogs = 0
+            if (root.has("dailyLogs")) {
+                val arr = root.getJSONArray("dailyLogs")
+                val list = mutableListOf<DailyTestLog>()
+                for (i in 0 until arr.length()) {
+                    val o = arr.getJSONObject(i)
+                    list.add(
+                        DailyTestLog(
+                            joinedTestId = o.optInt("joinedTestId", 1),
+                            appName = o.optString("appName", "تطبيق"),
+                            packageName = o.optString("packageName", ""),
+                            dayNumber = o.optInt("dayNumber", 1),
+                            testDate = o.optString("testDate", ""),
+                            durationMinutes = o.optInt("durationMinutes", 10),
+                            rating = o.optInt("rating", 5),
+                            notes = o.optString("notes", "")
+                        )
+                    )
+                }
+                if (list.isNotEmpty()) {
+                    dao.insertDailyTestLogs(list)
+                    restoredLogs = list.size
+                }
+            }
+
+            if (root.has("wallet")) {
+                val w = root.getJSONObject("wallet")
+                val existing = dao.getWalletOnce() ?: UserWallet()
+                dao.insertOrUpdateWallet(
+                    existing.copy(
+                        points = w.optInt("points", existing.points),
+                        testsCompleted = w.optInt("testsCompleted", existing.testsCompleted),
+                        currentStreak = w.optInt("currentStreak", existing.currentStreak)
+                    )
+                )
+            }
+
+            Result.success("تمت استعادة البيانات بنجاح: $restoredApps تطبيق و $restoredLogs سجل اختبار!")
+        } catch (e: Exception) {
+            Result.failure(Exception("فشلت الاستعادة: صيغة الملف غير صالحة (${e.message})"))
+        }
     }
 }

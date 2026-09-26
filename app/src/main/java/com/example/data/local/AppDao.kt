@@ -26,6 +26,9 @@ interface AppDao {
     @Query("SELECT * FROM community_apps ORDER BY priorityScore DESC, isFeatured DESC, id DESC")
     fun getAllCommunityAppsAdmin(): Flow<List<CommunityApp>>
 
+    @Query("SELECT * FROM community_apps WHERE packageName = :packageName LIMIT 1")
+    suspend fun getCommunityAppByPackage(packageName: String): CommunityApp?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCommunityApp(app: CommunityApp): Long
 
@@ -212,4 +215,26 @@ interface AppDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveSetting(setting: com.example.data.model.AppSetting)
+
+    // Backup & Restore helpers
+    @Query("SELECT * FROM user_apps")
+    suspend fun getAllUserAppsOnce(): List<UserApp>
+
+    @Query("SELECT * FROM daily_test_logs")
+    suspend fun getAllDailyTestLogsOnce(): List<DailyTestLog>
+
+    @Query("SELECT * FROM tester_feedback")
+    suspend fun getAllFeedbackOnce(): List<TesterFeedback>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertUserApps(apps: List<UserApp>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertJoinedTests(tests: List<JoinedTest>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDailyTestLogs(logs: List<DailyTestLog>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertFeedbacks(feedbacks: List<TesterFeedback>)
 }

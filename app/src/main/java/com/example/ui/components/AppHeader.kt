@@ -18,8 +18,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
@@ -57,6 +59,8 @@ fun AppHeader(
     currentUser: AuthUser? = null,
     unreadNotificationsCount: Int = 0,
     isSimplifiedMode: Boolean = false,
+    isDarkTheme: Boolean = false,
+    onToggleTheme: (() -> Unit)? = null,
     onNotificationsClick: (() -> Unit)? = null,
     onBadgesClick: (() -> Unit)? = null,
     onProfileClick: (() -> Unit)? = null,
@@ -194,6 +198,23 @@ fun AppHeader(
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = PlayGreen
+                        )
+                    }
+                }
+
+                // Dark / Light Theme Quick Toggle
+                if (onToggleTheme != null) {
+                    IconButton(
+                        onClick = onToggleTheme,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .testTag("btn_theme_toggle")
+                    ) {
+                        Icon(
+                            imageVector = if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
+                            contentDescription = if (isDarkTheme) "التبديل إلى الوضع الفاتح" else "التبديل إلى الوضع الداكن",
+                            tint = if (isDarkTheme) AmberGold else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(19.dp)
                         )
                     }
                 }

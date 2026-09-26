@@ -11,6 +11,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
+enum class ThemeMode(val title: String, val description: String) {
+    SYSTEM("تلقائي (حسب النظام)", "مزامنة المظهر تلقائياً مع وضع هاتفك"),
+    LIGHT("الوضع الفاتح (نهاري)", "ألوان ناصعة وواضحة للإضاءة النهارية"),
+    DARK("الوضع الداكن (ليلي)", "ألوان هادئة مريحة للعين في الإضاءة المنخفضة")
+}
+
 private val DarkColorScheme = darkColorScheme(
     primary = CrimsonRedLight,
     onPrimary = Color(0xFF0F172A),

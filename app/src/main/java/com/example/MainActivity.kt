@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -65,6 +66,7 @@ import com.example.ui.screens.MyTestingScreen
 import com.example.ui.screens.OnboardingScreen
 import com.example.ui.screens.ProfileSettingsScreen
 import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.theme.ThemeMode
 import com.example.ui.viewmodel.TesterViewModel
 import com.example.util.FcmService
 import com.example.util.NotificationHelper
@@ -77,15 +79,29 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         FcmService.initializeFcm(applicationContext)
         setContent {
-            MyApplicationTheme {
-                PlayTesterApp(viewModel = viewModel)
+            val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+            val isDarkTheme = when (themeMode) {
+                ThemeMode.DARK -> true
+                ThemeMode.LIGHT -> false
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+            }
+            MyApplicationTheme(darkTheme = isDarkTheme) {
+                PlayTesterApp(
+                    viewModel = viewModel,
+                    themeMode = themeMode,
+                    isDarkTheme = isDarkTheme
+                )
             }
         }
     }
 }
 
 @Composable
-fun PlayTesterApp(viewModel: TesterViewModel) {
+fun PlayTesterApp(
+    viewModel: TesterViewModel,
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    isDarkTheme: Boolean = false
+) {
     val context = LocalContext.current
     var currentTab by remember { mutableIntStateOf(0) }
     var showAddAppDialog by remember { mutableStateOf(false) }
@@ -124,6 +140,11 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
     val officialGoogleGroupUrl by viewModel.officialGoogleGroupUrl.collectAsStateWithLifecycle()
     val officialGoogleGroupEmail by viewModel.officialGoogleGroupEmail.collectAsStateWithLifecycle()
     val appUpdateStatus by viewModel.appUpdateStatus.collectAsStateWithLifecycle()
+    val isSyncingApps by viewModel.isSyncingApps.collectAsStateWithLifecycle()
+    val syncStatusMessage by viewModel.syncStatusMessage.collectAsStateWithLifecycle()
+    val cloudDiagnostic by viewModel.cloudDiagnostic.collectAsStateWithLifecycle()
+    val isDiagnosingCloud by viewModel.isDiagnosingCloud.collectAsStateWithLifecycle()
+    val isUploadingLocalApps by viewModel.isUploadingLocalApps.collectAsStateWithLifecycle()
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -142,6 +163,7 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
             NotificationHelper.scheduleDailyReminderAlarm(context)
             FcmService.initializeFcm(context)
             viewModel.checkForAppUpdate(context)
+            viewModel.syncRemoteAppsNow(showFeedbackToast = false)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 if (androidx.core.content.ContextCompat.checkSelfPermission(
                         context,
@@ -195,6 +217,8 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                 currentUser = currentUser,
                 unreadNotificationsCount = unreadNotificationsCount,
                 isSimplifiedMode = isSimplifiedMode,
+                isDarkTheme = isDarkTheme,
+                onToggleTheme = { viewModel.toggleDarkLightMode(isDarkTheme) },
                 onNotificationsClick = { showNotificationsDialog = true },
                 onBadgesClick = { showBadgesDialog = true },
                 onProfileClick = { currentTab = 4 },
@@ -321,10 +345,21 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                         searchQuery = searchQuery,
                         selectedCategory = selectedCategory,
                         currentUser = currentUser,
+                        isSyncing = isSyncingApps,
+                        syncStatusMessage = syncStatusMessage,
+                        diagnosticResult = cloudDiagnostic,
+                        isDiagnosingCloud = isDiagnosingCloud,
+                        isUploadingLocalApps = isUploadingLocalApps,
                         onSearchChange = { viewModel.setSearchQuery(it) },
                         onCategorySelect = { viewModel.setSelectedCategory(it) },
                         onJoinApp = { viewModel.joinApp(it) },
                         onPublishClick = { showAddAppDialog = true },
+                        onSyncClick = { viewModel.syncRemoteAppsNow(showFeedbackToast = true) },
+                        onRunCloudDiagnostics = { viewModel.runCloudDiagnostics() },
+                        onUploadLocalApps = { cb -> viewModel.reuploadLocalAppsToCloud(cb) },
+                        onImportApp = { input, appName, devName, category, onComplete ->
+                            viewModel.importCommunityAppDirectly(input, appName, devName, category, onComplete)
+                        },
                         onOpenAdmin = if (currentUser?.role == "ADMIN") { { currentTab = 5 } } else null
                     )
                     1 -> MyTestingScreen(
@@ -368,7 +403,9 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                         },
                         onSendDailyReminder = { app ->
                             viewModel.sendDailyTestingReminder(app)
-                        }
+                        },
+                        onUploadLocalApps = { cb -> viewModel.reuploadLocalAppsToCloud(cb) },
+                        isUploadingLocalApps = isUploadingLocalApps
                     )
                     3 -> GuideScreen(
                         onOpenOnboarding = { showOnboardingExplicitly = true }
@@ -381,6 +418,8 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                         dailyReminderEnabled = dailyReminderEnabled,
                         hapticEnabled = hapticEnabled,
                         isSimplifiedMode = isSimplifiedMode,
+                        themeMode = themeMode,
+                        onThemeModeChange = { viewModel.setThemeMode(it) },
                         onUpdateProfile = { viewModel.updateProfile(it) },
                         onChangePassword = { oldPass, newPass ->
                             viewModel.changePassword(oldPass, newPass)
@@ -393,7 +432,9 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                         onOpenBadges = { showBadgesDialog = true },
                         onLogout = { viewModel.logout() },
                         onDeleteAccount = { viewModel.deleteAccount() },
-                        onCheckForUpdates = { viewModel.checkForAppUpdate(context, showToastIfLatest = true) }
+                        onCheckForUpdates = { viewModel.checkForAppUpdate(context, showToastIfLatest = true) },
+                        onExportBackup = { viewModel.getExportedBackupJson() },
+                        onRestoreBackup = { json -> viewModel.restoreBackupJson(json) }
                     )
                     5 -> AdminControlScreen(
                         adminApps = adminCommunityApps,

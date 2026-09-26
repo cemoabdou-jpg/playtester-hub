@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,14 +30,19 @@ import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Android
+import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.BrightnessAuto
+import androidx.compose.material.icons.filled.BrightnessMedium
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Notifications
@@ -71,7 +77,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
+import com.example.ui.components.JsonBackupDialog
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -96,6 +105,8 @@ import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
 import com.example.ui.theme.PlayGreenDark
 import com.example.ui.theme.SuccessGreen
+import com.example.ui.theme.ThemeMode
+import com.example.util.AppUpdateHelper
 import com.example.util.EmailHelper
 import com.example.util.NotificationHelper
 import java.text.SimpleDateFormat
@@ -111,6 +122,8 @@ fun ProfileSettingsScreen(
     dailyReminderEnabled: Boolean,
     hapticEnabled: Boolean,
     isSimplifiedMode: Boolean,
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    onThemeModeChange: (ThemeMode) -> Unit = {},
     onUpdateProfile: (name: String) -> Unit,
     onChangePassword: (oldPass: String, newPass: String) -> Unit,
     onUpdatePreferences: (device: String, androidVer: String, reminder: Boolean, haptic: Boolean) -> Unit,
@@ -120,8 +133,14 @@ fun ProfileSettingsScreen(
     onLogout: () -> Unit,
     onDeleteAccount: () -> Unit,
     onCheckForUpdates: () -> Unit = {},
+    onExportBackup: suspend () -> String = { "{}" },
+    onRestoreBackup: suspend (String) -> Pair<Boolean, String> = { Pair(false, "") },
     modifier: Modifier = Modifier
 ) {
+    val coroutineScope = rememberCoroutineScope()
+    var showBackupDialog by remember { mutableStateOf(false) }
+    var currentBackupJson by remember { mutableStateOf("") }
+
     var showEditNameDialog by remember { mutableStateOf(false) }
     var showChangePasswordDialog by remember { mutableStateOf(false) }
     var showDeleteAccountDialog by remember { mutableStateOf(false) }
@@ -567,7 +586,112 @@ fun ProfileSettingsScreen(
             }
         }
 
-        // --- 5. App Interface & System Options ---
+        // --- 5. Theme & Appearance (Dark / Light Mode) ---
+        item {
+            val isSystemDark = isSystemInDarkTheme()
+            val effectiveDark = when (themeMode) {
+                ThemeMode.DARK -> true
+                ThemeMode.LIGHT -> false
+                ThemeMode.SYSTEM -> isSystemDark
+            }
+
+            SettingsSectionHeader(title = "المظهر ووضع الإضاءة (Theme Mode)", icon = Icons.Default.BrightnessMedium)
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("card_theme_settings")
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text(
+                        text = "اختر وضع الإضاءة المناسب لراحة عينيك وتقليل استهلاك البطارية في الإضاءة المنخفضة:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // 3 Mode selection pills
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ThemeOptionCard(
+                            title = "تلقائي",
+                            subtitle = "حسب النظام",
+                            icon = Icons.Default.BrightnessAuto,
+                            isSelected = themeMode == ThemeMode.SYSTEM,
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("chip_theme_system"),
+                            onClick = { onThemeModeChange(ThemeMode.SYSTEM) }
+                        )
+
+                        ThemeOptionCard(
+                            title = "فاتح",
+                            subtitle = "نهاري ناصع",
+                            icon = Icons.Default.LightMode,
+                            isSelected = themeMode == ThemeMode.LIGHT,
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("chip_theme_light"),
+                            onClick = { onThemeModeChange(ThemeMode.LIGHT) }
+                        )
+
+                        ThemeOptionCard(
+                            title = "داكن",
+                            subtitle = "ليلي مريح",
+                            icon = Icons.Default.DarkMode,
+                            isSelected = themeMode == ThemeMode.DARK,
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("chip_theme_dark"),
+                            onClick = { onThemeModeChange(ThemeMode.DARK) }
+                        )
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    // Quick Switch toggle
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Icon(
+                                imageVector = if (effectiveDark) Icons.Default.DarkMode else Icons.Default.LightMode,
+                                contentDescription = null,
+                                tint = if (effectiveDark) CyanAccent else AmberGold,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = if (effectiveDark) "الوضع الداكن مفعّل حالياً" else "الوضع الفاتح مفعّل حالياً",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = if (effectiveDark) "ألوان داكنة مريحة للعين في الأماكن المظلمة" else "ألوان واضحة ومتباينة في الإضاءة الخارجية",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = effectiveDark,
+                            onCheckedChange = { checked ->
+                                onThemeModeChange(if (checked) ThemeMode.DARK else ThemeMode.LIGHT)
+                            },
+                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = PlayGreen),
+                            modifier = Modifier.testTag("switch_dark_mode_quick")
+                        )
+                    }
+                }
+            }
+        }
+
+        // --- 6. App Interface & System Options ---
         item {
             SettingsSectionHeader(title = "الواجهة والنظام", icon = Icons.Default.ViewAgenda)
             Card(
@@ -608,11 +732,28 @@ fun ProfileSettingsScreen(
                         onClick = onOpenOnboarding,
                         testTag = "btn_reopen_onboarding"
                     )
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    SettingsActionRow(
+                        icon = Icons.Default.Backup,
+                        iconTint = PlayGreen,
+                        title = "النسخ الاحتياطي واستعادة البيانات (JSON)",
+                        subtitle = "تصدير نسخة احتياطية من نقاطك وتطبيقاتك وسجلاتك أو استعادتها بأمان",
+                        buttonText = "إدارة النسخ",
+                        onClick = {
+                            coroutineScope.launch {
+                                currentBackupJson = onExportBackup()
+                                showBackupDialog = true
+                            }
+                        },
+                        testTag = "btn_open_json_backup"
+                    )
                 }
             }
         }
 
-        // --- 6. About & Google Play Compliance ---
+        // --- 7. About & Google Play Compliance ---
         item {
             SettingsSectionHeader(title = "حول المنصة والشروط", icon = Icons.Default.Info)
             Card(
@@ -632,7 +773,7 @@ fun ProfileSettingsScreen(
                             color = MaterialTheme.colorScheme.primaryContainer
                         ) {
                             Text(
-                                text = "v1.8 (Build 9)",
+                                text = "v${AppUpdateHelper.getInstalledVersionName(context)} (Build ${AppUpdateHelper.getInstalledVersionCode(context)})",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -726,6 +867,21 @@ fun ProfileSettingsScreen(
     }
 
     // --- Dialogs ---
+
+    // 0. JSON Backup & Restore Dialog
+    if (showBackupDialog) {
+        JsonBackupDialog(
+            exportedJson = currentBackupJson,
+            onRestoreJson = { json ->
+                var result = Pair(false, "")
+                coroutineScope.launch {
+                    result = onRestoreBackup(json)
+                }
+                result
+            },
+            onDismiss = { showBackupDialog = false }
+        )
+    }
 
     // 1. Edit Name Dialog
     if (showEditNameDialog) {
@@ -1142,3 +1298,51 @@ private fun SettingsActionRow(
         }
     }
 }
+
+@Composable
+private fun ThemeOptionCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        color = if (isSelected) PlayGreen.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(
+            width = if (isSelected) 1.5.dp else 1.dp,
+            color = if (isSelected) PlayGreen else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+        ),
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 10.dp, horizontal = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (isSelected) PlayGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                color = if (isSelected) PlayGreen else MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+

@@ -8,6 +8,7 @@ import com.example.data.local.AppDatabase
 import com.example.data.model.AppBuildArtifact
 import com.example.data.model.AppNotification
 import com.example.data.model.AuthUser
+import com.example.data.model.CloudDiagnosticResult
 import com.example.data.model.CommunityApp
 import com.example.data.model.DailyTestLog
 import com.example.data.model.InvitedTester
@@ -16,6 +17,7 @@ import com.example.data.model.TesterFeedback
 import com.example.data.model.UserApp
 import com.example.data.model.UserWallet
 import com.example.data.repository.TesterRepository
+import com.example.ui.theme.ThemeMode
 import com.example.util.AppUpdateHelper
 import com.example.util.AppUpdateStatus
 import com.example.util.NotificationHelper
@@ -32,6 +34,30 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
     private val repository: TesterRepository
     private val prefs = application.getSharedPreferences("playtester_prefs", Context.MODE_PRIVATE)
 
+    private val _themeMode = MutableStateFlow(
+        try {
+            ThemeMode.valueOf(prefs.getString("theme_mode", ThemeMode.SYSTEM.name) ?: ThemeMode.SYSTEM.name)
+        } catch (e: Exception) {
+            ThemeMode.SYSTEM
+        }
+    )
+    val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
+
+    fun setThemeMode(mode: ThemeMode) {
+        prefs.edit().putString("theme_mode", mode.name).apply()
+        _themeMode.value = mode
+        _userMessage.value = when (mode) {
+            ThemeMode.DARK -> "تم تفعيل الوضع الداكن (ليلي مريح)"
+            ThemeMode.LIGHT -> "تم تفعيل الوضع الفاتح (نهاري)"
+            ThemeMode.SYSTEM -> "تم تفعيل الوضع التلقائي (حسب النظام)"
+        }
+    }
+
+    fun toggleDarkLightMode(isCurrentlyDark: Boolean) {
+        val newMode = if (isCurrentlyDark) ThemeMode.LIGHT else ThemeMode.DARK
+        setThemeMode(newMode)
+    }
+
     private val _isOnboardingCompleted = MutableStateFlow(prefs.getBoolean("onboarding_completed", false))
     val isOnboardingCompleted: StateFlow<Boolean> = _isOnboardingCompleted.asStateFlow()
 
@@ -44,8 +70,26 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         val db = AppDatabase.getInstance(application)
         repository = TesterRepository(db.appDao())
         NotificationHelper.createNotificationChannel(application)
+        
+        // Automatic Realtime Cloud Sync & Background Auto-Upload (No manual clicks needed)
         viewModelScope.launch {
-            repository.observeAndSyncRemoteApps()
+            // 1. Continuous real-time listener for any new or updated apps from other developers
+            launch {
+                try {
+                    repository.observeAndSyncRemoteApps()
+                } catch (e: Exception) {
+                    android.util.Log.w("TesterViewModel", "Observe apps note: ${e.message}")
+                }
+            }
+            // 2. Automatic one-time fetch & automatic background upload of local apps
+            launch {
+                try {
+                    repository.syncRemoteAppsNow()
+                    repository.reuploadAllUserAppsToCloud()
+                } catch (e: Exception) {
+                    android.util.Log.w("TesterViewModel", "Auto startup sync note: ${e.message}")
+                }
+            }
         }
     }
 
@@ -60,6 +104,21 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _isSimplifiedMode = MutableStateFlow(false)
     val isSimplifiedMode: StateFlow<Boolean> = _isSimplifiedMode.asStateFlow()
+
+    private val _isSyncingApps = MutableStateFlow(false)
+    val isSyncingApps: StateFlow<Boolean> = _isSyncingApps.asStateFlow()
+
+    private val _syncStatusMessage = MutableStateFlow<String?>(null)
+    val syncStatusMessage: StateFlow<String?> = _syncStatusMessage.asStateFlow()
+
+    private val _cloudDiagnostic = MutableStateFlow<CloudDiagnosticResult?>(null)
+    val cloudDiagnostic: StateFlow<CloudDiagnosticResult?> = _cloudDiagnostic.asStateFlow()
+
+    private val _isDiagnosingCloud = MutableStateFlow(false)
+    val isDiagnosingCloud: StateFlow<Boolean> = _isDiagnosingCloud.asStateFlow()
+
+    private val _isUploadingLocalApps = MutableStateFlow(false)
+    val isUploadingLocalApps: StateFlow<Boolean> = _isUploadingLocalApps.asStateFlow()
 
     private val _appUpdateStatus = MutableStateFlow<AppUpdateStatus?>(null)
     val appUpdateStatus: StateFlow<AppUpdateStatus?> = _appUpdateStatus.asStateFlow()
@@ -592,6 +651,105 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             val res = repository.resetOfficialGoogleGroup()
             res.onSuccess { msg -> _userMessage.value = msg }
+        }
+    }
+
+    suspend fun getExportedBackupJson(): String {
+        return repository.exportBackupJson()
+    }
+
+    suspend fun restoreBackupJson(jsonString: String): Pair<Boolean, String> {
+        val res = repository.restoreBackupJson(jsonString)
+        return if (res.isSuccess) {
+            val msg = res.getOrNull() ?: "تمت الاستعادة بنجاح"
+            _userMessage.value = msg
+            Pair(true, msg)
+        } else {
+            val err = res.exceptionOrNull()?.message ?: "فشلت الاستعادة"
+            _userMessage.value = err
+            Pair(false, err)
+        }
+    }
+
+    fun syncRemoteAppsNow(showFeedbackToast: Boolean = true) {
+        viewModelScope.launch {
+            _isSyncingApps.value = true
+            _syncStatusMessage.value = "جاري الاتصال بالسيرفر السحابي ومزامنة التطبيقات..."
+            val result = repository.syncRemoteAppsNow()
+            _isSyncingApps.value = false
+            if (result.isSuccess) {
+                val count = result.getOrDefault(0)
+                val msg = if (count > 0) "تمت المزامنة بنجاح! تم تحديث $count تطبيق من السيرفر." else "السيرفر متصل، ولا توجد تطبيقات جديدة حالياً."
+                _syncStatusMessage.value = msg
+                if (showFeedbackToast) {
+                    _userMessage.value = msg
+                }
+            } else {
+                val err = result.exceptionOrNull()?.message ?: "فشلت المزامنة"
+                _syncStatusMessage.value = "تنبيه المزامنة: $err"
+                if (showFeedbackToast) {
+                    _userMessage.value = "تنبيه: $err (تأكد من اتصال الإنترنت أو استخدم ميزة الإضافة بالرابط)"
+                }
+            }
+        }
+    }
+
+    fun runCloudDiagnostics() {
+        viewModelScope.launch {
+            _isDiagnosingCloud.value = true
+            val diag = repository.checkCloudConnection()
+            _cloudDiagnostic.value = diag
+            _isDiagnosingCloud.value = false
+        }
+    }
+
+    fun clearCloudDiagnostics() {
+        _cloudDiagnostic.value = null
+    }
+
+    fun reuploadLocalAppsToCloud(onComplete: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            _isUploadingLocalApps.value = true
+            val res = repository.reuploadAllUserAppsToCloud()
+            _isUploadingLocalApps.value = false
+            if (res.isSuccess) {
+                val (success, fail) = res.getOrDefault(Pair(0, 0))
+                val msg = if (fail == 0) {
+                    "تم رفع جميع تطبيقاتك ($success تطبيق) إلى السيرفر السحابي بنجاح! ستظهر الآن لجميع المطورين."
+                } else {
+                    "تم رفع $success تطبيق بنجاح، وتعذر رفع $fail (تحقق من الصلاحيات والإنترنت)."
+                }
+                _userMessage.value = msg
+                onComplete(true, msg)
+                // Refresh list
+                syncRemoteAppsNow(showFeedbackToast = false)
+            } else {
+                val err = res.exceptionOrNull()?.message ?: "فشل الرفع للسحابة"
+                _userMessage.value = err
+                onComplete(false, err)
+            }
+        }
+    }
+
+    fun importCommunityAppDirectly(
+        input: String,
+        customName: String,
+        developerName: String,
+        category: String,
+        onResult: (Boolean, String) -> Unit
+    ) {
+        viewModelScope.launch {
+            val res = repository.importCommunityAppDirectly(input, customName, developerName, category)
+            if (res.isSuccess) {
+                val app = res.getOrNull()
+                val msg = "تمت إضافة تطبيق \"${app?.name ?: ""}\" بنجاح إلى قائمة الاختبار!"
+                _userMessage.value = msg
+                onResult(true, msg)
+            } else {
+                val err = res.exceptionOrNull()?.message ?: "فشلت الإضافة"
+                _userMessage.value = err
+                onResult(false, err)
+            }
         }
     }
 }

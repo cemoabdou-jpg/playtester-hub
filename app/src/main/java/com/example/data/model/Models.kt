@@ -138,3 +138,15 @@ data class AppSetting(
     val value: String
 )
 
+data class CloudDiagnosticResult(
+    val isInitialized: Boolean,
+    val authStatus: String, // "AUTHENTICATED", "ANONYMOUS_FAILED", "SKIPPED"
+    val authMessage: String,
+    val canRead: Boolean,
+    val readError: String? = null,
+    val remoteAppsCount: Int = 0,
+    val canWrite: Boolean,
+    val writeError: String? = null,
+    val suggestedFix: String = ""
+)
+

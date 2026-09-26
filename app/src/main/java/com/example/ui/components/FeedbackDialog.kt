@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import android.os.Build
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,15 +13,22 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.JoinedTest
 import com.example.ui.theme.AmberGold
+import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
 
@@ -53,6 +63,11 @@ fun FeedbackDialog(
     var feedbackText by remember { mutableStateOf("") }
     var rating by remember { mutableIntStateOf(5) }
     var feedbackType by remember { mutableStateOf("FEEDBACK") } // "FEEDBACK" or "BUG_REPORT"
+    var attachDeviceSpecs by remember { mutableStateOf(true) }
+
+    val deviceSpecSummary = remember {
+        "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL} (Android ${Build.VERSION.RELEASE}, API ${Build.VERSION.SDK_INT})"
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -139,6 +154,73 @@ fun FeedbackDialog(
                     }
                 }
 
+                // Constructive Templates Chips
+                Text(
+                    text = "قوالب ملاحظات سريعة واحترافية:",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable {
+                                feedbackType = "BUG_REPORT"
+                                feedbackText = "واجهت مشكلة إغلاق مفاجئ أو تجمد عند التنقل بين الشاشات الرئيسية."
+                            }
+                    ) {
+                        Row(modifier = Modifier.padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.BugReport, contentDescription = null, tint = DangerRed, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("عطل مفاجئ", fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable {
+                                feedbackType = "FEEDBACK"
+                                feedbackText = "التصميم ممتاز والخطوط واضحة، ولكن أقترح زيادة حجم بعض الأزرار لتسهيل اللمس."
+                            }
+                    ) {
+                        Row(modifier = Modifier.padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Palette, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("اقتراح تصميم", fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable {
+                                feedbackType = "FEEDBACK"
+                                feedbackText = "التطبيق خفيف وسريع الاستجابة جداً، استهلاك البطارية والذاكرة منخفض وممتاز."
+                            }
+                    ) {
+                        Row(modifier = Modifier.padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Speed, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("سرعة وأداء", fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                        }
+                    }
+                }
+
                 OutlinedTextField(
                     value = feedbackText,
                     onValueChange = { feedbackText = it },
@@ -157,12 +239,52 @@ fun FeedbackDialog(
                     minLines = 3,
                     maxLines = 5
                 )
+
+                // Device Specs Snapshot Checkbox
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = CyanAccent.copy(alpha = 0.08f),
+                    border = BorderStroke(1.dp, CyanAccent.copy(alpha = 0.25f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = attachDeviceSpecs,
+                            onCheckedChange = { attachDeviceSpecs = it },
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Devices, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "إرفاق مواصفات جهازي تلقائياً للمطور:",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Text(
+                                text = deviceSpecSummary,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    val finalContent = feedbackText.ifBlank { "تطبيق ممتاز ومستقر بعد التجربة." }
+                    var finalContent = feedbackText.ifBlank { "تطبيق ممتاز ومستقر بعد التجربة." }
+                    if (attachDeviceSpecs) {
+                        finalContent += "\n[مواصفات الجهاز: $deviceSpecSummary]"
+                    }
                     onSubmitFeedback(finalContent, rating, feedbackType)
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),

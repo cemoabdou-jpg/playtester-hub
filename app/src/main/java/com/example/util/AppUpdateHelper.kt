@@ -14,8 +14,8 @@ import com.google.android.play.core.install.model.UpdateAvailability
 
 data class AppUpdateStatus(
     val isUpdateAvailable: Boolean = false,
-    val latestVersionCode: Int = 9,
-    val latestVersionName: String = "1.8",
+    val latestVersionCode: Int = 10,
+    val latestVersionName: String = "1.9",
     val releaseNotes: String = "",
     val isMandatory: Boolean = false,
     val playUpdateInfo: AppUpdateInfo? = null,
@@ -141,7 +141,7 @@ object AppUpdateHelper {
                 packageInfo.versionCode
             }
         } catch (e: Exception) {
-            9
+            10
         }
     }
 
@@ -151,9 +151,9 @@ object AppUpdateHelper {
     fun getInstalledVersionName(context: Context): String {
         return try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            packageInfo.versionName ?: "1.8"
+            packageInfo.versionName ?: "1.9"
         } catch (e: Exception) {
-            "1.8"
+            "1.9"
         }
     }
 }
