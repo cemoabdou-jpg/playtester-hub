@@ -51,6 +51,7 @@ import com.example.ui.components.AddAppDialog
 import com.example.ui.components.AppHeader
 import com.example.ui.components.BadgesDialog
 import com.example.ui.components.DailyTestConfirmationDialog
+import com.example.ui.components.InAppUpdateDialog
 import com.example.ui.components.NotificationCenterDialog
 import com.example.ui.components.SimplifiedDashboardCard
 import com.example.ui.components.TesterInvitationDialog
@@ -65,6 +66,7 @@ import com.example.ui.screens.OnboardingScreen
 import com.example.ui.screens.ProfileSettingsScreen
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.viewmodel.TesterViewModel
+import com.example.util.FcmService
 import com.example.util.NotificationHelper
 
 class MainActivity : ComponentActivity() {
@@ -73,6 +75,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        FcmService.initializeFcm(applicationContext)
         setContent {
             MyApplicationTheme {
                 PlayTesterApp(viewModel = viewModel)
@@ -120,6 +123,7 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
     val hapticEnabled by viewModel.hapticEnabled.collectAsStateWithLifecycle()
     val officialGoogleGroupUrl by viewModel.officialGoogleGroupUrl.collectAsStateWithLifecycle()
     val officialGoogleGroupEmail by viewModel.officialGoogleGroupEmail.collectAsStateWithLifecycle()
+    val appUpdateStatus by viewModel.appUpdateStatus.collectAsStateWithLifecycle()
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -136,6 +140,8 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
         if (currentUser != null) {
             NotificationHelper.createNotificationChannel(context)
             NotificationHelper.scheduleDailyReminderAlarm(context)
+            FcmService.initializeFcm(context)
+            viewModel.checkForAppUpdate(context)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 if (androidx.core.content.ContextCompat.checkSelfPermission(
                         context,
@@ -207,10 +213,10 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                     icon = {
                         Icon(
                             imageVector = Icons.Default.SwapHoriz,
-                            contentDescription = "سوق التبادل"
+                            contentDescription = "التبادل"
                         )
                     },
-                    label = { Text("سوق التبادل") },
+                    label = { Text("التبادل") },
                     modifier = Modifier.testTag("tab_community")
                 )
 
@@ -246,10 +252,10 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                     icon = {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.MenuBook,
-                            contentDescription = "دليل الـ 14 يوم"
+                            contentDescription = "الدليل"
                         )
                     },
-                    label = { Text("دليل 14 يوم") },
+                    label = { Text("الدليل") },
                     modifier = Modifier.testTag("tab_guide")
                 )
 
@@ -259,10 +265,10 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                     icon = {
                         Icon(
                             imageVector = Icons.Default.Settings,
-                            contentDescription = "الإعدادات"
+                            contentDescription = "حسابي"
                         )
                     },
-                    label = { Text("الإعدادات") },
+                    label = { Text("حسابي") },
                     modifier = Modifier.testTag("tab_settings")
                 )
 
@@ -273,10 +279,10 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                         icon = {
                             Icon(
                                 imageVector = Icons.Default.Security,
-                                contentDescription = "لوحة المالك"
+                                contentDescription = "المالك"
                             )
                         },
-                        label = { Text("لوحة المالك") },
+                        label = { Text("المالك") },
                         modifier = Modifier.testTag("tab_admin_owner")
                     )
                 }
@@ -289,8 +295,8 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Screen facilitation: In simplified mode, show the quick action hub
-            if (isSimplifiedMode) {
+            // Screen facilitation: In simplified mode, show the quick action hub on the main market screen
+            if (isSimplifiedMode && currentTab == 0) {
                 SimplifiedDashboardCard(
                     userApps = userApps,
                     joinedTests = joinedTests,
@@ -299,7 +305,7 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                     onQuickInvite = { app -> quickInviteApp = app },
                     onQuickJoinApp = { viewModel.joinApp(it) },
                     onSwitchTab = { currentTab = it },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                 )
             }
 
@@ -386,7 +392,8 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                         onOpenOnboarding = { showOnboardingExplicitly = true },
                         onOpenBadges = { showBadgesDialog = true },
                         onLogout = { viewModel.logout() },
-                        onDeleteAccount = { viewModel.deleteAccount() }
+                        onDeleteAccount = { viewModel.deleteAccount() },
+                        onCheckForUpdates = { viewModel.checkForAppUpdate(context, showToastIfLatest = true) }
                     )
                     5 -> AdminControlScreen(
                         adminApps = adminCommunityApps,
@@ -529,6 +536,15 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
                 selectedTestForDailyConfirmation = null
             }
         )
+    }
+
+    appUpdateStatus?.let { status ->
+        if (status.isUpdateAvailable) {
+            InAppUpdateDialog(
+                updateStatus = status,
+                onDismiss = { viewModel.dismissAppUpdatePrompt() }
+            )
+        }
     }
 }
 

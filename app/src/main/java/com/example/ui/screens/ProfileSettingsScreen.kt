@@ -119,6 +119,7 @@ fun ProfileSettingsScreen(
     onOpenBadges: () -> Unit,
     onLogout: () -> Unit,
     onDeleteAccount: () -> Unit,
+    onCheckForUpdates: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showEditNameDialog by remember { mutableStateOf(false) }
@@ -631,7 +632,7 @@ fun ProfileSettingsScreen(
                             color = MaterialTheme.colorScheme.primaryContainer
                         ) {
                             Text(
-                                text = "v1.3 (Build 4)",
+                                text = "v1.8 (Build 9)",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -639,6 +640,30 @@ fun ProfileSettingsScreen(
                             )
                         }
                     }
+
+                    // Check for updates button
+                    OutlinedButton(
+                        onClick = onCheckForUpdates,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("btn_check_for_updates")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = null,
+                            tint = PlayGreen,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "التحقق من وجود تحديثات على Google Play",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),

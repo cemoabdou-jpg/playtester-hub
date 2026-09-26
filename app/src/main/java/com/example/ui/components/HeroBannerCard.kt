@@ -57,7 +57,7 @@ fun HeroBannerCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(210.dp)
+                .height(150.dp)
         ) {
             // Background image with fallback
             val bannerImageRes = try {
@@ -71,7 +71,7 @@ fun HeroBannerCard(
                 contentDescription = "PlayTester Banner",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(210.dp),
+                    .height(150.dp),
                 contentScale = ContentScale.Crop
             )
 
@@ -79,84 +79,85 @@ fun HeroBannerCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(210.dp)
+                    .height(150.dp)
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                Color.Black.copy(alpha = 0.45f),
-                                Color.Black.copy(alpha = 0.88f)
+                                Color.Black.copy(alpha = 0.35f),
+                                Color.Black.copy(alpha = 0.85f)
                             )
                         )
                     )
             )
 
             // Foreground Content
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(18.dp)
-                    .align(Alignment.BottomStart),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(16.dp)
+                    .align(Alignment.Center),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = PlayGreen.copy(alpha = 0.9f)
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = PlayGreen.copy(alpha = 0.9f)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.RocketLaunch,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "متطلبات Google Play 2024 (20 مختبراً • 14 يوماً)",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 10.sp
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.RocketLaunch,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(11.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "اختبار مغلق 14 يوماً • 20 مختبراً",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp
+                            )
+                        }
                     }
+
+                    Text(
+                        text = "اجتاز اختبار Play Console بضمان 100%",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+
+                    Text(
+                        text = "تبادل النقر والتقييم مع مجتمع المطورين بسهولة",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.85f),
+                        fontSize = 11.sp,
+                        maxLines = 1
+                    )
                 }
 
-                Text(
-                    text = "اجتاز الاختبار المغلق بضمان 100%!",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
+                Spacer(modifier = Modifier.width(8.dp))
 
-                Text(
-                    text = "تبادل تجربة التطبيقات مع المطورين، حافظ على الستريك اليومي، واحصل على تقرير الجاهزية الرسمي لـ Google Play Console.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.88f),
-                    maxLines = 2
-                )
-
-                Spacer(modifier = Modifier.height(2.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Button(
+                    onClick = onPublishClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PlayGreen,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.testTag("btn_hero_publish_app")
                 ) {
-                    Button(
-                        onClick = onPublishClick,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = PlayGreen,
-                            contentColor = Color.White
-                        ),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.testTag("btn_hero_publish_app")
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("انشر تطبيقك الآن للتبادل", fontWeight = FontWeight.Bold)
-                    }
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("انشر تطبيقك", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             }
         }

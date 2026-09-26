@@ -264,7 +264,7 @@ fun SimplifiedDashboardCard(
 
                         Button(
                             onClick = { onQuickJoinApp(suggestedApp) },
-                            colors = ButtonDefaults.buttonColors(containerColor = CyanAccent, contentColor = Color.Black),
+                            colors = ButtonDefaults.buttonColors(containerColor = CyanAccent, contentColor = Color.White),
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.testTag("btn_quick_join_suggested")
                         ) {

@@ -2,44 +2,45 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Primary Crimson Red & Black Palette (تدرج الأحادي الفخم: أحمر، أسود، رمادي، أبيض)
-val CrimsonRed = Color(0xFFE50914)         // Bold Red (Netflix/Play Console style)
-val CrimsonRedLight = Color(0xFFEF4444)    // Accent Bright Red
-val CrimsonRedDark = Color(0xFF991B1B)     // Deep Burgundy / Crimson Dark
+// Soothing Eye-Friendly Emerald Teal & Slate Palette (مريحة للعين وهادئة)
+val CrimsonRed = Color(0xFF0D9488)         // Soothing Teal Primary
+val CrimsonRedLight = Color(0xFF14B8A6)    // Soft Bright Teal Accent
+val CrimsonRedDark = Color(0xFF0F766E)     // Deep Forest Teal
 
-val PlayGreen = Color(0xFFE50914)          // Re-mapped to Crimson Red for instant app-wide theme change
-val PlayGreenLight = Color(0xFFEF4444)
-val PlayGreenDark = Color(0xFF991B1B)
+val PlayGreen = Color(0xFF0D9488)          // Soothing Emerald Teal Primary
+val PlayGreenLight = Color(0xFF2DD4BF)     // Soft Mint Teal
+val PlayGreenDark = Color(0xFF115E59)      // Deep Jade
 
 val SlateGray = Color(0xFF64748B)          // Cool Slate Gray
-val SlateGrayLight = Color(0xFF94A3B8)     // Light Slate Gray
-val SilverAccent = Color(0xFFCBD5E1)       // Premium Metallic Silver
+val SlateGrayLight = Color(0xFF94A3B8)     // Soft Light Slate
+val SilverAccent = Color(0xFF38BDF8)       // Soothing Sky Blue Accent
 
-val CyanAccent = Color(0xFFEF4444)         // Vibrant Crimson
-val CyanAccentLight = Color(0xFFF87171)
+val CyanAccent = Color(0xFF06B6D4)         // Soothing Cyan
+val CyanAccentLight = Color(0xFF22D3EE)
 
-val IndigoAccent = Color(0xFFB91C1C)
-val AmberGold = Color(0xFFDC2626)          // Crimson Accent
-val AmberGoldLight = Color(0xFFFCA5A5)
+val IndigoAccent = Color(0xFF6366F1)       // Soft Indigo
+val AmberGold = Color(0xFFF59E0B)          // Warm Soft Amber
+val AmberGoldLight = Color(0xFFFCD34D)
 
-// Dark Theme Surfaces (Sleek Obsidian Black & Graphite)
-val DarkNavyBg = Color(0xFF0F0F12)         // Deep Obsidian Black Background
-val DarkNavySurface = Color(0xFF18181C)    // Dark Graphite Surface
-val DarkNavyCard = Color(0xFF24242A)       // Card Surface
-val DarkNavyBorder = Color(0xFF3F3F46)     // Border
+// Dark Theme Surfaces (Soothing Midnight Slate & Slate Blue)
+val DarkNavyBg = Color(0xFF0F172A)         // Soothing Deep Slate Dark Background
+val DarkNavySurface = Color(0xFF1E293B)    // Soft Charcoal Slate Surface
+val DarkNavyCard = Color(0xFF334155)       // Elevated Card Surface
+val DarkNavyBorder = Color(0xFF475569)     // Soft Border
 
-// Light Theme Surfaces (Pure Crisp White & Slate Gray)
-val LightBg = Color(0xFFF4F4F5)            // Soft Crisp Gray
-val LightSurface = Color(0xFFFFFFFF)       // Pure White Surface
-val LightCard = Color(0xFFE4E4E7)          // Subtle Card Gray
-val LightBorder = Color(0xFFA1A1AA)        // Visible Border
-val LightBorderVariant = Color(0xFFD4D4D8)
+// Light Theme Surfaces (Crisp Off-White Slate & Soft Cards)
+val LightBg = Color(0xFFF8FAFC)            // Soothing Off-White Slate Background
+val LightSurface = Color(0xFFFFFFFF)       // Crisp White Surface
+val LightCard = Color(0xFFF1F5F9)          // Soft Card Fill
+val LightBorder = Color(0xFFE2E8F0)        // Soft Border
+val LightBorderVariant = Color(0xFFCBD5E1)
 
-val TextPrimaryDark = Color(0xFFFAFAFA)    // Pure White Text
-val TextSecondaryDark = Color(0xFFA1A1AA)  // Cool Muted Gray Text
-val TextPrimaryLight = Color(0xFF09090B)   // Jet Black Text
-val TextSecondaryLight = Color(0xFF71717A) // Slate Gray Text
+val TextPrimaryDark = Color(0xFFF8FAFC)    // Soft White Text
+val TextSecondaryDark = Color(0xFF94A3B8)  // Soft Slate Text
+val TextPrimaryLight = Color(0xFF0F172A)   // Deep Slate Text
+val TextSecondaryLight = Color(0xFF64748B) // Soft Slate Secondary Text
 
-val SuccessGreen = Color(0xFF10B981)       // Positive Status Indicator
-val WarningOrange = Color(0xFFF97316)
-val DangerRed = Color(0xFFEF4444)
+val SuccessGreen = Color(0xFF10B981)       // Positive Emerald
+val WarningOrange = Color(0xFFF59E0B)      // Warm Amber
+val DangerRed = Color(0xFFF43F5E)          // Soft Rose Red
+

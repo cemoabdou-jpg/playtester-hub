@@ -211,7 +211,7 @@ fun AppHeader(
                                 if (unreadNotificationsCount > 0) {
                                     Badge(
                                         containerColor = CyanAccent,
-                                        contentColor = Color.Black
+                                        contentColor = Color.White
                                     ) {
                                         Text(
                                             text = if (unreadNotificationsCount > 9) "9+" else "$unreadNotificationsCount",

@@ -16,6 +16,8 @@ import com.example.data.model.TesterFeedback
 import com.example.data.model.UserApp
 import com.example.data.model.UserWallet
 import com.example.data.repository.TesterRepository
+import com.example.util.AppUpdateHelper
+import com.example.util.AppUpdateStatus
 import com.example.util.NotificationHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -58,6 +60,22 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _isSimplifiedMode = MutableStateFlow(false)
     val isSimplifiedMode: StateFlow<Boolean> = _isSimplifiedMode.asStateFlow()
+
+    private val _appUpdateStatus = MutableStateFlow<AppUpdateStatus?>(null)
+    val appUpdateStatus: StateFlow<AppUpdateStatus?> = _appUpdateStatus.asStateFlow()
+
+    fun checkForAppUpdate(context: Context, showToastIfLatest: Boolean = false) {
+        AppUpdateHelper.checkPlayInAppUpdate(context) { status ->
+            _appUpdateStatus.value = status
+            if (!status.isUpdateAvailable && showToastIfLatest) {
+                _userMessage.value = "أنت تستخدم أحدث إصدار من التطبيق v${AppUpdateHelper.getInstalledVersionName(context)} (${AppUpdateHelper.getInstalledVersionCode(context)})"
+            }
+        }
+    }
+
+    fun dismissAppUpdatePrompt() {
+        _appUpdateStatus.value = null
+    }
 
     val currentUser: StateFlow<AuthUser?> = repository.currentUser
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
