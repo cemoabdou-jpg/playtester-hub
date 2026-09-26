@@ -54,6 +54,7 @@ import com.example.ui.components.DeveloperXpRankCard
 import com.example.ui.components.DailyTestConfirmationDialog
 import com.example.ui.components.FeedbackDialog
 import com.example.ui.components.JoinedTestCard
+import com.example.ui.components.TestingHeatmapCard
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.PlayGreen
@@ -385,14 +386,20 @@ fun MyTestingScreen(
                 }
             }
 
-            // List of tests
+            // List of tests with 14-day Heatmap
             items(joinedTests, key = { it.id }) { test ->
-                JoinedTestCard(
-                    test = test,
-                    onCheckInClick = { selectedTestForDailyConfirmation = test },
-                    onFeedbackClick = { selectedTestForFeedback = test },
-                    onDeleteClick = { onDeleteTest(test.id) }
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    TestingHeatmapCard(
+                        test = test,
+                        currentStreak = currentStreak
+                    )
+                    JoinedTestCard(
+                        test = test,
+                        onCheckInClick = { selectedTestForDailyConfirmation = test },
+                        onFeedbackClick = { selectedTestForFeedback = test },
+                        onDeleteClick = { onDeleteTest(test.id) }
+                    )
+                }
             }
         }
     }
