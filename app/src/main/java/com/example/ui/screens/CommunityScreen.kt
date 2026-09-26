@@ -27,12 +27,17 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ElevatedFilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,6 +50,7 @@ import com.example.data.model.JoinedTest
 import com.example.ui.components.HeroBannerCard
 import com.example.ui.components.TesterCard
 import com.example.ui.theme.AmberGold
+import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.PlayGreen
 
 @Composable
@@ -63,6 +69,20 @@ fun CommunityScreen(
 ) {
     val joinedAppIds = joinedTests.map { it.communityAppId }.toSet()
     val categories = listOf("الكل", "أدوات", "إنتاجية", "مالية", "ألعاب", "تعليم", "نمط حياة")
+
+    var sortBy by remember { mutableStateOf("PRIORITY") } // "PRIORITY", "URGENT", "REWARD"
+
+    val sortedCommunityApps: List<CommunityApp> = remember(communityApps, sortBy) {
+        when (sortBy) {
+            "URGENT" -> communityApps.sortedByDescending { (it.testersTarget - it.testersCurrent).coerceAtLeast(0) }
+            "REWARD" -> communityApps.sortedByDescending { it.rewardPoints }
+            else -> communityApps.sortedWith(
+                compareByDescending<CommunityApp> { it.priorityScore }
+                    .thenByDescending { it.isFeatured }
+                    .thenByDescending { it.id }
+            )
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
@@ -119,6 +139,75 @@ fun CommunityScreen(
                             onClick = { onCategorySelect(cat) },
                             label = { Text(cat) },
                             modifier = Modifier.testTag("filter_chip_$cat")
+                        )
+                    }
+                }
+            }
+
+            // Sorting Options Row
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "ترتيب حسب:",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (sortBy == "PRIORITY") PlayGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (sortBy == "PRIORITY") PlayGreen else MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier
+                            .testTag("sort_chip_priority")
+                            .clickable { sortBy = "PRIORITY" }
+                    ) {
+                        Text(
+                            text = "⭐ الأولوية",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (sortBy == "PRIORITY") PlayGreen else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (sortBy == "URGENT") AmberGold.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (sortBy == "URGENT") AmberGold else MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier
+                            .testTag("sort_chip_urgent")
+                            .clickable { sortBy = "URGENT" }
+                    ) {
+                        Text(
+                            text = "🔥 الأكثر احتياجاً",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (sortBy == "URGENT") AmberGold else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (sortBy == "REWARD") CyanAccent.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (sortBy == "REWARD") CyanAccent else MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier
+                            .testTag("sort_chip_reward")
+                            .clickable { sortBy = "REWARD" }
+                    ) {
+                        Text(
+                            text = "💎 الأعلى مكافأة",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (sortBy == "REWARD") CyanAccent else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                 }
@@ -217,7 +306,7 @@ fun CommunityScreen(
             }
 
             // Community App Cards
-            items(communityApps, key = { it.id }) { app ->
+            items(sortedCommunityApps, key = { it.id }) { app ->
                 TesterCard(
                     app = app,
                     isAlreadyJoined = joinedAppIds.contains(app.id),

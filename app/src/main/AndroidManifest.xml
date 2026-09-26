@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- Queries required on Android 11+ (API 30+) to detect installed tester apps -->
     <queries>
@@ -29,6 +30,16 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@color/play_green" />
+
+        <receiver
+            android:name=".util.DailyReminderReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="com.example.ACTION_DAILY_REMINDER" />
+            </intent-filter>
+        </receiver>
 
         <activity
             android:name=".MainActivity"

@@ -1,5 +1,9 @@
 package com.example.ui.components
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,8 +34,10 @@ import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.Button
@@ -44,14 +50,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -66,6 +75,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.data.model.JoinedTest
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
@@ -83,8 +95,9 @@ fun DailyTestConfirmationDialog(
 ) {
     val nextDayNumber = (test.daysCompleted + 1).coerceAtMost(14)
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Check if the app is actually installed on this device
+    // Check if the target app is actually installed on this device
     var isAppInstalled by remember {
         mutableStateOf(
             try {
@@ -96,9 +109,14 @@ fun DailyTestConfirmationDialog(
         )
     }
 
-    var appWasLaunched by remember { mutableStateOf(false) }
-    var secondsRemaining by remember { mutableIntStateOf(30) }
-    var isTimerRunning by remember { mutableStateOf(false) }
+    var appLaunchStartTime by remember { mutableLongStateOf(0L) }
+    var totalAppUsageSeconds by remember { mutableIntStateOf(0) }
+    var isWaitingForAppReturn by remember { mutableStateOf(false) }
+
+    var isSimulationMode by remember { mutableStateOf(false) }
+    var simulationSecondsRemaining by remember { mutableIntStateOf(30) }
+    var isSimulationRunning by remember { mutableStateOf(false) }
+
     var isTimerCompleted by remember { mutableStateOf(false) }
     var hasConfirmedTesting by remember { mutableStateOf(false) }
     var installErrorMessage by remember { mutableStateOf<String?>(null) }
@@ -114,14 +132,43 @@ fun DailyTestConfirmationDialog(
         return installed
     }
 
-    LaunchedEffect(isTimerRunning) {
-        if (isTimerRunning && !isTimerCompleted) {
-            while (secondsRemaining > 0) {
+    // Monitor real app departure and return to measure genuine usage time
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                if (appLaunchStartTime > 0L) {
+                    val duration = ((System.currentTimeMillis() - appLaunchStartTime) / 1000).toInt()
+                    appLaunchStartTime = 0L
+                    isWaitingForAppReturn = false
+                    if (duration > 0) {
+                        totalAppUsageSeconds += duration
+                    }
+                    if (totalAppUsageSeconds >= 25) {
+                        isTimerCompleted = true
+                        hasConfirmedTesting = true
+                        installErrorMessage = null
+                    } else {
+                        isTimerCompleted = false
+                        installErrorMessage = "⚠️ لقد قضيت $totalAppUsageSeconds ثانية فقط داخل التطبيق المستهدف. يجب قضاء 30 ثانية على الأقل لتوثيق الاستخدام الفعلي في Google Play."
+                    }
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    // Simulation timer effect for developer demo
+    LaunchedEffect(isSimulationRunning) {
+        if (isSimulationRunning && !isTimerCompleted) {
+            while (simulationSecondsRemaining > 0) {
                 delay(1000L)
-                secondsRemaining--
+                simulationSecondsRemaining--
             }
             isTimerCompleted = true
-            isTimerRunning = false
+            isSimulationRunning = false
             hasConfirmedTesting = true
         }
     }
@@ -241,7 +288,7 @@ fun DailyTestConfirmationDialog(
                                 color = CyanAccent
                             )
                             Text(
-                                text = "تشترط Google فتح واستخدام التطبيق يومياً لمدة 14 يوماً متواصلة مع 20 مختبراً على الأقل لتأهيل التطبيق للإطلاق في الإنتاج.",
+                                text = "تشترط Google فتح واستخدام التطبيق فعلياً يومياً لمدة 14 يوماً متواصلة. يتم قياس مدة الاستخدام لضمان التفاعل الحقيقي.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -251,12 +298,12 @@ fun DailyTestConfirmationDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 30-Second Real Testing Verification Card
+                // Real Testing Verification Card
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = when {
                             isTimerCompleted -> SuccessGreen.copy(alpha = 0.12f)
-                            isTimerRunning -> AmberGold.copy(alpha = 0.12f)
+                            isWaitingForAppReturn || isSimulationRunning -> AmberGold.copy(alpha = 0.12f)
                             else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                         }
                     ),
@@ -265,7 +312,7 @@ fun DailyTestConfirmationDialog(
                         1.5.dp,
                         when {
                             isTimerCompleted -> SuccessGreen
-                            isTimerRunning -> AmberGold
+                            isWaitingForAppReturn || isSimulationRunning -> AmberGold
                             else -> MaterialTheme.colorScheme.outlineVariant
                         }
                     ),
@@ -286,19 +333,19 @@ fun DailyTestConfirmationDialog(
                                 Icon(
                                     imageVector = when {
                                         isTimerCompleted -> Icons.Default.CheckCircle
-                                        isTimerRunning -> Icons.Default.HourglassTop
+                                        isWaitingForAppReturn || isSimulationRunning -> Icons.Default.HourglassTop
                                         else -> Icons.Default.Schedule
                                     },
                                     contentDescription = null,
                                     tint = when {
                                         isTimerCompleted -> SuccessGreen
-                                        isTimerRunning -> AmberGold
+                                        isWaitingForAppReturn || isSimulationRunning -> AmberGold
                                         else -> MaterialTheme.colorScheme.primary
                                     },
                                     modifier = Modifier.size(22.dp)
                                 )
                                 Text(
-                                    text = "التحقق من فتح التطبيق (30 ثانية)",
+                                    text = if (isSimulationMode) "محاكاة الفحص (Demo)" else "التحقق من فتح التطبيق الفعلي",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -310,21 +357,24 @@ fun DailyTestConfirmationDialog(
                                 shape = RoundedCornerShape(8.dp),
                                 color = when {
                                     isTimerCompleted -> SuccessGreen.copy(alpha = 0.2f)
-                                    isTimerRunning -> AmberGold.copy(alpha = 0.2f)
+                                    isWaitingForAppReturn -> CyanAccent.copy(alpha = 0.2f)
+                                    isSimulationRunning -> AmberGold.copy(alpha = 0.2f)
                                     else -> MaterialTheme.colorScheme.surface
                                 }
                             ) {
                                 Text(
                                     text = when {
-                                        isTimerCompleted -> "مكتمل ✓"
-                                        isTimerRunning -> "$secondsRemaining ث"
-                                        else -> "مطلوب"
+                                        isTimerCompleted -> "مكتمل ✓ ($totalAppUsageSeconds ث)"
+                                        isWaitingForAppReturn -> "قيد الاستخدام الآن"
+                                        isSimulationRunning -> "$simulationSecondsRemaining ث"
+                                        else -> "مطلوب فتح التطبيق"
                                     },
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = when {
                                         isTimerCompleted -> SuccessGreen
-                                        isTimerRunning -> AmberGold
+                                        isWaitingForAppReturn -> CyanAccent
+                                        isSimulationRunning -> AmberGold
                                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                                     },
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -390,7 +440,7 @@ fun DailyTestConfirmationDialog(
                         installErrorMessage?.let { errMsg ->
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "⚠ $errMsg",
+                                text = errMsg,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = DangerRed,
                                 fontWeight = FontWeight.Medium
@@ -401,34 +451,17 @@ fun DailyTestConfirmationDialog(
 
                         if (isTimerCompleted) {
                             Text(
-                                text = "أحسنت! تم التحقق بنجاح من فتح وتجربة التطبيق لمدة 30 ثانية كاملة. يمكنك الآن إرسال الملاحظات وتأكيد الحضور اليومي لاستلام النقاط.",
+                                text = "أحسنت! تم التحقق بنجاح من فتح وتجربة التطبيق لمدة كافية ($totalAppUsageSeconds ثانية). يمكنك الآن إرسال الملاحظات وتأكيد الحضور اليومي لاستلام النقاط.",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                        } else if (isTimerRunning) {
+                        } else if (isWaitingForAppReturn) {
                             Text(
-                                text = "جاري احتساب وقت الاستخدام الحقيقي للتطبيق: متبقي $secondsRemaining ثانية...",
+                                text = "تم تشغيل التطبيق المستهدف! تجول داخل شاشاته لمدة 30 ثانية على الأقل، وعند عودتك لهنا سيتم قياس وتوثيق وقت استخدامك الفعلي تلقائياً.",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            val timerProgress = (30 - secondsRemaining) / 30f
-                            LinearProgressIndicator(
-                                progress = { timerProgress },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(8.dp)
-                                    .clip(RoundedCornerShape(4.dp)),
-                                color = AmberGold,
-                                trackColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "ابقَ في التطبيق وتصفح شاشاته حتى ينتهي العداد لضمان احتساب التجربة في سياسات Google Play.",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = CyanAccent
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Button(
@@ -446,10 +479,27 @@ fun DailyTestConfirmationDialog(
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text("العودة للتطبيق المستهدف", color = Color.Black, fontWeight = FontWeight.Bold)
                             }
-                        } else if (!isAppInstalled) {
-                            // Strictly uninstalled state: user MUST install from Google Play first!
+                        } else if (isSimulationRunning) {
                             Text(
-                                text = "وفقاً لسياسة Google Play الصارمة، لا يمكن احتساب العداد أو تسجيل الحضور إلا بعد تثبيت التطبيق الفعلي على جهازك. انقر بالأسفل لتثبيته من Google Play.",
+                                text = "وضع المحاكاة يعمل: متبقي $simulationSecondsRemaining ثانية...",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = AmberGold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            val timerProgress = (30 - simulationSecondsRemaining) / 30f
+                            LinearProgressIndicator(
+                                progress = { timerProgress },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(8.dp)
+                                    .clip(RoundedCornerShape(4.dp)),
+                                color = AmberGold,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        } else if (!isAppInstalled && !isSimulationMode) {
+                            Text(
+                                text = "وفقاً لسياسة Google Play الصارمة، لا يمكن احتساب التجربة أو تسجيل الحضور بمجرد الضغط، بل يجب تثبيت التطبيق الفعلي على جهازك وفتحه يومياً.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = DangerRed
                             )
@@ -479,32 +529,56 @@ fun DailyTestConfirmationDialog(
                                 )
                             }
                             Spacer(modifier = Modifier.height(4.dp))
-                            TextButton(
-                                onClick = {
-                                    val nowInstalled = refreshInstallStatus()
-                                    if (nowInstalled) {
-                                        installErrorMessage = null
-                                    } else {
-                                        installErrorMessage = "لم يتم تثبيت حزمة التطبيق '${test.packageName}' بعد. يرجى تثبيته من متجر Play أولاً."
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth()
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "تم التثبيت بالفعل؟ اضغط هنا للتحقق وتحديث الحالة",
-                                    style = MaterialTheme.typography.labelSmall
-                                )
+                                TextButton(
+                                    onClick = {
+                                        val nowInstalled = refreshInstallStatus()
+                                        if (nowInstalled) {
+                                            installErrorMessage = null
+                                        } else {
+                                            installErrorMessage = "لم يتم تثبيت حزمة التطبيق '${test.packageName}' بعد. يرجى تثبيته من متجر Play أولاً."
+                                        }
+                                    }
+                                ) {
+                                    Text("تحديث الفحص", style = MaterialTheme.typography.labelSmall)
+                                }
+
+                                TextButton(
+                                    onClick = { isSimulationMode = true }
+                                ) {
+                                    Icon(Icons.Default.Science, contentDescription = null, modifier = Modifier.size(14.dp), tint = AmberGold)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("محاكاة الاختبار (Sandbox)", style = MaterialTheme.typography.labelSmall, color = AmberGold)
+                                }
+                            }
+                        } else if (isSimulationMode) {
+                            Text(
+                                text = "🧪 وضع المحاكاة للتطوير: يمكنك استخدام هذا الوضع لاختبار تدفق التطبيق دون الحاجة لتثبيت الحزمة الفعلية.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = AmberGold
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Button(
+                                onClick = {
+                                    isSimulationRunning = true
+                                    installErrorMessage = null
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = AmberGold),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Icon(Icons.Default.Timer, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("بدء محاكاة الـ 30 ثانية", color = Color.Black, fontWeight = FontWeight.Bold)
                             }
                         } else {
-                            // Installed state: App must be launched to start timer
+                            // Installed state: User must launch the real app!
                             Text(
-                                text = "لضمان مصداقية التجربة أمام Google Play، يلزم فتح التطبيق واستخدامه لمدة 30 ثانية على الأقل قبل تسجيل الحضور اليومي.",
+                                text = "لضمان مصداقية التجربة أمام Google Play، اضغط أدناه لفتح التطبيق واستخدامه لمدة 30 ثانية. عند عودتك سيتم توثيق الاستخدام.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -515,8 +589,8 @@ fun DailyTestConfirmationDialog(
                                     if (installed) {
                                         val launched = launchOrOpenApp(context, test.packageName, test.androidOptInUrl)
                                         if (launched) {
-                                            appWasLaunched = true
-                                            isTimerRunning = true
+                                            appLaunchStartTime = System.currentTimeMillis()
+                                            isWaitingForAppReturn = true
                                             installErrorMessage = null
                                         } else {
                                             installErrorMessage = "تعذر تشغيل التطبيق تلقائياً. تأكد من اكتمال التثبيت."
@@ -539,7 +613,7 @@ fun DailyTestConfirmationDialog(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "تشغيل التطبيق وبدء اختبار الـ 30 ثانية",
+                                    text = "تشغيل التطبيق وبدء تجربة الـ 30 ثانية",
                                     fontWeight = FontWeight.Bold,
                                     color = Color.Black
                                 )
@@ -739,7 +813,7 @@ fun DailyTestConfirmationDialog(
                 Spacer(modifier = Modifier.height(20.dp))
 
                 // Confirm Action Button
-                val isSubmitEnabled = hasConfirmedTesting && isTimerCompleted
+                val isSubmitEnabled = hasConfirmedTesting && isTimerCompleted && (isAppInstalled || isSimulationMode)
                 Button(
                     onClick = {
                         val finalNotes = if (customNotes.isNotBlank()) customNotes else selectedTag
@@ -764,7 +838,9 @@ fun DailyTestConfirmationDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = when {
-                            !isTimerCompleted && isTimerRunning -> "متبقي $secondsRemaining ثانية لاكتمال الاختبار..."
+                            !isAppInstalled && !isSimulationMode -> "التطبيق غير مثبت على هاتفك - ثبته أولاً"
+                            isWaitingForAppReturn -> "بانتظار إكمال الـ 30 ثانية داخل التطبيق..."
+                            isSimulationRunning -> "جاري المحاكاة: $simulationSecondsRemaining ث..."
                             !isTimerCompleted -> "يلزم فتح واختبار التطبيق 30 ثانية أولاً"
                             !hasConfirmedTesting -> "يرجى تأكيد الإقرار أعلاه للمتابعة"
                             else -> "توثيق وتأكيد تجربة اليوم (+25 نقطة) ✓"

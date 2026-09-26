@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
@@ -61,8 +62,10 @@ import com.example.data.model.TesterFeedback
 import com.example.data.model.UserApp
 import com.example.ui.components.AppHealthDiagnosticsCard
 import com.example.ui.components.DailyTestLogsHistoryDialog
+import com.example.ui.components.OptInLinkValidatorDialog
 import com.example.ui.components.ProductionReadinessReportDialog
 import com.example.ui.components.ShareInviteDialog
+import com.example.ui.components.SmartFeedbackClassifierCard
 import com.example.ui.components.TesterInvitationDialog
 import com.example.ui.components.VersionManagerDialog
 import com.example.ui.components.openUrl
@@ -109,6 +112,7 @@ fun MyAppsScreen(
     var appForTesters by remember { mutableStateOf<UserApp?>(null) }
     var appForDailyLogs by remember { mutableStateOf<UserApp?>(null) }
     var appForReadinessReport by remember { mutableStateOf<UserApp?>(null) }
+    var appForValidator by remember { mutableStateOf<UserApp?>(null) }
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
@@ -531,30 +535,61 @@ fun MyAppsScreen(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // Production Readiness Report Button
-                        OutlinedButton(
-                            onClick = { appForReadinessReport = app },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("btn_readiness_report_${app.id}"),
-                            shape = RoundedCornerShape(10.dp),
-                            border = BorderStroke(1.dp, if (isReadyForProduction) SuccessGreen else MaterialTheme.colorScheme.outline)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Assignment,
-                                contentDescription = null,
-                                tint = if (isReadyForProduction) SuccessGreen else CyanAccent,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "تصدير تقرير جاهزية الاختبار لـ Google Play",
-                                color = if (isReadyForProduction) SuccessGreen else MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp
-                            )
+                            OutlinedButton(
+                                onClick = { appForValidator = app },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("btn_validate_links_${app.id}"),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.QrCode2,
+                                    contentDescription = null,
+                                    tint = CyanAccent,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("فحص الروابط وQR", fontSize = 12.sp)
+                            }
+
+                            // Production Readiness Report Button
+                            OutlinedButton(
+                                onClick = { appForReadinessReport = app },
+                                modifier = Modifier
+                                    .weight(1.5f)
+                                    .testTag("btn_readiness_report_${app.id}"),
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, if (isReadyForProduction) SuccessGreen else MaterialTheme.colorScheme.outline)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Assignment,
+                                    contentDescription = null,
+                                    tint = if (isReadyForProduction) SuccessGreen else CyanAccent,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "تقرير الجاهزية",
+                                    color = if (isReadyForProduction) SuccessGreen else MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.sp
+                                )
+                            }
                         }
                     }
+                }
+            }
+
+            // Smart Feedback Classifier Card
+            if (allFeedback.isNotEmpty()) {
+                item {
+                    SmartFeedbackClassifierCard(
+                        feedbacks = allFeedback
+                    )
                 }
             }
         }
@@ -627,6 +662,14 @@ fun MyAppsScreen(
             dailyLogs = logs,
             feedbackList = feedback,
             onDismiss = { appForReadinessReport = null }
+        )
+    }
+
+    // Opt-In Link Validator & QR Generator dialog
+    appForValidator?.let { app ->
+        OptInLinkValidatorDialog(
+            app = app,
+            onDismiss = { appForValidator = null }
         )
     }
 }

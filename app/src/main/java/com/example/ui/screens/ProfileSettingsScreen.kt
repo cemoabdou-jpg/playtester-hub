@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Info
@@ -95,6 +96,7 @@ import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
 import com.example.ui.theme.PlayGreenDark
 import com.example.ui.theme.SuccessGreen
+import com.example.util.EmailHelper
 import com.example.util.NotificationHelper
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -233,6 +235,29 @@ fun ProfileSettingsScreen(
                             }
                         }
                     )
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    SettingsRowItem(
+                        icon = Icons.Default.Email,
+                        title = "البريد الإلكتروني المعتمد",
+                        subtitle = currentUser?.email ?: "غير محدد",
+                        trailingContent = {
+                            OutlinedButton(
+                                onClick = {
+                                    val targetEmail = currentUser?.email ?: ""
+                                    EmailHelper.sendVerificationTestEmail(context, targetEmail)
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier.testTag("btn_test_email")
+                            ) {
+                                Icon(imageVector = Icons.Default.Email, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("إرسال تجريبي", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -367,7 +392,16 @@ fun ProfileSettingsScreen(
                                 listOf("09:00 ص", "03:00 م", "08:00 م").forEach { timeSlot ->
                                     FilterChip(
                                         selected = selectedReminderTime == timeSlot,
-                                        onClick = { selectedReminderTime = timeSlot },
+                                        onClick = {
+                                            selectedReminderTime = timeSlot
+                                            val hour = when (timeSlot) {
+                                                "09:00 ص" -> 9
+                                                "03:00 م" -> 15
+                                                else -> 20
+                                            }
+                                            NotificationHelper.setReminderHour(context, hour)
+                                            Toast.makeText(context, "تم جدولة التذكير اليومي الساعة $timeSlot", Toast.LENGTH_SHORT).show()
+                                        },
                                         label = { Text(timeSlot, fontSize = 12.sp) },
                                         leadingIcon = {
                                             Icon(imageVector = Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(14.dp))

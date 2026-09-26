@@ -67,6 +67,7 @@ fun TesterInvitationDialog(
     onInviteTester: (email: String, notes: String) -> Unit,
     onUpdateStatus: (testerId: Int, newStatus: String) -> Unit,
     onRemoveTester: (testerId: Int) -> Unit,
+    onTipTester: ((InvitedTester) -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     var emailInput by remember { mutableStateOf("") }
@@ -374,7 +375,8 @@ fun TesterInvitationDialog(
                             TesterItemCard(
                                 tester = tester,
                                 onUpdateStatus = { newStatus -> onUpdateStatus(tester.id, newStatus) },
-                                onRemove = { onRemoveTester(tester.id) }
+                                onRemove = { onRemoveTester(tester.id) },
+                                onTip = if (onTipTester != null) { { onTipTester(tester) } } else null
                             )
                         }
                     }
@@ -388,7 +390,8 @@ fun TesterInvitationDialog(
 fun TesterItemCard(
     tester: InvitedTester,
     onUpdateStatus: (String) -> Unit,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    onTip: (() -> Unit)? = null
 ) {
     Card(
         modifier = Modifier
@@ -492,6 +495,17 @@ fun TesterItemCard(
                         modifier = Modifier.testTag("btn_start_testing_${tester.id}")
                     ) {
                         Text("بدء الاختبار", fontSize = 11.sp)
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
+
+                if (onTip != null) {
+                    OutlinedButton(
+                        onClick = onTip,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.testTag("btn_tip_tester_${tester.id}")
+                    ) {
+                        Text("بقشيش 💎", fontSize = 11.sp, color = AmberGold, fontWeight = FontWeight.Bold)
                     }
                     Spacer(modifier = Modifier.width(4.dp))
                 }

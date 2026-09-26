@@ -54,6 +54,9 @@ interface AppDao {
     @Query("SELECT * FROM joined_tests ORDER BY isCompleted ASC, id DESC")
     fun getAllJoinedTests(): Flow<List<JoinedTest>>
 
+    @Query("SELECT * FROM joined_tests ORDER BY isCompleted ASC, id DESC")
+    suspend fun getJoinedTestsOnce(): List<JoinedTest>
+
     @Query("SELECT * FROM joined_tests WHERE communityAppId = :appId LIMIT 1")
     suspend fun getJoinedTestByCommunityId(appId: Int): JoinedTest?
 

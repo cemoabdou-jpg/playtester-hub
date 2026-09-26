@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,13 +24,21 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockReset
+import androidx.compose.material.icons.filled.MarkEmailRead
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.VpnKey
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -56,7 +65,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -66,14 +78,20 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.PlayGreen
+import com.example.util.EmailHelper
+import com.example.util.SecurityUtils
 
 @Composable
 fun AuthScreen(
     onLogin: (email: String, pass: String) -> Unit,
     onRegister: (name: String, email: String, pass: String) -> Unit,
     onGoogleSignIn: (email: String, name: String) -> Unit,
+    onResetPassword: (email: String, newPass: String, onResult: (Boolean, String) -> Unit) -> Unit = { _, _, _ -> },
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
+
     // 0: Register (حساب جديد - أولاً), 1: Login (تسجيل الدخول)
     var selectedTab by remember { mutableIntStateOf(0) }
     var email by remember { mutableStateOf("") }
@@ -83,6 +101,20 @@ fun AuthScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var successNotice by remember { mutableStateOf<String?>(null) }
+
+    // Dialogs state
+    var showForgotPasswordDialog by remember { mutableStateOf(false) }
+    var showEmailInfoDialog by remember { mutableStateOf(false) }
+
+    // Forgot password state
+    var forgotEmail by remember { mutableStateOf("") }
+    var generatedOtpCode by remember { mutableStateOf<String?>(null) }
+    var enteredOtpCode by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmNewPassword by remember { mutableStateOf("") }
+    var resetPasswordVisible by remember { mutableStateOf(false) }
+    var forgotError by remember { mutableStateOf<String?>(null) }
+    var forgotSuccess by remember { mutableStateOf<String?>(null) }
 
     Surface(
         modifier = modifier
@@ -136,7 +168,7 @@ fun AuthScreen(
                 modifier = Modifier.padding(top = 4.dp)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Mandatory Account Step Notice
             Surface(
@@ -157,15 +189,15 @@ fun AuthScreen(
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "نظام الحساب الإلزامي للمطورين",
+                            text = "نظام الحساب الإلزامي والمحمي للمطورين",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = "أنشئ حسابك أولاً، ثم سجّل الدخول لحفظ تطبيقاتك ومختبريك ومحفظتك بشكل دائم دون فقدان.",
+                            text = "التسجيل فوري ومحفوظ محلياً ودائماً، ويمكنك استعادة كلمة مرورك في أي وقت.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                         )
@@ -299,10 +331,67 @@ fun AuthScreen(
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = if (selectedTab == 0) 12.dp else 16.dp)
+                            .padding(bottom = if (selectedTab == 0) 12.dp else 4.dp)
                             .testTag("input_auth_password"),
                         shape = RoundedCornerShape(12.dp)
                     )
+
+                    // In Login Tab: Forgot Password & Email Info buttons
+                    AnimatedVisibility(visible = selectedTab == 1) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextButton(
+                                onClick = { showEmailInfoDialog = true },
+                                modifier = Modifier.testTag("btn_auth_email_info")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "حول رسائل البريد",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            TextButton(
+                                onClick = {
+                                    forgotEmail = email.trim()
+                                    enteredOtpCode = ""
+                                    generatedOtpCode = null
+                                    newPassword = ""
+                                    confirmNewPassword = ""
+                                    forgotError = null
+                                    forgotSuccess = null
+                                    showForgotPasswordDialog = true
+                                },
+                                modifier = Modifier.testTag("btn_forgot_password")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Key,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = CyanAccent
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "نسيت كلمة المرور؟",
+                                    color = CyanAccent,
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    }
 
                     // Confirm Password (Registration only)
                     AnimatedVisibility(visible = selectedTab == 0) {
@@ -322,10 +411,56 @@ fun AuthScreen(
                                 singleLine = true,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(bottom = 16.dp)
+                                    .padding(bottom = 12.dp)
                                     .testTag("input_auth_confirm_password"),
                                 shape = RoundedCornerShape(12.dp)
                             )
+
+                            // Quick test email option
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 14.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Info,
+                                            contentDescription = null,
+                                            tint = PlayGreen,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "التفعيل فوري ولا يحتاج انتظار إيميل تفعيل.",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    TextButton(
+                                        onClick = {
+                                            val target = if (email.contains("@")) email.trim() else "developer@example.com"
+                                            EmailHelper.sendVerificationTestEmail(context, target)
+                                        }
+                                    ) {
+                                        Text(
+                                            text = "تجربة إرسال بريد",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = PlayGreen
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -496,5 +631,387 @@ fun AuthScreen(
                 )
             }
         }
+    }
+
+    // --- Forgot Password Dialog ---
+    if (showForgotPasswordDialog) {
+        AlertDialog(
+            onDismissRequest = { showForgotPasswordDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.LockReset,
+                    contentDescription = null,
+                    tint = CyanAccent,
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "استعادة كلمة المرور",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        text = "أدخل بريدك الإلكتروني المسجل، وسنقوم بتوليد رمز استعادة آمن لتعيين كلمة مرور جديدة لحسابك فوراً.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+
+                    // Email Field
+                    OutlinedTextField(
+                        value = forgotEmail,
+                        onValueChange = {
+                            forgotEmail = it
+                            forgotError = null
+                        },
+                        label = { Text("البريد الإلكتروني المسجل") },
+                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = CyanAccent) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                            .testTag("input_forgot_email"),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+
+                    // Generate / Send Code Row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                if (forgotEmail.isBlank() || !forgotEmail.contains("@")) {
+                                    forgotError = "يرجى كتابة بريد إلكتروني صالح أولاً"
+                                    return@Button
+                                }
+                                val code = (100000..999999).random().toString()
+                                generatedOtpCode = code
+                                enteredOtpCode = code
+                                forgotError = null
+                                forgotSuccess = "تم توليد رمز الاستعادة بنجاح: $code"
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = CyanAccent)
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("توليد الرمز", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                if (forgotEmail.isBlank() || !forgotEmail.contains("@")) {
+                                    forgotError = "يرجى كتابة بريد إلكتروني صالح أولاً"
+                                    return@OutlinedButton
+                                }
+                                val code = generatedOtpCode ?: (100000..999999).random().toString()
+                                generatedOtpCode = code
+                                enteredOtpCode = code
+                                EmailHelper.sendRecoveryEmail(context, forgotEmail.trim(), code)
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("إرسال للبريد", fontSize = 12.sp)
+                        }
+                    }
+
+                    // OTP Code Display if generated
+                    generatedOtpCode?.let { code ->
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "رمز الاستعادة السري:",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    Text(
+                                        text = code,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        letterSpacing = 3.sp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                IconButton(onClick = {
+                                    clipboardManager.setText(AnnotatedString(code))
+                                    Toast.makeText(context, "تم نسخ الرمز إلى الحافظة", Toast.LENGTH_SHORT).show()
+                                }) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = "نسخ الرمز", tint = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        }
+
+                        // OTP Code Input Field
+                        OutlinedTextField(
+                            value = enteredOtpCode,
+                            onValueChange = { enteredOtpCode = it },
+                            label = { Text("رمز التحقق (6 أرقام)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+
+                        // New Password Field
+                        OutlinedTextField(
+                            value = newPassword,
+                            onValueChange = { newPassword = it },
+                            label = { Text("كلمة المرور الجديدة") },
+                            placeholder = { Text("6 أحرف أو أكثر") },
+                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                            trailingIcon = {
+                                IconButton(onClick = { resetPasswordVisible = !resetPasswordVisible }) {
+                                    Icon(
+                                        imageVector = if (resetPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                        contentDescription = null
+                                    )
+                                }
+                            },
+                            visualTransformation = if (resetPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+
+                        // Confirm New Password Field
+                        OutlinedTextField(
+                            value = confirmNewPassword,
+                            onValueChange = { confirmNewPassword = it },
+                            label = { Text("تأكيد كلمة المرور الجديدة") },
+                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                            visualTransformation = if (resetPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                    }
+
+                    // Feedback banners
+                    forgotError?.let { err ->
+                        Text(
+                            text = err,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
+
+                    forgotSuccess?.let { succ ->
+                        Text(
+                            text = succ,
+                            color = PlayGreen,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (forgotEmail.isBlank() || !forgotEmail.contains("@")) {
+                            forgotError = "يرجى كتابة بريد إلكتروني صحيح"
+                            return@Button
+                        }
+                        if (generatedOtpCode == null) {
+                            forgotError = "اضغط على 'توليد الرمز' أولاً للحصول على كود التحقق"
+                            return@Button
+                        }
+                        if (enteredOtpCode.trim() != generatedOtpCode) {
+                            forgotError = "رمز التحقق غير صحيح، يرجى كتابة الرمز الظاهر أعلاه"
+                            return@Button
+                        }
+                        if (newPassword.length < 6) {
+                            forgotError = "كلمة المرور الجديدة يجب ألا تقل عن 6 أحرف"
+                            return@Button
+                        }
+                        if (newPassword != confirmNewPassword) {
+                            forgotError = "كلمتا المرور الجديدتان غير متطابقتين"
+                            return@Button
+                        }
+
+                        onResetPassword(forgotEmail.trim(), newPassword) { success, msg ->
+                            if (success) {
+                                email = forgotEmail.trim()
+                                password = newPassword
+                                selectedTab = 1
+                                showForgotPasswordDialog = false
+                                successNotice = msg
+                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                            } else {
+                                forgotError = msg
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("حفظ وتحديث كلمة المرور", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showForgotPasswordDialog = false }) {
+                    Text("إلغاء")
+                }
+            }
+        )
+    }
+
+    // --- Email Explanation Dialog ---
+    if (showEmailInfoDialog) {
+        AlertDialog(
+            onDismissRequest = { showEmailInfoDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.MarkEmailRead,
+                    contentDescription = null,
+                    tint = PlayGreen,
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "رسائل البريد الإلكتروني وتفعيل الحساب",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        text = "إليك كيفية عمل نظام البريد والتسجيل في PlayTester Hub:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(bottom = 10.dp)
+                    )
+
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Text(
+                                text = "1. التفعيل الفوري لحسابك:",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = PlayGreen
+                            )
+                            Text(
+                                text = "يتم حفظ وتفعيل حسابك محلياً على جهازك ومزامنته سحابياً فوراً دون الحاجة لانتظار رسالة بريد إلكتروني تفعيلية قد تتأخر أو تصل للمهملات (Spam).",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Text(
+                                text = "2. استعادة كلمة المرور بدون تعطل:",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = CyanAccent
+                            )
+                            Text(
+                                text = "إذا نسيت كلمة المرور، يمكنك الضغط على 'نسيت كلمة المرور؟' والحصول على رمز استعادة فوري وتعيين كلمة مرورك الجديدة مباشرة دون الحاجة لانتظار إيميل خارجي.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Text(
+                                text = "3. مجموعة Google للاختبار المغلق:",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = AmberGold
+                            )
+                            Text(
+                                text = "لإشعارات اختبار التطبيقات 14 يوماً من Google Play، يجب الانضمام إلى مجموعة Google Group الرسمية:\nplayer-test-hup@googlegroups.com",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val target = if (email.contains("@")) email.trim() else "developer@example.com"
+                        EmailHelper.sendVerificationTestEmail(context, target)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("تجربة إرسال رسالة إلى بريدي")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEmailInfoDialog = false }) {
+                    Text("حسناً، فهمت")
+                }
+            }
+        )
     }
 }

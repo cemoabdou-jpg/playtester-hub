@@ -44,6 +44,7 @@ class TesterRepository(private val dao: AppDao) {
     fun getArtifactsForApp(appId: Int): Flow<List<AppBuildArtifact>> = dao.getArtifactsForApp(appId)
     fun getInvitedTestersForApp(appId: Int): Flow<List<InvitedTester>> = dao.getInvitedTestersForApp(appId)
     fun getLogsForJoinedTest(joinedTestId: Int): Flow<List<DailyTestLog>> = dao.getLogsForJoinedTest(joinedTestId)
+    suspend fun updateWallet(wallet: UserWallet) = dao.insertOrUpdateWallet(wallet)
 
     companion object {
         const val DEFAULT_GOOGLE_GROUP_URL = "https://groups.google.com/g/player-test-hup"
@@ -184,6 +185,40 @@ class TesterRepository(private val dao: AppDao) {
         return Result.success(updated)
     }
 
+    suspend fun isEmailRegistered(email: String): Boolean {
+        val cleanEmail = email.trim().lowercase()
+        return dao.getUserByEmail(cleanEmail) != null || isAdminEmail(cleanEmail)
+    }
+
+    suspend fun resetPassword(email: String, newPass: String): Result<Boolean> {
+        val cleanEmail = email.trim().lowercase()
+        if (cleanEmail.isBlank() || !cleanEmail.contains("@")) {
+            return Result.failure(Exception("يرجى إدخال بريد إلكتروني صالح"))
+        }
+        if (newPass.length < 6) {
+            return Result.failure(Exception("كلمة المرور الجديدة يجب ألا تقل عن 6 أحرف"))
+        }
+        val user = dao.getUserByEmail(cleanEmail)
+        if (user == null) {
+            if (isAdminEmail(cleanEmail)) {
+                val newAdmin = AuthUser(
+                    email = cleanEmail,
+                    passwordHash = newPass,
+                    displayName = "المدير العام",
+                    authProvider = "EMAIL",
+                    role = "ADMIN",
+                    isLoggedIn = false
+                )
+                dao.insertAuthUser(newAdmin)
+                return Result.success(true)
+            }
+            return Result.failure(Exception("هذا البريد الإلكتروني غير مسجل في النظام"))
+        }
+        val updatedUser = user.copy(passwordHash = newPass)
+        dao.updateAuthUser(updatedUser)
+        return Result.success(true)
+    }
+
     suspend fun changePassword(oldPass: String, newPass: String): Result<Unit> {
         val current = dao.getCurrentUserOnce() ?: return Result.failure(Exception("لم يتم العثور على جلسة مستخدم نشطة"))
         if (current.authProvider == "GOOGLE") {
@@ -291,9 +326,9 @@ class TesterRepository(private val dao: AppDao) {
             webOptInUrl = app.webOptInUrl,
             androidOptInUrl = app.androidOptInUrl,
             joinTimestamp = System.currentTimeMillis(),
-            daysCompleted = 1,
-            checkedDaysCsv = "1",
-            lastCheckInDate = dateFormat.format(Date()),
+            daysCompleted = 0,
+            checkedDaysCsv = "",
+            lastCheckInDate = "",
             isCompleted = false
         )
         dao.insertJoinedTest(newTest)

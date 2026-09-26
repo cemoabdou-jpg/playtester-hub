@@ -165,6 +165,24 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun resetPassword(email: String, newPass: String, onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            val res = repository.resetPassword(email, newPass)
+            res.onSuccess {
+                _userMessage.value = "تمت استعادة وتحديث كلمة المرور بنجاح!"
+                onResult(true, "تم تحديث كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول بها.")
+            }.onFailure { err ->
+                val errMsg = err.message ?: "فشلت استعادة كلمة المرور"
+                _userMessage.value = errMsg
+                onResult(false, errMsg)
+            }
+        }
+    }
+
+    suspend fun checkEmailRegistered(email: String): Boolean {
+        return repository.isEmailRegistered(email)
+    }
+
     private val _deviceModel = MutableStateFlow(prefs.getString("device_model", "Samsung Galaxy S23 / Pixel 8") ?: "Samsung Galaxy S23 / Pixel 8")
     val deviceModel: StateFlow<String> = _deviceModel.asStateFlow()
 
@@ -308,6 +326,24 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
             res.onSuccess { msg ->
                 _userMessage.value = msg
             }
+        }
+    }
+
+    fun sendTesterTip(testerId: Int, points: Int, note: String) {
+        viewModelScope.launch {
+            val currentWallet = wallet.value
+            if (currentWallet.points < points) {
+                _userMessage.value = "رصيد نقاطك غير كافٍ لتمرير البقشيش"
+                return@launch
+            }
+            val updatedWallet = currentWallet.copy(points = currentWallet.points - points)
+            repository.updateWallet(updatedWallet)
+            repository.addNotification(
+                title = "🎁 تم إرسال مكافأة بقشيش ($points نقطة)!",
+                message = "تم منح البقشيش بنجاح للمختبر. الملاحظة: $note",
+                type = "MILESTONE"
+            )
+            _userMessage.value = "تم إرسال مكافأة قدرها $points نقطة بنجاح للمختبر 💎"
         }
     }
 

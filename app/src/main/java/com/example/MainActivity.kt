@@ -44,6 +44,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.model.BadgeCalculator
+import com.example.data.model.InvitedTester
 import com.example.data.model.JoinedTest
 import com.example.data.model.UserApp
 import com.example.ui.components.AddAppDialog
@@ -53,6 +54,7 @@ import com.example.ui.components.DailyTestConfirmationDialog
 import com.example.ui.components.NotificationCenterDialog
 import com.example.ui.components.SimplifiedDashboardCard
 import com.example.ui.components.TesterInvitationDialog
+import com.example.ui.components.TipTesterDialog
 import com.example.ui.screens.AdminControlScreen
 import com.example.ui.screens.AuthScreen
 import com.example.ui.screens.CommunityScreen
@@ -63,6 +65,7 @@ import com.example.ui.screens.OnboardingScreen
 import com.example.ui.screens.ProfileSettingsScreen
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.viewmodel.TesterViewModel
+import com.example.util.NotificationHelper
 
 class MainActivity : ComponentActivity() {
     private val viewModel: TesterViewModel by viewModels()
@@ -88,6 +91,7 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
     var showOnboardingExplicitly by remember { mutableStateOf(false) }
     var quickInviteApp by remember { mutableStateOf<UserApp?>(null) }
     var selectedTestForDailyConfirmation by remember { mutableStateOf<JoinedTest?>(null) }
+    var testerForTip by remember { mutableStateOf<InvitedTester?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
@@ -121,9 +125,26 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
+            NotificationHelper.scheduleDailyReminderAlarm(context)
             viewModel.triggerTestNotification(context)
         } else {
             viewModel.triggerTestNotification(context)
+        }
+    }
+
+    LaunchedEffect(currentUser) {
+        if (currentUser != null) {
+            NotificationHelper.createNotificationChannel(context)
+            NotificationHelper.scheduleDailyReminderAlarm(context)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (androidx.core.content.ContextCompat.checkSelfPermission(
+                        context,
+                        android.Manifest.permission.POST_NOTIFICATIONS
+                    ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                ) {
+                    notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
         }
     }
 
@@ -139,7 +160,10 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
         AuthScreen(
             onLogin = { email, pass -> viewModel.login(email, pass) },
             onRegister = { name, email, pass -> viewModel.register(name, email, pass) },
-            onGoogleSignIn = { email, name -> viewModel.loginWithGoogle(email, name) }
+            onGoogleSignIn = { email, name -> viewModel.loginWithGoogle(email, name) },
+            onResetPassword = { email, newPass, onResult ->
+                viewModel.resetPassword(email, newPass, onResult)
+            }
         )
         return
     }
@@ -455,7 +479,21 @@ fun PlayTesterApp(viewModel: TesterViewModel) {
             onRemoveTester = { testerId ->
                 viewModel.removeTester(testerId)
             },
+            onTipTester = { tester ->
+                testerForTip = tester
+            },
             onDismiss = { quickInviteApp = null }
+        )
+    }
+
+    testerForTip?.let { tester ->
+        TipTesterDialog(
+            tester = tester,
+            userPoints = wallet.points,
+            onSendTip = { testerId, points, note ->
+                viewModel.sendTesterTip(testerId, points, note)
+            },
+            onDismiss = { testerForTip = null }
         )
     }
 
