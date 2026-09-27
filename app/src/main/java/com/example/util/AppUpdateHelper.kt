@@ -14,8 +14,8 @@ import com.google.android.play.core.install.model.UpdateAvailability
 
 data class AppUpdateStatus(
     val isUpdateAvailable: Boolean = false,
-    val latestVersionCode: Int = 10,
-    val latestVersionName: String = "1.9",
+    val latestVersionCode: Int = 12,
+    val latestVersionName: String = "2.1",
     val releaseNotes: String = "",
     val isMandatory: Boolean = false,
     val playUpdateInfo: AppUpdateInfo? = null,
