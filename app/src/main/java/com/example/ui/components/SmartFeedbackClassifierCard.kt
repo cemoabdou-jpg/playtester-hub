@@ -21,7 +21,7 @@ import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
@@ -138,7 +138,7 @@ fun SmartFeedbackClassifierCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Psychology,
+                            imageVector = Icons.Default.Category,
                             contentDescription = null,
                             tint = CyanAccent,
                             modifier = Modifier.size(22.dp)
@@ -147,12 +147,12 @@ fun SmartFeedbackClassifierCard(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "المصنف الذكي للملاحظات والأخطاء",
+                            text = "تصنيف وفرز الملاحظات والبلاغات",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "تحليل آلي وتصنيف الملاحظات المجمعة لتقرير جوجل بلاي",
+                            text = "فرز وتصنيف الملاحظات المجمعة لتقرير جوجل بلاي",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

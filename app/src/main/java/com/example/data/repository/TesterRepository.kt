@@ -24,7 +24,9 @@ class TesterRepository(private val dao: AppDao) {
 
     private val firestoreService = FirestoreService()
 
-    val communityApps: Flow<List<CommunityApp>> = dao.getAllCommunityApps()
+    val communityApps: Flow<List<CommunityApp>> = dao.getAllCommunityApps().map { list ->
+        list.distinctBy { it.packageName.trim().lowercase() }
+    }
     val joinedTests: Flow<List<JoinedTest>> = dao.getAllJoinedTests()
     val userApps: Flow<List<UserApp>> = dao.getAllUserApps()
     val wallet: Flow<UserWallet?> = dao.getUserWallet()
@@ -35,6 +37,7 @@ class TesterRepository(private val dao: AppDao) {
     val unreadNotificationsCount: Flow<Int> = dao.getUnreadNotificationsCount()
     val allDailyTestLogs: Flow<List<DailyTestLog>> = dao.getAllDailyTestLogs()
     val allFeedback: Flow<List<TesterFeedback>> = dao.getAllFeedback()
+    val allTesterActivities: Flow<List<com.example.data.model.AppTesterActivity>> = dao.getAllTesterActivities()
 
     val officialGoogleGroupUrl: Flow<String> = dao.getSettingFlow("official_google_group_url")
         .map { it ?: DEFAULT_GOOGLE_GROUP_URL }
@@ -45,6 +48,7 @@ class TesterRepository(private val dao: AppDao) {
     fun getArtifactsForApp(appId: Int): Flow<List<AppBuildArtifact>> = dao.getArtifactsForApp(appId)
     fun getInvitedTestersForApp(appId: Int): Flow<List<InvitedTester>> = dao.getInvitedTestersForApp(appId)
     fun getLogsForJoinedTest(joinedTestId: Int): Flow<List<DailyTestLog>> = dao.getLogsForJoinedTest(joinedTestId)
+    fun getActivitiesForPackage(packageName: String): Flow<List<com.example.data.model.AppTesterActivity>> = dao.getActivitiesForPackage(packageName)
     suspend fun updateWallet(wallet: UserWallet) = dao.insertOrUpdateWallet(wallet)
 
     companion object {
@@ -470,21 +474,57 @@ class TesterRepository(private val dao: AppDao) {
         dao.deleteFeedback(id)
     }
 
+    suspend fun insertOrUpdateCommunityApp(app: CommunityApp): Long {
+        val cleanPackage = app.packageName.trim()
+        val existing = dao.getCommunityAppByPackage(cleanPackage)
+        val appToSave = if (existing != null) {
+            app.copy(
+                id = existing.id,
+                packageName = cleanPackage,
+                priorityScore = if (app.priorityScore > 0) app.priorityScore else existing.priorityScore,
+                isFeatured = app.isFeatured || existing.isFeatured
+            )
+        } else {
+            app.copy(packageName = cleanPackage)
+        }
+        val savedId = dao.insertCommunityApp(appToSave)
+        val finalId = if (appToSave.id != 0) appToSave.id else savedId.toInt()
+        dao.deleteDuplicateCommunityApps(cleanPackage, finalId)
+        return savedId
+    }
+
+    suspend fun cleanDuplicateCommunityApps() {
+        try {
+            val allApps = dao.getAllCommunityAppsOnce()
+            val seen = mutableSetOf<String>()
+            for (app in allApps) {
+                val key = app.packageName.trim().lowercase()
+                if (key in seen) {
+                    dao.deleteCommunityApp(app.id)
+                } else {
+                    seen.add(key)
+                }
+            }
+        } catch (_: Exception) {}
+    }
+
     suspend fun publishApp(app: UserApp, featureWithPoints: Boolean): Result<String> {
+        val cleanPackage = app.packageName.trim()
         val groupUrl = if (app.googleGroupUrl.isNotBlank()) app.googleGroupUrl else getEffectiveOfficialGroupUrl()
-        val appToInsert = if (app.googleGroupUrl.isBlank()) app.copy(googleGroupUrl = groupUrl) else app
+        val appToInsert = (if (app.googleGroupUrl.isBlank()) app.copy(googleGroupUrl = groupUrl) else app).copy(packageName = cleanPackage)
 
         dao.insertUserApp(appToInsert)
 
         // Also add to community exchange so others can test it
-        val existingCommunityApp = dao.getCommunityAppByPackage(app.packageName)
+        val existingCommunityApp = dao.getCommunityAppByPackage(cleanPackage)
         val communityItem = CommunityApp(
             id = existingCommunityApp?.id ?: 0,
             name = app.name,
             developerName = "أنا (مطور التطبيق)",
-            packageName = app.packageName,
+            packageName = cleanPackage,
             description = if (app.instructions.isNotEmpty()) app.instructions else "تطبيق قيد الاختبار المغلق لـ 14 يوماً",
             category = app.category,
+            iconUrl = app.iconUrl,
             googleGroupUrl = groupUrl,
             webOptInUrl = app.webOptInUrl,
             androidOptInUrl = app.androidOptInUrl,
@@ -493,7 +533,7 @@ class TesterRepository(private val dao: AppDao) {
             rewardPoints = 40,
             isFeatured = featureWithPoints
         )
-        dao.insertCommunityApp(communityItem)
+        insertOrUpdateCommunityApp(communityItem)
 
         // Sync to remote Firestore DB so other developers see it
         val remoteRes = firestoreService.publishAppToFirestore(communityItem)
@@ -503,6 +543,84 @@ class TesterRepository(private val dao: AppDao) {
             val err = remoteRes.exceptionOrNull()?.message ?: "تنبيه في الاتصال"
             Result.success("تم حفظ التطبيق محلياً في جهازك بنجاح. (ملاحظة السحابة: $err - يرجى الضغط على زر المزامنة عند توفر الإنترنت)")
         }
+    }
+
+    suspend fun recordAppOpened(packageName: String, appName: String): Result<String> {
+        val user = dao.getCurrentUserOnce()
+        val testerName = user?.displayName?.ifBlank { null } ?: user?.email?.substringBefore("@") ?: "مطور معتمد"
+        val testerEmail = user?.email ?: "tester@playtesterhub.com"
+
+        val activity = com.example.data.model.AppTesterActivity(
+            packageName = packageName,
+            appName = appName,
+            testerName = testerName,
+            testerEmail = testerEmail,
+            action = "OPENED_APP",
+            timestamp = System.currentTimeMillis()
+        )
+        dao.insertTesterActivity(activity)
+
+        // Record in Firestore so the developer of the app sees the tester's name
+        try {
+            firestoreService.recordTesterActivity(activity)
+        } catch (_: Exception) {}
+
+        // Record daily test verification if joined
+        val joined = dao.getJoinedTestsOnce().find { it.packageName == packageName }
+        if (joined != null) {
+            confirmDailyTest(joined, durationMinutes = 10, rating = 5, notes = "فتح واختبار التطبيق بنجاح")
+        } else {
+            val commApp = dao.getCommunityAppByPackage(packageName)
+            if (commApp != null) {
+                joinCommunityApp(commApp)
+                val newJoined = dao.getJoinedTestsOnce().find { it.packageName == packageName }
+                if (newJoined != null) {
+                    confirmDailyTest(newJoined, durationMinutes = 10, rating = 5, notes = "فتح واختبار التطبيق بنجاح")
+                }
+            } else {
+                updateWalletPoints(25, incrementStreak = true)
+            }
+        }
+
+        // Notify app developer
+        addNotification(
+            title = "فتح وتجربة تطبيقك 🚀",
+            message = "قام المطور ($testerName) بفتح وتجربة تطبيقك '$appName' الآن لتوثيق الـ 14 يوماً!",
+            type = "TESTER_JOINED",
+            actionRoute = "my_apps"
+        )
+
+        return Result.success("تم فتح التطبيق وتسجيل اختبارك لليوم بنجاح باسم ($testerName) وحصلت على +25 نقطة! 🌟")
+    }
+
+    suspend fun updateUserAppGroupUrl(appId: Int, groupUrl: String): Result<String> {
+        if (groupUrl.isBlank()) {
+            return Result.failure(Exception("يرجى إدخال رابط مجموعة صالح"))
+        }
+        val cleanUrl = groupUrl.trim()
+        dao.updateUserAppGroupUrl(appId, cleanUrl)
+        val userApps = dao.getAllUserAppsOnce()
+        val targetApp = userApps.find { it.id == appId }
+        if (targetApp != null) {
+            val commApp = dao.getCommunityAppByPackage(targetApp.packageName)
+            if (commApp != null) {
+                val updatedCommApp = commApp.copy(googleGroupUrl = cleanUrl)
+                dao.insertCommunityApp(updatedCommApp)
+                try {
+                    firestoreService.publishAppToFirestore(updatedCommApp)
+                } catch (_: Exception) {}
+            }
+        }
+        return Result.success("تم تحديث رابط مجموعة الاختبار بنجاح!")
+    }
+
+    suspend fun syncTesterActivitiesForPackage(packageName: String) {
+        try {
+            val remoteActivities = firestoreService.fetchTesterActivitiesForPackage(packageName).getOrDefault(emptyList())
+            remoteActivities.forEach { act ->
+                dao.insertTesterActivity(act)
+            }
+        } catch (_: Exception) {}
     }
 
     suspend fun deleteUserApp(id: Int) {
@@ -652,12 +770,11 @@ class TesterRepository(private val dao: AppDao) {
 
     suspend fun observeAndSyncRemoteApps() {
         try {
+            cleanDuplicateCommunityApps()
             firestoreService.ensureFirebaseAuth()
             firestoreService.observeRemoteCommunityApps().collect { remoteApps ->
                 remoteApps.forEach { remoteApp ->
-                    val existing = dao.getCommunityAppByPackage(remoteApp.packageName)
-                    val appToInsert = if (existing != null) remoteApp.copy(id = existing.id) else remoteApp
-                    dao.insertCommunityApp(appToInsert)
+                    insertOrUpdateCommunityApp(remoteApp)
                 }
             }
         } catch (_: Exception) {}
@@ -669,11 +786,10 @@ class TesterRepository(private val dao: AppDao) {
             val apps = res.getOrDefault(emptyList())
             var count = 0
             apps.forEach { remoteApp ->
-                val existing = dao.getCommunityAppByPackage(remoteApp.packageName)
-                val appToInsert = if (existing != null) remoteApp.copy(id = existing.id) else remoteApp
-                dao.insertCommunityApp(appToInsert)
+                insertOrUpdateCommunityApp(remoteApp)
                 count++
             }
+            cleanDuplicateCommunityApps()
             Result.success(count)
         } else {
             val ex = res.exceptionOrNull() ?: Exception("فشل الاتصال بقاعدة بيانات التطبيقات السحابية")
@@ -693,7 +809,7 @@ class TesterRepository(private val dao: AppDao) {
             trimmed.contains("play.google.com/apps/testing/") -> trimmed.substringAfter("play.google.com/apps/testing/").substringBefore("?").substringBefore("/")
             trimmed.contains(".") -> trimmed
             else -> ""
-        }
+        }.trim()
 
         if (pkg.isBlank()) {
             return Result.failure(Exception("لم نتمكن من استخراج اسم الحزمة (Package Name) من الرابط المدخل. يرجى التأكد من الرابط."))
@@ -723,7 +839,7 @@ class TesterRepository(private val dao: AppDao) {
             isFeatured = false
         )
 
-        val insertedId = dao.insertCommunityApp(imported)
+        val insertedId = insertOrUpdateCommunityApp(imported)
         val finalApp = imported.copy(id = if (imported.id != 0) imported.id else insertedId.toInt())
 
         // Also push to Firestore so others benefit as well

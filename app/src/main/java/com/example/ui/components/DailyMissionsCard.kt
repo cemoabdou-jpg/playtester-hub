@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,15 +18,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.GroupAdd
-import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material3.Button
@@ -56,7 +54,6 @@ import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CrimsonRed
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.PlayGreen
-import com.example.ui.theme.SilverAccent
 import com.example.ui.theme.SuccessGreen
 
 @Composable
@@ -68,7 +65,7 @@ fun DailyMissionsCard(
     onQuickFeedbackClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    var isExpanded by remember { mutableStateOf(true) }
+    var isExpanded by remember { mutableStateOf(false) }
 
     val totalApps = joinedTests.size
     val checkedTodayCount = joinedTests.count { it.lastCheckInDate == todayStr }
@@ -84,17 +81,19 @@ fun DailyMissionsCard(
     val missionsProgress = completedMissionsCount / 4f
 
     Card(
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-        border = BorderStroke(1.dp, CrimsonRed.copy(alpha = 0.4f)),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = modifier
             .fillMaxWidth()
             .testTag("daily_missions_card")
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            // Header Row
+        Column(modifier = Modifier.padding(12.dp)) {
+            // Compact Header Row (Clickable to toggle)
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isExpanded = !isExpanded },
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -105,44 +104,45 @@ fun DailyMissionsCard(
                     Surface(
                         shape = CircleShape,
                         color = CrimsonRed.copy(alpha = 0.15f),
-                        modifier = Modifier.size(38.dp)
+                        modifier = Modifier.size(32.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Default.TaskAlt,
                                 contentDescription = null,
                                 tint = CrimsonRed,
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
 
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "مركز مهام المختبر اليومية 🎯",
+                                text = "مهام المختبر اليومية 🎯",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
-                                color = CrimsonRed.copy(alpha = 0.2f)
+                                color = if (completedMissionsCount == 4) SuccessGreen.copy(alpha = 0.2f) else CrimsonRed.copy(alpha = 0.2f)
                             ) {
                                 Text(
-                                    text = "$completedMissionsCount/4 مكتمل",
-                                    fontSize = 11.sp,
+                                    text = "$completedMissionsCount/4",
+                                    fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = CrimsonRed,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    color = if (completedMissionsCount == 4) SuccessGreen else CrimsonRed,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
                                 )
                             }
                         }
                         Text(
-                            text = "أكمل المهام لكسب رصيد نقاط إضافي وتنشيط شارات الإنجاز",
+                            text = if (isExpanded) "انقر للطي وتوفير المساحة" else "أكمل المهام اليومية لكسب رصيد نقاط مضاعف (انقر للتفاصيل)",
                             style = MaterialTheme.typography.bodySmall,
+                            fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -150,25 +150,25 @@ fun DailyMissionsCard(
 
                 IconButton(
                     onClick = { isExpanded = !isExpanded },
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(28.dp)
                 ) {
                     Icon(
-                        imageVector = if (isExpanded) Icons.Default.ExpandMore else Icons.Default.ChevronRight,
-                        contentDescription = "توسيع/طي",
+                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = "توسيع/طي المهام",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             // Missions Overall Progress Bar
             LinearProgressIndicator(
                 progress = { missionsProgress },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(6.dp),
-                color = CrimsonRed,
+                    .height(4.dp),
+                color = if (completedMissionsCount == 4) SuccessGreen else CrimsonRed,
                 trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
             )
 
@@ -178,67 +178,64 @@ fun DailyMissionsCard(
                 exit = shrinkVertically()
             ) {
                 Column(
-                    modifier = Modifier.padding(top = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.padding(top = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     // Mission Item 1: Daily App Check-ins
-                    MissionRowItem(
+                    CompactMissionItem(
                         icon = Icons.Default.FactCheck,
-                        title = "تأكيد فحص التطبيقات اليومي",
-                        subtitle = if (totalApps == 0) "انضم لتطبيقات من المجتمع لبدء الفحص اليومي"
-                        else "تم فحص $checkedTodayCount من أصل $totalApps تطبيق اليوم",
-                        rewardText = "+25 نقطة / تطبيق",
+                        title = "تأكيد فحص التطبيقات",
+                        rewardText = "+25 ن",
                         isDone = mission1Done,
                         badgeColor = if (mission1Done) SuccessGreen else CrimsonRed
                     )
 
                     // Mission Item 2: Daily Streak
-                    MissionRowItem(
+                    CompactMissionItem(
                         icon = Icons.Default.Bolt,
-                        title = "المحافظة على الستريك النشط",
-                        subtitle = "سلسلة الفحص متواصلة لـ $currentStreak أيام على التوالي",
-                        rewardText = "مضاعف النقاط x1.2 ⚡",
+                        title = "الستريك النشط ($currentStreak أيام)",
+                        rewardText = "x1.2 ⚡",
                         isDone = mission2Done,
                         badgeColor = AmberGold
                     )
 
-                    // Mission Item 3: Quality Feedback
-                    MissionRowItem(
+                    // Mission Item 3: Quality Feedback / Bug Report (Streamlined Compact Button)
+                    CompactMissionItem(
                         icon = Icons.Default.RateReview,
-                        title = "إرسال تقرير عطل أو ملاحظة جودة",
-                        subtitle = "ساعد المطور بتوجيه ملاحظة واكسب نقاط الجودة",
-                        rewardText = "+50 نقطة",
+                        title = "إرسال تقرير أو ملاحظة",
+                        rewardText = "+50 ن",
                         isDone = mission3Done,
                         badgeColor = CyanAccent,
                         actionButton = if (!mission3Done && onQuickFeedbackClick != null) {
                             {
                                 OutlinedButton(
                                     onClick = onQuickFeedbackClick,
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.height(30.dp)
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier.height(28.dp),
+                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                                 ) {
-                                    Text("إرسال تقرير", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Text("إرسال تقرير", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         } else null
                     )
 
-                    // Mission Item 4: Explore & Join New Community App
-                    MissionRowItem(
+                    // Mission Item 4: Explore & Join New Community App (Streamlined Compact Button)
+                    CompactMissionItem(
                         icon = Icons.Default.GroupAdd,
-                        title = "استكشاف والانضمام لتطبيق جديد",
-                        subtitle = "تبادل التجربة مع مطور آخر لكسب نقاط ترفع أولوية تطبيقاتك",
-                        rewardText = "+100 نقطة",
+                        title = "تصفح واختبار تطبيق جديد",
+                        rewardText = "+100 ن",
                         isDone = mission4Done,
                         badgeColor = CrimsonRed,
                         actionButton = {
                             Button(
                                 onClick = onNavigateToCommunity,
                                 colors = ButtonDefaults.buttonColors(containerColor = CrimsonRed),
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.height(30.dp)
+                                shape = RoundedCornerShape(6.dp),
+                                modifier = Modifier.height(28.dp),
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                             ) {
-                                Text("تصفح المعرض", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text("تصفح المعرض", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     )
@@ -249,26 +246,25 @@ fun DailyMissionsCard(
 }
 
 @Composable
-private fun MissionRowItem(
+private fun CompactMissionItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
-    subtitle: String,
     rewardText: String,
     isDone: Boolean,
     badgeColor: Color,
     actionButton: (@Composable () -> Unit)? = null
 ) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(
             0.5.dp,
-            if (isDone) SuccessGreen.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+            if (isDone) SuccessGreen.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
         ),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(10.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -280,45 +276,36 @@ private fun MissionRowItem(
                     imageVector = if (isDone) Icons.Default.CheckCircle else icon,
                     contentDescription = null,
                     tint = if (isDone) SuccessGreen else badgeColor,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(18.dp)
                 )
 
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(8.dp))
 
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isDone) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = badgeColor.copy(alpha = 0.15f)
-                        ) {
-                            Text(
-                                text = rewardText,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = badgeColor,
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                            )
-                        }
-                    }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
 
+                Spacer(modifier = Modifier.width(6.dp))
+
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = badgeColor.copy(alpha = 0.12f)
+                ) {
                     Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1
+                        text = rewardText,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = badgeColor,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                     )
                 }
             }
 
             if (actionButton != null) {
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp))
                 actionButton()
             }
         }

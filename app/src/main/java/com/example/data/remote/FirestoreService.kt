@@ -72,6 +72,7 @@ class FirestoreService {
                 "packageName" to app.packageName,
                 "description" to app.description,
                 "category" to app.category,
+                "iconUrl" to app.iconUrl,
                 "googleGroupUrl" to app.googleGroupUrl,
                 "webOptInUrl" to app.webOptInUrl,
                 "androidOptInUrl" to app.androidOptInUrl,
@@ -133,7 +134,8 @@ class FirestoreService {
                         developerName = doc.getString("developerName") ?: "مطور معتمد",
                         packageName = pkg,
                         description = doc.getString("description") ?: "",
-                        category = doc.getString("category") ?: "أدوات",
+                        category = doc.getString("category") ?: "تطبيق",
+                        iconUrl = doc.getString("iconUrl") ?: "",
                         googleGroupUrl = doc.getString("googleGroupUrl") ?: "",
                         webOptInUrl = doc.getString("webOptInUrl") ?: "",
                         androidOptInUrl = doc.getString("androidOptInUrl") ?: "",
@@ -190,7 +192,8 @@ class FirestoreService {
                                 developerName = doc.getString("developerName") ?: "مطور معتمد",
                                 packageName = pkg,
                                 description = doc.getString("description") ?: "",
-                                category = doc.getString("category") ?: "أدوات",
+                                category = doc.getString("category") ?: "تطبيق",
+                                iconUrl = doc.getString("iconUrl") ?: "",
                                 googleGroupUrl = doc.getString("googleGroupUrl") ?: "",
                                 webOptInUrl = doc.getString("webOptInUrl") ?: "",
                                 androidOptInUrl = doc.getString("androidOptInUrl") ?: "",
@@ -210,6 +213,57 @@ class FirestoreService {
             }
 
         awaitClose { listenerRegistration.remove() }
+    }
+
+    suspend fun recordTesterActivity(activity: com.example.data.model.AppTesterActivity): Result<Boolean> {
+        val db = getFirestore() ?: return Result.failure(Exception("قاعدة بيانات Firestore غير متوفرة."))
+        return try {
+            ensureFirebaseAuth()
+            val data = hashMapOf(
+                "packageName" to activity.packageName,
+                "appName" to activity.appName,
+                "testerName" to activity.testerName,
+                "testerEmail" to activity.testerEmail,
+                "action" to activity.action,
+                "timestamp" to activity.timestamp
+            )
+            db.collection("tester_activities").add(data).await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Log.w("FirestoreService", "Record tester activity error: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    suspend fun fetchTesterActivitiesForPackage(packageName: String): Result<List<com.example.data.model.AppTesterActivity>> {
+        val db = getFirestore() ?: return Result.failure(Exception("قاعدة بيانات Firestore غير متوفرة."))
+        return try {
+            ensureFirebaseAuth()
+            val snapshot = db.collection("tester_activities")
+                .whereEqualTo("packageName", packageName)
+                .limit(50)
+                .get()
+                .await()
+            val list = snapshot.documents.mapNotNull { doc ->
+                try {
+                    com.example.data.model.AppTesterActivity(
+                        id = 0,
+                        packageName = doc.getString("packageName") ?: packageName,
+                        appName = doc.getString("appName") ?: "",
+                        testerName = doc.getString("testerName") ?: "مختبر معتمد",
+                        testerEmail = doc.getString("testerEmail") ?: "",
+                        action = doc.getString("action") ?: "OPENED_APP",
+                        timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
+                    )
+                } catch (e: Exception) {
+                    null
+                }
+            }.sortedByDescending { it.timestamp }
+            Result.success(list)
+        } catch (e: Exception) {
+            Log.w("FirestoreService", "Fetch tester activities error: ${e.message}")
+            Result.failure(e)
+        }
     }
 
     suspend fun updateAppTestersInFirestore(packageName: String, newTestersCount: Int) {

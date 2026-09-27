@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,11 +23,13 @@ import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Android
-import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.GroupAdd
@@ -37,9 +41,12 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Spellcheck
 import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
 import com.example.ui.components.ChangelogGeneratorDialog
 import com.example.ui.components.DeviceDiversityMatrixDialog
 import com.example.ui.components.PlayPolicyLinterDialog
@@ -71,11 +78,14 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.data.model.AppBuildArtifact
+import com.example.data.model.AppTesterActivity
 import com.example.data.model.DailyTestLog
 import com.example.data.model.InvitedTester
 import com.example.data.model.TesterFeedback
 import com.example.data.model.UserApp
+import java.io.File
 import com.example.ui.components.AppHealthDiagnosticsCard
 import com.example.ui.components.DailyTestLogsHistoryDialog
 import com.example.ui.components.OptInLinkValidatorDialog
@@ -101,6 +111,7 @@ fun MyAppsScreen(
     allInvitedTesters: List<InvitedTester>,
     allDailyTestLogs: List<DailyTestLog> = emptyList(),
     allFeedback: List<TesterFeedback> = emptyList(),
+    allTesterActivities: List<AppTesterActivity> = emptyList(),
     onAddAppClick: () -> Unit,
     onDeleteApp: (Int) -> Unit,
     onUploadArtifact: (
@@ -121,6 +132,7 @@ fun MyAppsScreen(
     onSendDailyReminder: (UserApp) -> Unit = {},
     onUploadLocalApps: (((Boolean, String) -> Unit) -> Unit)? = null,
     isUploadingLocalApps: Boolean = false,
+    onUpdateGroupUrl: (appId: Int, groupUrl: String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -130,6 +142,7 @@ fun MyAppsScreen(
     var appForVersions by remember { mutableStateOf<UserApp?>(null) }
     var appForTesters by remember { mutableStateOf<UserApp?>(null) }
     var appForDailyLogs by remember { mutableStateOf<UserApp?>(null) }
+    var appForEditGroupUrl by remember { mutableStateOf<UserApp?>(null) }
     var appForReadinessReport by remember { mutableStateOf<UserApp?>(null) }
     var appForValidator by remember { mutableStateOf<UserApp?>(null) }
     var appForPrivacyPolicy by remember { mutableStateOf<UserApp?>(null) }
@@ -282,6 +295,7 @@ fun MyAppsScreen(
 
             // User Apps
             items(userApps, key = { it.id }) { app ->
+                var isToolkitExpanded by remember { mutableStateOf(false) }
                 val testerProgress = (app.testersCount.toFloat() / app.targetTesters.toFloat()).coerceIn(0f, 1f)
                 val daysProgress = (app.daysElapsed.toFloat() / app.targetDays.toFloat()).coerceIn(0f, 1f)
                 val isReadyForProduction = app.testersCount >= app.targetTesters && app.daysElapsed >= app.targetDays
@@ -339,17 +353,52 @@ fun MyAppsScreen(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        Text(
-                            text = app.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = app.packageName,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        // App Row: Icon + Title & Package
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (app.iconUrl.isNotBlank()) {
+                                    AsyncImage(
+                                        model = if (app.iconUrl.startsWith("/")) File(app.iconUrl) else app.iconUrl,
+                                        contentDescription = "أيقونة ${app.name}",
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(12.dp)),
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                    )
+                                } else {
+                                    Text(
+                                        text = app.name.take(2).uppercase(),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = PlayGreen
+                                    )
+                                }
+                            }
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = app.name,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = app.packageName,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
 
                         Spacer(modifier = Modifier.height(14.dp))
 
@@ -610,17 +659,131 @@ fun MyAppsScreen(
                             }
                         }
 
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // App Open Tracking & Tester Activity (سجل المطورين الذين فتحوا التطبيق للاختبار)
+                        val appActivities = allTesterActivities.filter { it.packageName == app.packageName }
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = PlayGreen.copy(alpha = 0.08f),
+                            border = BorderStroke(1.dp, PlayGreen.copy(alpha = 0.35f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("app_tester_activities_${app.id}")
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.RocketLaunch,
+                                            contentDescription = null,
+                                            tint = PlayGreen,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "المطورون الذين فتحوا تطبيقك للاختبار (${appActivities.size}):",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = PlayGreen
+                                        )
+                                    }
+
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = if (appActivities.isNotEmpty()) SuccessGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant
+                                    ) {
+                                        Text(
+                                            text = if (appActivities.isNotEmpty()) "تم الفتح بنجاح ✓" else "بانتظار الفتح",
+                                            color = if (appActivities.isNotEmpty()) SuccessGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                if (appActivities.isEmpty()) {
+                                    Text(
+                                        text = "لم يقم أي مطور بفتح التطبيق بعد. عند قيام المطورين بالضغط على أيقونة تطبيقك لتجربته، سيظهر اسم كل مطور فوراً هنا!",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 11.sp
+                                    )
+                                } else {
+                                    val timeFmt = remember { SimpleDateFormat("MM/dd HH:mm", Locale.getDefault()) }
+                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        appActivities.take(5).forEach { act ->
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), RoundedCornerShape(6.dp))
+                                                    .padding(horizontal = 8.dp, vertical = 5.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.CheckCircle,
+                                                        contentDescription = null,
+                                                        tint = SuccessGreen,
+                                                        modifier = Modifier.size(14.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text(
+                                                        text = "المطور: ${act.testerName}",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                    Text(
+                                                        text = " فتح التطبيق للاختبار",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = PlayGreen,
+                                                        fontSize = 11.sp
+                                                    )
+                                                }
+                                                Text(
+                                                    text = timeFmt.format(Date(act.timestamp)),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    fontSize = 10.sp
+                                                )
+                                            }
+                                        }
+                                        if (appActivities.size > 5) {
+                                            Text(
+                                                text = "+ ${appActivities.size - 5} مطورين إضافيين قاموا بفتح التطبيق",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = PlayGreen,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 10.sp,
+                                                modifier = Modifier.padding(top = 2.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         Spacer(modifier = Modifier.height(14.dp))
 
                         // Action Buttons
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Button(
                                 onClick = { appToShare = app },
                                 modifier = Modifier
-                                    .weight(1.3f)
+                                    .weight(1.2f)
                                     .testTag("share_app_btn_${app.id}"),
                                 colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
                                 shape = RoundedCornerShape(10.dp)
@@ -630,8 +793,8 @@ fun MyAppsScreen(
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp)
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("مشاركة الدعوة")
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("مشاركة الدعوة", fontSize = 12.sp)
                             }
 
                             OutlinedButton(
@@ -645,7 +808,23 @@ fun MyAppsScreen(
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("المجموعة")
+                                Text("المجموعة", fontSize = 12.sp)
+                            }
+
+                            // Edit Group Link Button
+                            IconButton(
+                                onClick = { appForEditGroupUrl = app },
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(PlayGreen.copy(alpha = 0.1f), RoundedCornerShape(10.dp))
+                                    .testTag("btn_edit_group_url_${app.id}")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "تعديل رابط المجموعة",
+                                    tint = PlayGreen,
+                                    modifier = Modifier.size(18.dp)
+                                )
                             }
 
                             OutlinedButton(
@@ -653,7 +832,7 @@ fun MyAppsScreen(
                                     val url = if (app.androidOptInUrl.isNotBlank()) app.androidOptInUrl else app.webOptInUrl
                                     openUrl(context, url)
                                 },
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier.weight(0.9f),
                                 shape = RoundedCornerShape(10.dp)
                             ) {
                                 Icon(
@@ -662,7 +841,7 @@ fun MyAppsScreen(
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("المتجر")
+                                Text("المتجر", fontSize = 12.sp)
                             }
                         }
 
@@ -716,95 +895,109 @@ fun MyAppsScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        // Google Play Developer Toolkit Suite (5 Essential Tools)
+                        // Google Play Developer Toolkit Suite (5 Essential Tools - Collapsible to prevent clutter)
                         Surface(
                             shape = RoundedCornerShape(12.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                            modifier = Modifier.fillMaxWidth().testTag("toolkit_suite_${app.id}")
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("toolkit_suite_${app.id}")
                         ) {
                             Column(modifier = Modifier.padding(10.dp)) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { isToolkitExpanded = !isToolkitExpanded }
                                 ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.Build,
+                                            contentDescription = null,
+                                            tint = PlayGreen,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "مجموعة أدوات كونسول Google Play (5 أدوات)",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
                                     Icon(
-                                        imageVector = Icons.Default.AutoAwesome,
-                                        contentDescription = null,
-                                        tint = PlayGreen,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "مجموعة أدوات كونسول Google Play:",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
+                                        imageVector = if (isToolkitExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                        contentDescription = if (isToolkitExpanded) "طي" else "توسيع",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    OutlinedButton(
-                                        onClick = { appForPrivacyPolicy = app },
-                                        shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
-                                        modifier = Modifier.weight(1f).testTag("btn_policy_gen_${app.id}")
+                                if (isToolkitExpanded) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        Icon(Icons.Default.Policy, contentDescription = null, modifier = Modifier.size(14.dp), tint = PlayGreen)
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("سياسة الخصوصية", fontSize = 10.sp)
-                                    }
+                                        OutlinedButton(
+                                            onClick = { appForPrivacyPolicy = app },
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                                            modifier = Modifier.weight(1f).testTag("btn_policy_gen_${app.id}")
+                                        ) {
+                                            Icon(Icons.Default.Policy, contentDescription = null, modifier = Modifier.size(14.dp), tint = PlayGreen)
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("سياسة الخصوصية", fontSize = 10.sp)
+                                        }
 
-                                    OutlinedButton(
-                                        onClick = { appForPolicyLinter = app },
-                                        shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
-                                        modifier = Modifier.weight(1f).testTag("btn_policy_linter_${app.id}")
-                                    ) {
-                                        Icon(Icons.Default.Spellcheck, contentDescription = null, modifier = Modifier.size(14.dp), tint = AmberGold)
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("مدقق الكلمات", fontSize = 10.sp)
-                                    }
+                                        OutlinedButton(
+                                            onClick = { appForPolicyLinter = app },
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                                            modifier = Modifier.weight(1f).testTag("btn_policy_linter_${app.id}")
+                                        ) {
+                                            Icon(Icons.Default.Spellcheck, contentDescription = null, modifier = Modifier.size(14.dp), tint = AmberGold)
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("مدقق الكلمات", fontSize = 10.sp)
+                                        }
 
-                                    OutlinedButton(
-                                        onClick = { appForChangelog = app },
-                                        shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
-                                        modifier = Modifier.weight(1f).testTag("btn_changelog_${app.id}")
-                                    ) {
-                                        Icon(Icons.Default.Update, contentDescription = null, modifier = Modifier.size(14.dp), tint = CyanAccent)
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("سجل التحديث", fontSize = 10.sp)
+                                        OutlinedButton(
+                                            onClick = { appForChangelog = app },
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                                            modifier = Modifier.weight(1f).testTag("btn_changelog_${app.id}")
+                                        ) {
+                                            Icon(Icons.Default.Update, contentDescription = null, modifier = Modifier.size(14.dp), tint = CyanAccent)
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("سجل التحديث", fontSize = 10.sp)
+                                        }
                                     }
-                                }
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    OutlinedButton(
-                                        onClick = { appForPreFlight = app },
-                                        shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
-                                        modifier = Modifier.weight(1f).testTag("btn_preflight_${app.id}")
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        Icon(Icons.Default.FactCheck, contentDescription = null, modifier = Modifier.size(14.dp), tint = SuccessGreen)
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("فحص الامتثال", fontSize = 10.sp)
-                                    }
+                                        OutlinedButton(
+                                            onClick = { appForPreFlight = app },
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                                            modifier = Modifier.weight(1f).testTag("btn_preflight_${app.id}")
+                                        ) {
+                                            Icon(Icons.Default.FactCheck, contentDescription = null, modifier = Modifier.size(14.dp), tint = SuccessGreen)
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("فحص الامتثال", fontSize = 10.sp)
+                                        }
 
-                                    OutlinedButton(
-                                        onClick = { appForDiversity = app },
-                                        shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
-                                        modifier = Modifier.weight(1f).testTag("btn_diversity_${app.id}")
-                                    ) {
-                                        Icon(Icons.Default.Devices, contentDescription = null, modifier = Modifier.size(14.dp), tint = CyanAccent)
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("تنوع الأجهزة", fontSize = 10.sp)
+                                        OutlinedButton(
+                                            onClick = { appForDiversity = app },
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                                            modifier = Modifier.weight(1f).testTag("btn_diversity_${app.id}")
+                                        ) {
+                                            Icon(Icons.Default.Devices, contentDescription = null, modifier = Modifier.size(14.dp), tint = CyanAccent)
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("تنوع الأجهزة", fontSize = 10.sp)
+                                        }
                                     }
                                 }
                             }
@@ -939,6 +1132,78 @@ fun MyAppsScreen(
         DeviceDiversityMatrixDialog(
             app = app,
             onDismiss = { appForDiversity = null }
+        )
+    }
+
+    // Edit Google Group URL Dialog (تعديل رابط مجموعة الاختبار)
+    appForEditGroupUrl?.let { app ->
+        var newGroupUrl by remember(app) { mutableStateOf(app.googleGroupUrl) }
+        AlertDialog(
+            onDismissRequest = { appForEditGroupUrl = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Group,
+                        contentDescription = null,
+                        tint = PlayGreen,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "تعديل رابط مجموعة Google Group",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "تطبيق: ${app.name}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = PlayGreen
+                    )
+                    Text(
+                        text = "يمكنك تعديل رابط مجموعة الاختبار الخاصة بك في أي وقت. سيتم تحديث الرابط لجميع المختبرين الراغبين بالانضمام فوراً:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = newGroupUrl,
+                        onValueChange = { newGroupUrl = it.trim() },
+                        label = { Text("رابط Google Group الجديد *") },
+                        placeholder = { Text("https://groups.google.com/g/your-testers-group") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("input_edit_group_url"),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (newGroupUrl.isNotBlank()) {
+                            onUpdateGroupUrl(app.id, newGroupUrl)
+                            appForEditGroupUrl = null
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
+                    modifier = Modifier.testTag("btn_save_edit_group_url")
+                ) {
+                    Text("حفظ التعديل")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { appForEditGroupUrl = null }) {
+                    Text("إلغاء")
+                }
+            }
         )
     }
 }

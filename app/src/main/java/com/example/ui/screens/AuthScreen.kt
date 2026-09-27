@@ -979,13 +979,13 @@ fun AuthScreen(
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Text(
-                                text = "3. مجموعة Google للاختبار المغلق:",
+                                text = "3. اعتماد الإيميل للاختبار المغلق:",
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = AmberGold
                             )
                             Text(
-                                text = "لإشعارات اختبار التطبيقات 14 يوماً من Google Play، يجب الانضمام إلى مجموعة Google Group الرسمية:\nplayer-test-hup@googlegroups.com",
+                                text = "يقوم المطورون بإضافة إيميلك مباشرة في قائمة المختبرين بكونسول Google Play أو عبر مجموعة Google لتفعيل رابط الاختبار فوراً.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

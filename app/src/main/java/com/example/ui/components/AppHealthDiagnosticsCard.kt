@@ -307,42 +307,7 @@ fun AppHealthDiagnosticsCard(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    // Action buttons
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        if (!checkTesters.isPassed) {
-                            OutlinedButton(
-                                onClick = onInviteTesterClick,
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("دعوة مختبرين", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-
-                        if (!checkArtifact.isPassed) {
-                            OutlinedButton(
-                                onClick = onManageVersionsClick,
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("رفع AAB/APK", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-
-                        Button(
-                            onClick = onOpenReadinessReport,
-                            colors = ButtonDefaults.buttonColors(containerColor = scoreColor),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("تقرير النشر ✍️", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
+                    Spacer(modifier = Modifier.height(2.dp))
                 }
             }
         }

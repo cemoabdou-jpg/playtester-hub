@@ -26,8 +26,14 @@ interface AppDao {
     @Query("SELECT * FROM community_apps ORDER BY priorityScore DESC, isFeatured DESC, id DESC")
     fun getAllCommunityAppsAdmin(): Flow<List<CommunityApp>>
 
+    @Query("SELECT * FROM community_apps")
+    suspend fun getAllCommunityAppsOnce(): List<CommunityApp>
+
     @Query("SELECT * FROM community_apps WHERE packageName = :packageName LIMIT 1")
     suspend fun getCommunityAppByPackage(packageName: String): CommunityApp?
+
+    @Query("DELETE FROM community_apps WHERE packageName = :packageName AND id != :keepId")
+    suspend fun deleteDuplicateCommunityApps(packageName: String, keepId: Int)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCommunityApp(app: CommunityApp): Long
@@ -215,6 +221,19 @@ interface AppDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveSetting(setting: com.example.data.model.AppSetting)
+
+    // Tester Activity (عند فتح التطبيق للاختبار)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTesterActivity(activity: com.example.data.model.AppTesterActivity): Long
+
+    @Query("SELECT * FROM app_tester_activities WHERE packageName = :packageName ORDER BY timestamp DESC")
+    fun getActivitiesForPackage(packageName: String): Flow<List<com.example.data.model.AppTesterActivity>>
+
+    @Query("SELECT * FROM app_tester_activities ORDER BY timestamp DESC")
+    fun getAllTesterActivities(): Flow<List<com.example.data.model.AppTesterActivity>>
+
+    @Query("UPDATE user_apps SET googleGroupUrl = :groupUrl WHERE id = :appId")
+    suspend fun updateUserAppGroupUrl(appId: Int, groupUrl: String)
 
     // Backup & Restore helpers
     @Query("SELECT * FROM user_apps")

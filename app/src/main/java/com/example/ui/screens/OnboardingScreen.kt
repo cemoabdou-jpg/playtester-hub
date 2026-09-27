@@ -30,10 +30,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.Alarm
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Star
@@ -113,7 +114,7 @@ fun OnboardingScreen(
             keyPoints = listOf(
                 Icons.Default.RocketLaunch to "أضف تطبيقك برابط Google Play أو ملف APK ورمز الانضمام.",
                 Icons.Default.EmojiEvents to "اكسب نقاطاً ومكافآت يومية عند فتح وتجربة تطبيقات المجتمع.",
-                Icons.Default.CheckCircle to "دعوة المختبرين بنقرة واحدة وإدارة بريد مجموعات Google Groups."
+                Icons.Default.CheckCircle to "دعوة المختبرين بإيميلاتهم المباشرة أو عبر مجموعات Google Groups."
             ),
             highlightNote = "كلما كنت مختبراً نشطاً وموثوقاً، ارتفعت أولوية ظهور تطبيقك في مقدمة القائمة!"
         ),
@@ -124,10 +125,10 @@ fun OnboardingScreen(
             badgeIcon = Icons.Default.Alarm,
             badgeColor = AmberGold,
             imageResId = R.drawable.app_screen_checklist_1789985928642,
-            mainDescription = "نظام ذكي متكامل يتابع جلسات الفحص اليومية ويرسل لك إشعارات وتنبيهات في شريط الهاتف لتذكيرك بالأيام المتبقية وتأكيد فتح التطبيقات وإرسال الملاحظات للمطورين.",
+            mainDescription = "نظام متكامل يتابع جلسات الفحص اليومية ويرسل لك إشعارات وتنبيهات في شريط الهاتف لتذكيرك بالأيام المتبقية وتأكيد فتح التطبيقات وإرسال الملاحظات للمطورين.",
             keyPoints = listOf(
-                Icons.Default.Alarm to "إشعارات تذكير ذكية في شريط الهاتف مع لوجو التطبيق.",
-                Icons.Default.AutoAwesome to "تسجيل مدة الفحص وكتابة ملاحظات الجودة وتقييم الاستقرار.",
+                Icons.Default.Alarm to "إشعارات تذكير يومية في شريط الهاتف مع لوجو التطبيق.",
+                Icons.Default.RateReview to "تسجيل مدة الفحص وكتابة ملاحظات الجودة وتقييم الاستقرار.",
                 Icons.Default.EmojiEvents to "حفظ سلاسل الأيام المتتالية (Streaks) وفتح شارات الشرف."
             ),
             highlightNote = "تأكيدك اليومي يحمي المطور من إعادة فترة الـ 14 يوماً من الصفر!"
@@ -503,7 +504,7 @@ private fun OnboardingPageContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.AutoAwesome,
+                    imageVector = Icons.Default.Lightbulb,
                     contentDescription = null,
                     tint = AmberGold,
                     modifier = Modifier.size(20.dp)

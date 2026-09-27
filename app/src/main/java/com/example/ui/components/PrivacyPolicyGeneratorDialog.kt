@@ -17,7 +17,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -220,7 +219,7 @@ fun PrivacyPolicyGeneratorDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Policy, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "تشترط Google وجود رابط سياسة خصوصية فعال ومباشر في صفحة المتجر وقسم أمان البيانات، وإلا يُرفض التطبيق فوراً.",

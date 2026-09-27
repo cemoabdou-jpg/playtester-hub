@@ -14,10 +14,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Diamond
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.MilitaryTech
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -91,7 +91,7 @@ fun calculateRankInfo(points: Int, streakDays: Int): DeveloperRankInfo {
             title = "مطور واعد 🥉",
             currentXp = totalXp,
             maxXpForNextLevel = 200,
-            badgeIcon = Icons.Default.AutoAwesome,
+            badgeIcon = Icons.Default.Star,
             accentColor = SuccessGreen
         )
     }

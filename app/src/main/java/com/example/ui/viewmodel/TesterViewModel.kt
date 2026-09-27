@@ -160,6 +160,9 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
     val allFeedback: StateFlow<List<TesterFeedback>> = repository.allFeedback
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val allTesterActivities: StateFlow<List<com.example.data.model.AppTesterActivity>> = repository.allTesterActivities
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val officialGoogleGroupUrl: StateFlow<String> = repository.officialGoogleGroupUrl
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TesterRepository.DEFAULT_GOOGLE_GROUP_URL)
 
@@ -174,14 +177,21 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         _searchQuery,
         _selectedCategory
     ) { apps, query, category ->
-        apps.filter { app ->
-            val matchesCategory = (category == "الكل" || app.category == category)
-            val matchesQuery = query.isEmpty() ||
-                    app.name.contains(query, ignoreCase = true) ||
-                    app.developerName.contains(query, ignoreCase = true) ||
-                    app.packageName.contains(query, ignoreCase = true) ||
-                    app.description.contains(query, ignoreCase = true)
-            matchesCategory && matchesQuery
+        val distinctApps = apps.distinctBy { it.packageName.trim().lowercase() }
+        val categoryFiltered = if (category == "الكل" || category.isBlank()) {
+            distinctApps
+        } else {
+            distinctApps.filter { it.category == category }
+        }
+        if (query.isBlank()) {
+            categoryFiltered
+        } else {
+            categoryFiltered.filter { app ->
+                app.name.contains(query, ignoreCase = true) ||
+                app.developerName.contains(query, ignoreCase = true) ||
+                app.packageName.contains(query, ignoreCase = true) ||
+                app.description.contains(query, ignoreCase = true)
+            }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -503,7 +513,8 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
     fun publishApp(
         name: String,
         packageName: String,
-        category: String,
+        category: String = "تطبيق",
+        iconUrl: String = "",
         googleGroupUrl: String,
         webOptInUrl: String,
         androidOptInUrl: String,
@@ -515,6 +526,7 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
                 name = name,
                 packageName = packageName,
                 category = category,
+                iconUrl = iconUrl,
                 googleGroupUrl = googleGroupUrl,
                 webOptInUrl = webOptInUrl,
                 androidOptInUrl = androidOptInUrl,
@@ -531,6 +543,34 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
             }.onFailure { err ->
                 _userMessage.value = err.message ?: "فشل في نشر التطبيق"
             }
+        }
+    }
+
+    fun recordAppOpened(packageName: String, appName: String) {
+        viewModelScope.launch {
+            val res = repository.recordAppOpened(packageName, appName)
+            res.onSuccess { msg ->
+                _userMessage.value = msg
+            }.onFailure { err ->
+                _userMessage.value = err.message ?: "تم فتح التطبيق"
+            }
+        }
+    }
+
+    fun updateUserAppGroupUrl(appId: Int, groupUrl: String) {
+        viewModelScope.launch {
+            val res = repository.updateUserAppGroupUrl(appId, groupUrl)
+            res.onSuccess { msg ->
+                _userMessage.value = msg
+            }.onFailure { err ->
+                _userMessage.value = err.message ?: "فشل تحديث رابط المجموعة"
+            }
+        }
+    }
+
+    fun syncTesterActivitiesForApp(packageName: String) {
+        viewModelScope.launch {
+            repository.syncTesterActivitiesForPackage(packageName)
         }
     }
 

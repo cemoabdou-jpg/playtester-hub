@@ -208,14 +208,6 @@ fun ProfileSettingsScreen(
             )
         }
 
-        // --- 2.5 Developer XP Level & Rank Card ---
-        item {
-            DeveloperXpRankCard(
-                points = wallet.points,
-                streakDays = wallet.currentStreak
-            )
-        }
-
         // --- 3. Personal Account Settings ---
         item {
             SettingsSectionHeader(title = "الحساب والأمان", icon = Icons.Default.Security)

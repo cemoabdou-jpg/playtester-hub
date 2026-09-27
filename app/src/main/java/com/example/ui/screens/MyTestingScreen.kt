@@ -73,6 +73,7 @@ fun MyTestingScreen(
     onSendFeedback: (JoinedTest, String, Int, String) -> Unit,
     onDeleteTest: (Int) -> Unit,
     onNavigateToCommunity: () -> Unit,
+    onRecordAppOpened: (packageName: String, appName: String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -170,176 +171,6 @@ fun MyTestingScreen(
                 )
             }
 
-            // Smart Daily Push Reminder Card
-            item {
-                Card(
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, PlayGreen.copy(alpha = 0.3f)),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("smart_daily_reminder_card")
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = PlayGreen.copy(alpha = 0.15f),
-                                    modifier = Modifier.size(36.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = Icons.Default.Alarm,
-                                            contentDescription = null,
-                                            tint = PlayGreen,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                }
-                                Spacer(modifier = Modifier.size(10.dp))
-                                Column {
-                                    Text(
-                                        text = "نظام التذكير اليومي الذكي ⏰",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = if (pendingDailyConfirmCount > 0)
-                                            "لديك $pendingDailyConfirmCount تطبيق لم يتم فحصها اليوم"
-                                        else "أكملت فحص جميع التطبيقات اليومية اليوم ✓",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (pendingDailyConfirmCount > 0) AmberGold else PlayGreen
-                                    )
-                                }
-                            }
-
-                            Switch(
-                                checked = reminderEnabled,
-                                onCheckedChange = { isChecked ->
-                                    reminderEnabled = isChecked
-                                    NotificationHelper.setDailyReminderEnabled(context, isChecked)
-                                },
-                                modifier = Modifier.testTag("toggle_daily_reminders")
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            OutlinedButton(
-                                onClick = {
-                                    val sent = NotificationHelper.triggerDailyTestingReminder(
-                                        context = context,
-                                        pendingAppsCount = pendingDailyConfirmCount,
-                                        currentStreak = currentStreak
-                                    )
-                                    reminderSentNotice = true
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .testTag("btn_trigger_daily_reminder_now"),
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.NotificationsActive,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = PlayGreen
-                                )
-                                Spacer(modifier = Modifier.size(6.dp))
-                                Text("إرسال تذكير تجريبي فوري", fontSize = 12.sp)
-                            }
-
-                            if (reminderSentNotice) {
-                                Text(
-                                    text = "تم إرسال الإشعار بنجاح ✓",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = PlayGreen
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Urgent Daily Test Confirmation Banner
-            if (pendingDailyConfirmCount > 0) {
-                item {
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = AmberGold.copy(alpha = 0.15f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, AmberGold.copy(alpha = 0.5f)),
-                        modifier = Modifier.fillMaxWidth().testTag("pending_daily_confirmation_banner")
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.WarningAmber,
-                                contentDescription = null,
-                                tint = AmberGold,
-                                modifier = Modifier.size(28.dp)
-                            )
-                            Column {
-                                Text(
-                                    text = "يلزم تأكيد التجربة اليومية ($pendingDailyConfirmCount تطبيق بانتظارك)",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = AmberGold
-                                )
-                                Text(
-                                    text = "وفق شروط جوجل بلاي، يجب فتح واستخدام التطبيقات يومياً للحفاظ على استمرارية فترة الـ 14 يوماً وتأهيل التطبيقات.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Tip Banner
-            item {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = CyanAccent.copy(alpha = 0.1f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, CyanAccent.copy(alpha = 0.3f))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = null,
-                            tint = CyanAccent,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.size(10.dp))
-                        Text(
-                            text = "نصيحة جوجل بلاي: افتح التطبيقات يومياً لدقائق وقدم تقييماً أو ملاحظة، فخوارزميات جوجل تقيس التفاعل الفعلي للمختبرين.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-            }
-
             // Empty state
             if (joinedTests.isEmpty()) {
                 item {
@@ -386,20 +217,15 @@ fun MyTestingScreen(
                 }
             }
 
-            // List of tests with 14-day Heatmap
+            // List of joined tests
             items(joinedTests, key = { it.id }) { test ->
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    TestingHeatmapCard(
-                        test = test,
-                        currentStreak = currentStreak
-                    )
-                    JoinedTestCard(
-                        test = test,
-                        onCheckInClick = { selectedTestForDailyConfirmation = test },
-                        onFeedbackClick = { selectedTestForFeedback = test },
-                        onDeleteClick = { onDeleteTest(test.id) }
-                    )
-                }
+                JoinedTestCard(
+                    test = test,
+                    onCheckInClick = { selectedTestForDailyConfirmation = test },
+                    onFeedbackClick = { selectedTestForFeedback = test },
+                    onDeleteClick = { onDeleteTest(test.id) },
+                    onRecordOpened = onRecordAppOpened
+                )
             }
         }
     }

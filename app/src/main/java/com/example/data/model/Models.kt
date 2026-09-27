@@ -49,7 +49,8 @@ data class CommunityApp(
     val developerName: String,
     val packageName: String,
     val description: String,
-    val category: String,
+    val category: String = "تطبيق",
+    val iconUrl: String = "",
     val googleGroupUrl: String,
     val webOptInUrl: String,
     val androidOptInUrl: String,
@@ -68,7 +69,8 @@ data class JoinedTest(
     val communityAppId: Int,
     val appName: String,
     val packageName: String,
-    val category: String = "تطبيقات",
+    val category: String = "تطبيق",
+    val iconUrl: String = "",
     val googleGroupUrl: String,
     val webOptInUrl: String,
     val androidOptInUrl: String,
@@ -85,7 +87,8 @@ data class UserApp(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val name: String,
     val packageName: String,
-    val category: String,
+    val category: String = "تطبيق",
+    val iconUrl: String = "",
     val googleGroupUrl: String,
     val webOptInUrl: String,
     val androidOptInUrl: String,
@@ -96,6 +99,17 @@ data class UserApp(
     val targetDays: Int = 14,
     val createdAt: Long = System.currentTimeMillis(),
     val status: String = "TESTING" // "TESTING", "READY_FOR_PRODUCTION", "PAUSED"
+)
+
+@Entity(tableName = "app_tester_activities")
+data class AppTesterActivity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val packageName: String,
+    val appName: String,
+    val testerName: String,
+    val testerEmail: String = "",
+    val action: String = "OPENED_APP", // "OPENED_APP", "TESTED_DAILY"
+    val timestamp: Long = System.currentTimeMillis()
 )
 
 @Entity(tableName = "user_wallet")

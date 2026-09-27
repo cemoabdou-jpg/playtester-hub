@@ -8,6 +8,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.data.model.AppBuildArtifact
 import com.example.data.model.AppNotification
 import com.example.data.model.AppSetting
+import com.example.data.model.AppTesterActivity
 import com.example.data.model.AuthUser
 import com.example.data.model.CommunityApp
 import com.example.data.model.DailyTestLog
@@ -32,9 +33,10 @@ import kotlinx.coroutines.launch
         AppNotification::class,
         DailyTestLog::class,
         TesterFeedback::class,
-        AppSetting::class
+        AppSetting::class,
+        AppTesterActivity::class
     ],
-    version = 10,
+    version = 11,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

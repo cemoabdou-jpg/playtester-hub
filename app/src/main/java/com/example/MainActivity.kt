@@ -137,6 +137,7 @@ fun PlayTesterApp(
     val isSimplifiedMode by viewModel.isSimplifiedMode.collectAsStateWithLifecycle()
     val allDailyTestLogs by viewModel.allDailyTestLogs.collectAsStateWithLifecycle()
     val allFeedback by viewModel.allFeedback.collectAsStateWithLifecycle()
+    val allTesterActivities by viewModel.allTesterActivities.collectAsStateWithLifecycle()
 
     val deviceModel by viewModel.deviceModel.collectAsStateWithLifecycle()
     val androidVersion by viewModel.androidVersion.collectAsStateWithLifecycle()
@@ -365,7 +366,8 @@ fun PlayTesterApp(
                         onImportApp = { input, appName, devName, category, onComplete ->
                             viewModel.importCommunityAppDirectly(input, appName, devName, category, onComplete)
                         },
-                        onOpenAdmin = if (currentUser?.role == "ADMIN") { { currentTab = 5 } } else null
+                        onOpenAdmin = if (currentUser?.role == "ADMIN") { { currentTab = 5 } } else null,
+                        onRecordAppOpened = { pkg, name -> viewModel.recordAppOpened(pkg, name) }
                     )
                     1 -> MyTestingScreen(
                         joinedTests = joinedTests,
@@ -378,7 +380,8 @@ fun PlayTesterApp(
                             viewModel.sendFeedback(test, content, rating, type)
                         },
                         onDeleteTest = { viewModel.deleteJoinedTest(it) },
-                        onNavigateToCommunity = { currentTab = 0 }
+                        onNavigateToCommunity = { currentTab = 0 },
+                        onRecordAppOpened = { pkg, name -> viewModel.recordAppOpened(pkg, name) }
                     )
                     2 -> MyAppsScreen(
                         userApps = userApps,
@@ -386,6 +389,7 @@ fun PlayTesterApp(
                         allInvitedTesters = allInvitedTesters,
                         allDailyTestLogs = allDailyTestLogs,
                         allFeedback = allFeedback,
+                        allTesterActivities = allTesterActivities,
                         onAddAppClick = { showAddAppDialog = true },
                         onDeleteApp = { viewModel.deleteUserApp(it) },
                         onUploadArtifact = { appId, vName, vCode, aType, fName, fSize, rNotes, active ->
@@ -410,7 +414,8 @@ fun PlayTesterApp(
                             viewModel.sendDailyTestingReminder(app)
                         },
                         onUploadLocalApps = { cb -> viewModel.reuploadLocalAppsToCloud(cb) },
-                        isUploadingLocalApps = isUploadingLocalApps
+                        isUploadingLocalApps = isUploadingLocalApps,
+                        onUpdateGroupUrl = { appId, url -> viewModel.updateUserAppGroupUrl(appId, url) }
                     )
                     3 -> GuideScreen(
                         onOpenOnboarding = { showOnboardingExplicitly = true }
@@ -556,11 +561,12 @@ fun PlayTesterApp(
             officialGoogleGroupUrl = officialGoogleGroupUrl,
             officialGoogleGroupEmail = officialGoogleGroupEmail,
             onDismiss = { showAddAppDialog = false },
-            onConfirm = { name, pkg, cat, groupUrl, webUrl, androidUrl, instructions, isFeatured ->
+            onConfirm = { name, pkg, iconUrl, groupUrl, webUrl, androidUrl, instructions, isFeatured ->
                 viewModel.publishApp(
                     name = name,
                     packageName = pkg,
-                    category = cat,
+                    category = "تطبيق",
+                    iconUrl = iconUrl,
                     googleGroupUrl = groupUrl,
                     webOptInUrl = webUrl,
                     androidOptInUrl = androidUrl,

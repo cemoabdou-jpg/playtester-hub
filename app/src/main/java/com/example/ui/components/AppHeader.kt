@@ -252,23 +252,6 @@ fun AppHeader(
                         }
                     }
                 }
-
-                // Profile / Settings shortcut
-                if (onProfileClick != null) {
-                    IconButton(
-                        onClick = onProfileClick,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .testTag("btn_header_settings")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "الإعدادات",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(19.dp)
-                        )
-                    }
-                }
             }
         }
     }

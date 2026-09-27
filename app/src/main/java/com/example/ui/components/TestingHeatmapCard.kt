@@ -204,7 +204,7 @@ fun TestingHeatmapCard(
                 }
 
                 Text(
-                    text = if (isCheckedToday) "✨ تمت تجربة اليوم!" else "⏳ بانتظار التجربة",
+                    text = if (isCheckedToday) "✅ تمت تجربة اليوم!" else "⏳ بانتظار التجربة",
                     style = MaterialTheme.typography.labelSmall,
                     color = if (isCheckedToday) PlayGreen else AmberGold,
                     fontWeight = FontWeight.Bold

@@ -91,10 +91,10 @@ fun CommunityScreen(
     onUploadLocalApps: (((Boolean, String) -> Unit) -> Unit)? = null,
     onImportApp: ((input: String, appName: String, devName: String, category: String, onComplete: (Boolean, String) -> Unit) -> Unit)? = null,
     onOpenAdmin: (() -> Unit)? = null,
+    onRecordAppOpened: (packageName: String, appName: String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val joinedAppIds = joinedTests.map { it.communityAppId }.toSet()
-    val categories = listOf("الكل", "أدوات", "إنتاجية", "مالية", "ألعاب", "تعليم", "نمط حياة")
 
     var sortBy by remember { mutableStateOf("PRIORITY") } // "PRIORITY", "URGENT", "REWARD"
     var showReciprocalDialog by remember { mutableStateOf(false) }
@@ -102,10 +102,11 @@ fun CommunityScreen(
     var showCloudDiagnosticsDialog by remember { mutableStateOf(false) }
 
     val sortedCommunityApps: List<CommunityApp> = remember(communityApps, sortBy) {
+        val uniqueApps = communityApps.distinctBy { it.packageName.trim().lowercase() }
         when (sortBy) {
-            "URGENT" -> communityApps.sortedByDescending { (it.testersTarget - it.testersCurrent).coerceAtLeast(0) }
-            "REWARD" -> communityApps.sortedByDescending { it.rewardPoints }
-            else -> communityApps.sortedWith(
+            "URGENT" -> uniqueApps.sortedByDescending { (it.testersTarget - it.testersCurrent).coerceAtLeast(0) }
+            "REWARD" -> uniqueApps.sortedByDescending { it.rewardPoints }
+            else -> uniqueApps.sortedWith(
                 compareByDescending<CommunityApp> { it.priorityScore }
                     .thenByDescending { it.isFeatured }
                     .thenByDescending { it.id }
@@ -168,13 +169,18 @@ fun CommunityScreen(
                                 )
                             }
                         }
-                        Button(
-                            onClick = { showReciprocalDialog = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = AmberGold),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                            shape = RoundedCornerShape(8.dp)
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = AmberGold.copy(alpha = 0.25f),
+                            border = BorderStroke(1.dp, AmberGold)
                         ) {
-                            Text("فتح", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text(
+                                text = "عرض الشراكات ←",
+                                color = Color.Black,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
                         }
                     }
                 }
@@ -206,25 +212,6 @@ fun CommunityScreen(
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true
                 )
-            }
-
-            // Categories horizontal filter
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    categories.forEach { cat ->
-                        ElevatedFilterChip(
-                            selected = selectedCategory == cat,
-                            onClick = { onCategorySelect(cat) },
-                            label = { Text(cat) },
-                            modifier = Modifier.testTag("filter_chip_$cat")
-                        )
-                    }
-                }
             }
 
             // Sorting Options Row
@@ -315,12 +302,30 @@ fun CommunityScreen(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            // Cloud Diagnostics / Fix Button
+                            IconButton(
+                                onClick = {
+                                    showCloudDiagnosticsDialog = true
+                                    onRunCloudDiagnostics()
+                                },
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .testTag("btn_open_cloud_diagnostics")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CloudSync,
+                                    contentDescription = "حالة السحابة",
+                                    tint = AmberGold,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
                             // Manual Cloud Sync Button
                             OutlinedButton(
                                 onClick = onSyncClick,
                                 enabled = !isSyncing,
                                 shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                                 modifier = Modifier
                                     .height(34.dp)
                                     .testTag("btn_sync_community_apps")
@@ -341,66 +346,7 @@ fun CommunityScreen(
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("مزامنة", fontSize = 11.sp, color = PlayGreen)
-                                }
-                            }
-
-                            // Cloud Diagnostics / Fix Button
-                            OutlinedButton(
-                                onClick = {
-                                    showCloudDiagnosticsDialog = true
-                                    onRunCloudDiagnostics()
-                                },
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                                modifier = Modifier
-                                    .height(34.dp)
-                                    .testTag("btn_open_cloud_diagnostics")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CloudSync,
-                                    contentDescription = "حالة السيرفر",
-                                    tint = AmberGold,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("حالة السحابة", fontSize = 11.sp, color = AmberGold)
-                            }
-
-                            // Quick Import by Link / Package Button
-                            OutlinedButton(
-                                onClick = { showImportAppDialog = true },
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                                modifier = Modifier
-                                    .height(34.dp)
-                                    .testTag("btn_open_import_app")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AddLink,
-                                    contentDescription = "إضافة بالرابط",
-                                    tint = CyanAccent,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("إضافة بالرابط", fontSize = 11.sp, color = CyanAccent)
-                            }
-
-                            if (currentUser?.role == "ADMIN" && onOpenAdmin != null) {
-                                Surface(
-                                    onClick = onOpenAdmin,
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = AmberGold.copy(alpha = 0.2f),
-                                    border = BorderStroke(1.dp, AmberGold),
-                                    modifier = Modifier.testTag("btn_open_admin_panel")
-                                ) {
-                                    Text(
-                                        text = "👑 لوحة الأدمن",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = AmberGold,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
-                                    )
+                                    Text("تحديث", fontSize = 11.sp, color = PlayGreen, fontWeight = FontWeight.SemiBold)
                                 }
                             }
                         }
@@ -536,7 +482,8 @@ fun CommunityScreen(
                 TesterCard(
                     app = app,
                     isAlreadyJoined = joinedAppIds.contains(app.id),
-                    onJoinClick = { onJoinApp(app) }
+                    onJoinClick = { onJoinApp(app) },
+                    onRecordOpened = onRecordAppOpened
                 )
             }
         }

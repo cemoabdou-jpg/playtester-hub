@@ -60,6 +60,8 @@ import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
 import com.example.ui.theme.SuccessGreen
+import coil.compose.AsyncImage
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -71,6 +73,7 @@ fun JoinedTestCard(
     onCheckInClick: () -> Unit,
     onFeedbackClick: () -> Unit,
     onDeleteClick: () -> Unit,
+    onRecordOpened: (packageName: String, appName: String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -147,51 +150,81 @@ fun JoinedTestCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // App title & Package
-            Text(
-                text = test.appName,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = test.packageName,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Daily testing confirmation requirement indicator
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = if (isCheckedToday) SuccessGreen.copy(alpha = 0.12f) else AmberGold.copy(alpha = 0.14f),
-                border = BorderStroke(
-                    1.dp,
-                    if (isCheckedToday) SuccessGreen.copy(alpha = 0.35f) else AmberGold.copy(alpha = 0.45f)
-                ),
-                modifier = Modifier.fillMaxWidth()
+            // App row: Clickable icon + title & package
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable {
+                            launchOrOpenApp(
+                                context = context,
+                                packageName = test.packageName,
+                                fallbackUrl = test.androidOptInUrl,
+                                appName = test.appName,
+                                onRecordOpened = onRecordOpened
+                            )
+                        }
+                        .testTag("joined_app_icon_${test.id}"),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = if (isCheckedToday) Icons.Default.CheckCircle else Icons.AutoMirrored.Filled.FactCheck,
-                        contentDescription = null,
-                        tint = if (isCheckedToday) SuccessGreen else AmberGold,
-                        modifier = Modifier.size(18.dp)
+                    if (test.iconUrl.isNotBlank()) {
+                        AsyncImage(
+                            model = if (test.iconUrl.startsWith("/")) File(test.iconUrl) else test.iconUrl,
+                            contentDescription = "أيقونة ${test.appName}",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp)),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            text = test.appName.take(2).uppercase(),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = PlayGreen
+                        )
+                    }
+
+                    Surface(
+                        shape = CircleShape,
+                        color = PlayGreen.copy(alpha = 0.85f),
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "فتح",
+                            tint = Color.White,
+                            modifier = Modifier.size(10.dp).padding(1.dp)
+                        )
+                    }
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = test.appName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = if (isCheckedToday) {
-                            "تم توثيق وتأكيد تجربة اليوم بنجاح (${test.daysCompleted}/14) ✓"
-                        } else {
-                            "يلزم تأكيد التجربة اليومية لليوم ${(test.daysCompleted + 1).coerceAtMost(14)} من 14"
-                        },
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isCheckedToday) SuccessGreen else AmberGold
+                        text = test.packageName,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "⚡ اضغط على الأيقونة لفتح التطبيق وتوثيق اليوم",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PlayGreen,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
@@ -338,7 +371,15 @@ fun JoinedTestCard(
             ) {
                 // Launch or open in store
                 OutlinedButton(
-                    onClick = { launchOrOpenApp(context, test.packageName, test.androidOptInUrl) },
+                    onClick = {
+                        launchOrOpenApp(
+                            context = context,
+                            packageName = test.packageName,
+                            fallbackUrl = test.androidOptInUrl,
+                            appName = test.appName,
+                            onRecordOpened = onRecordOpened
+                        )
+                    },
                     modifier = Modifier
                         .weight(1f)
                         .testTag("launch_app_btn_${test.id}"),
@@ -378,16 +419,27 @@ fun JoinedTestCard(
     }
 }
 
-fun launchOrOpenApp(context: Context, packageName: String, fallbackUrl: String): Boolean {
+fun launchOrOpenApp(
+    context: Context,
+    packageName: String,
+    fallbackUrl: String,
+    appName: String = "",
+    onRecordOpened: (String, String) -> Unit = { _, _ -> }
+): Boolean {
     val pm = context.packageManager
     val launchIntent = pm.getLaunchIntentForPackage(packageName)
     return if (launchIntent != null) {
+        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(launchIntent)
+        Toast.makeText(context, "جاري فتح التطبيق وتسجيل مشاركتك...", Toast.LENGTH_SHORT).show()
+        onRecordOpened(packageName, appName.ifBlank { packageName })
         true
     } else {
         // Not installed, open Play Store test link
         val url = if (fallbackUrl.isNotBlank()) fallbackUrl else "https://play.google.com/store/apps/details?id=$packageName"
         openUrl(context, url)
+        Toast.makeText(context, "جاري فتح صفحة التثبيت والاختبار...", Toast.LENGTH_SHORT).show()
+        onRecordOpened(packageName, appName.ifBlank { packageName })
         false
     }
 }

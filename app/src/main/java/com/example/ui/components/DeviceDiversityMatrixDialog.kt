@@ -16,7 +16,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Android
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.PhoneAndroid
@@ -177,7 +176,7 @@ fun DeviceDiversityMatrixDialog(
 
                 // OS Versions Breakdown
                 Text(
-                    text = "🤖 توزيع إصدارات نظام أندرويد:",
+                    text = "📱 توزيع إصدارات نظام أندرويد:",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold
                 )

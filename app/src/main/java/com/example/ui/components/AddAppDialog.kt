@@ -1,8 +1,15 @@
 package com.example.ui.components
 
+import android.content.Context
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -14,28 +21,30 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Shop
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -52,15 +61,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
+import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
+import java.io.File
 
 @Composable
 fun AddAppDialog(
@@ -71,7 +87,7 @@ fun AddAppDialog(
     onConfirm: (
         name: String,
         packageName: String,
-        category: String,
+        iconUrl: String,
         googleGroupUrl: String,
         webOptInUrl: String,
         androidOptInUrl: String,
@@ -79,19 +95,39 @@ fun AddAppDialog(
         isFeatured: Boolean
     ) -> Unit
 ) {
+    val context = LocalContext.current
     var name by remember { mutableStateOf("") }
     var packageName by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("أدوات") }
-    var googleGroupUrl by remember(officialGoogleGroupUrl) { mutableStateOf(officialGoogleGroupUrl) }
+    var iconUrl by remember { mutableStateOf("") }
+    var googleGroupUrl by remember { mutableStateOf("") }
     var webOptInUrl by remember { mutableStateOf("") }
     var androidOptInUrl by remember { mutableStateOf("") }
     var instructions by remember { mutableStateOf("") }
     var isFeatured by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var showUrlIconInput by remember { mutableStateOf(false) }
 
-    var testingMethod by remember { mutableStateOf(0) } // 0: Google Group, 1: Email List / Direct
     val clipboardManager = LocalClipboardManager.current
     var isGroupEmailCopied by remember { mutableStateOf(false) }
+
+    // Standard zero-permission photo picker for app icon
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri: Uri? ->
+            if (uri != null) {
+                try {
+                    val inputStream = context.contentResolver.openInputStream(uri)
+                    val outputFile = File(context.filesDir, "app_icon_${System.currentTimeMillis()}.png")
+                    outputFile.outputStream().use { out ->
+                        inputStream?.copyTo(out)
+                    }
+                    iconUrl = outputFile.absolutePath
+                } catch (e: Exception) {
+                    iconUrl = uri.toString()
+                }
+            }
+        }
+    )
 
     fun extractPackageFromUrl(url: String): String? {
         val regexTesting = "play\\.google\\.com/apps/testing/([a-zA-Z0-9._]+)".toRegex()
@@ -104,8 +140,6 @@ fun AddAppDialog(
 
         return null
     }
-
-    val categories = listOf("أدوات", "إنتاجية", "مالية", "ألعاب", "تعليم", "نمط حياة")
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -133,64 +167,6 @@ fun AddAppDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Free & Unconditional Upload Banner
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = PlayGreen.copy(alpha = 0.12f),
-                    border = BorderStroke(1.dp, PlayGreen.copy(alpha = 0.5f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            tint = PlayGreen,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "إضافة التطبيق لجمع 20 مختبراً",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "أضف قائمتك أو مجموعتك ليتمكن المطورون الآخرون من الانضمام لاختبار تطبيقك لمدة 14 يوماً.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                // Testing List Method Selector
-                Text(
-                    text = "طريقة إدارة المختبرين في Google Play Console:",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    FilterChip(
-                        selected = testingMethod == 0,
-                        onClick = { testingMethod = 0 },
-                        label = { Text("مجموعة Google Group") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    FilterChip(
-                        selected = testingMethod == 1,
-                        onClick = { testingMethod = 1 },
-                        label = { Text("قائمة بريدية / رابط مباشر") },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
                 if (errorMessage != null) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
@@ -216,7 +192,111 @@ fun AddAppDialog(
                 )
                 val fieldShape = RoundedCornerShape(12.dp)
 
-                // App Name
+                // 1. Compact App Icon / Gallery Picker (Space-efficient)
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    photoPickerLauncher.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    )
+                                }
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (iconUrl.isNotBlank()) MaterialTheme.colorScheme.surface else PlayGreen.copy(alpha = 0.15f))
+                                    .testTag("btn_pick_app_icon"),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (iconUrl.isNotBlank()) {
+                                    AsyncImage(
+                                        model = if (iconUrl.startsWith("/")) File(iconUrl) else iconUrl,
+                                        contentDescription = "أيقونة التطبيق",
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(RoundedCornerShape(10.dp)),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.AddPhotoAlternate,
+                                        contentDescription = "تصفح المعرض",
+                                        tint = PlayGreen,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(10.dp))
+
+                            Column {
+                                Text(
+                                    text = if (iconUrl.isNotBlank()) "تم تحديد أيقونة التطبيق ✓" else "أيقونة التطبيق (اضغط لاختيار صورة)",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (iconUrl.isNotBlank()) PlayGreen else MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = if (iconUrl.isNotBlank()) "انقر لتغيير الصورة من المعرض" else "تصفح صور ومعرض الجهاز",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (iconUrl.isNotBlank()) {
+                                IconButton(
+                                    onClick = { iconUrl = "" },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(Icons.Default.Close, contentDescription = "حذف الصورة", tint = DangerRed, modifier = Modifier.size(16.dp))
+                                }
+                            }
+                            IconButton(
+                                onClick = { showUrlIconInput = !showUrlIconInput },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(Icons.Default.Language, contentDescription = "إدخال رابط صورة", tint = CyanAccent, modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    }
+                }
+
+                if (showUrlIconInput) {
+                    OutlinedTextField(
+                        value = iconUrl,
+                        onValueChange = { iconUrl = it.trim() },
+                        label = { Text("رابط صورة الأيقونة (URL)") },
+                        placeholder = { Text("https://example.com/icon.png") },
+                        singleLine = true,
+                        shape = fieldShape,
+                        colors = fieldColors,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                // 2. App Name
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it; errorMessage = null },
@@ -233,7 +313,7 @@ fun AddAppDialog(
                     singleLine = true
                 )
 
-                // Package Name
+                // 3. Package Name
                 OutlinedTextField(
                     value = packageName,
                     onValueChange = { packageName = it.trim(); errorMessage = null },
@@ -265,167 +345,96 @@ fun AddAppDialog(
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                         modifier = Modifier.fillMaxWidth().testTag("btn_auto_generate_links")
                     ) {
-                        Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Link, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "⚡ توليد روابط اختبار Google Play تلقائياً من اسم الحزمة",
+                            text = "⚡ إنشاء روابط اختبار Google Play من اسم الحزمة",
                             style = MaterialTheme.typography.labelMedium,
                             color = PlayGreen
                         )
                     }
                 }
 
-                // Category selection
-                Text(
-                    text = "التصنيف:",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    categories.take(3).forEach { cat ->
-                        FilterChip(
-                            selected = category == cat,
-                            onClick = { category = cat },
-                            label = { Text(cat) }
-                        )
-                    }
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    categories.drop(3).forEach { cat ->
-                        FilterChip(
-                            selected = category == cat,
-                            onClick = { category = cat },
-                            label = { Text(cat) }
-                        )
-                    }
-                }
-
-                // Automated Group Linking Info Card
+                // 4. Testing Google Group URL (Customizable per Developer)
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = PlayGreen.copy(alpha = 0.08f),
-                    border = BorderStroke(1.dp, PlayGreen.copy(alpha = 0.35f)),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                tint = PlayGreen,
-                                modifier = Modifier.size(20.dp)
-                            )
+                            Icon(Icons.Default.Group, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "✅ ربط مجموعة Google Groups تلقائي بالكامل",
+                                text = "مجموعة اختبار Google Group الخاصة بك:",
                                 style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                fontWeight = FontWeight.Bold
                             )
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "رابط مجموعة المنصة مدرج تلقائياً في الأسفل. كل ما عليك في Google Play Console (المسار المغلق > المختبرون > Google Groups) هو إضافة بريد المجموعة:",
+                            text = "أدخل رابط مجموعتك التي أنشأتها، أو اضغط زر «المجموعة المشتركة» لاستخدام المجموعة الجاهزة للمنصة:",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                            modifier = Modifier.fillMaxWidth()
+
+                        OutlinedTextField(
+                            value = googleGroupUrl,
+                            onValueChange = { googleGroupUrl = it.trim(); errorMessage = null },
+                            label = { Text("رابط مجموعة Google Group الخاصة بك *") },
+                            placeholder = { Text("https://groups.google.com/g/your-testers-group") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("input_google_group"),
+                            shape = fieldShape,
+                            colors = fieldColors,
+                            singleLine = true
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
+                            OutlinedButton(
+                                onClick = { googleGroupUrl = officialGoogleGroupUrl },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                modifier = Modifier.height(34.dp)
                             ) {
-                                Text(
-                                    text = officialGoogleGroupEmail,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.weight(1f)
-                                )
+                                Icon(Icons.Default.Group, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("استخدام المجموعة المشتركة الجاهزة", fontSize = 11.sp, color = PlayGreen)
+                            }
+
+                            if (googleGroupUrl == officialGoogleGroupUrl) {
                                 OutlinedButton(
                                     onClick = {
                                         clipboardManager.setText(AnnotatedString(officialGoogleGroupEmail))
                                         isGroupEmailCopied = true
                                     },
-                                    shape = RoundedCornerShape(6.dp),
+                                    shape = RoundedCornerShape(8.dp),
                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                                    modifier = Modifier
-                                        .height(32.dp)
-                                        .testTag("btn_copy_group_email_dialog")
+                                    modifier = Modifier.height(34.dp)
                                 ) {
                                     Icon(
                                         imageVector = if (isGroupEmailCopied) Icons.Default.Check else Icons.Default.ContentCopy,
-                                        contentDescription = "نسخ",
-                                        modifier = Modifier.size(14.dp),
-                                        tint = if (isGroupEmailCopied) PlayGreen else MaterialTheme.colorScheme.primary
+                                        contentDescription = null,
+                                        modifier = Modifier.size(12.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = if (isGroupEmailCopied) "تم النسخ!" else "نسخ البريد",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (isGroupEmailCopied) PlayGreen else MaterialTheme.colorScheme.primary
-                                    )
+                                    Text(if (isGroupEmailCopied) "تم نسخ بريد المجموعة" else "نسخ بريد المجموعة", fontSize = 11.sp)
                                 }
                             }
                         }
                     }
                 }
 
-                // Testers List / Group Link
-                OutlinedTextField(
-                    value = googleGroupUrl,
-                    onValueChange = { googleGroupUrl = it.trim(); errorMessage = null },
-                    label = { Text("رابط مجموعة Google Group للمختبرين (مدرج تلقائياً)") },
-                    placeholder = { Text(officialGoogleGroupUrl) },
-                    supportingText = {
-                        Text(
-                            text = if (googleGroupUrl == officialGoogleGroupUrl)
-                                "⚡ تم ربط مجموعة المنصة الرسمية الموحدة تلقائياً"
-                            else
-                                "تم تعديل الرابط - يمكنك الضغط على زر الاستعادة للعودة للرابط الموحد",
-                            color = PlayGreen
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(Icons.Default.Group, contentDescription = null, tint = PlayGreen)
-                    },
-                    trailingIcon = {
-                        if (googleGroupUrl != officialGoogleGroupUrl) {
-                            IconButton(
-                                onClick = { googleGroupUrl = officialGoogleGroupUrl },
-                                modifier = Modifier.testTag("btn_restore_default_group_url")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.RestartAlt,
-                                    contentDescription = "استعادة رابط المجموعة الافتراضي",
-                                    tint = PlayGreen
-                                )
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("input_google_group"),
-                    shape = fieldShape,
-                    colors = fieldColors,
-                    singleLine = true
-                )
-
-                // Web Opt-in URL
+                // 5. Web Opt-in URL
                 OutlinedTextField(
                     value = webOptInUrl,
                     onValueChange = { input ->
@@ -451,7 +460,7 @@ fun AddAppDialog(
                     singleLine = true
                 )
 
-                // Android Opt-in URL
+                // 6. Android Opt-in URL
                 OutlinedTextField(
                     value = androidOptInUrl,
                     onValueChange = { input ->
@@ -477,12 +486,12 @@ fun AddAppDialog(
                     singleLine = true
                 )
 
-                // Testing instructions
+                // 7. Testing instructions
                 OutlinedTextField(
                     value = instructions,
                     onValueChange = { instructions = it },
                     label = { Text("تعليمات للمختبرين (اختياري)") },
-                    placeholder = { Text("مثال: يرجى تجربة حفظ ملف والضغط على زر التقارير") },
+                    placeholder = { Text("مثال: يرجى فتح التطبيق يومياً وتجربة الميزات") },
                     leadingIcon = {
                         Icon(Icons.Default.Description, contentDescription = null, tint = AmberGold)
                     },
@@ -492,7 +501,7 @@ fun AddAppDialog(
                     maxLines = 3
                 )
 
-                // Feature with points switch
+                // 8. Feature switch
                 Surface(
                     shape = RoundedCornerShape(10.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant,
@@ -521,7 +530,7 @@ fun AddAppDialog(
                                 )
                             }
                             Text(
-                                text = "يمنح تطبيقك أولوية الظهور للمختبرين (متاح مجاناً لجميع المسجلين)",
+                                text = "يمنح تطبيقك أولوية الظهور للمختبرين (متاح مجاناً للجميع)",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -560,7 +569,7 @@ fun AddAppDialog(
                     onConfirm(
                         name,
                         packageName,
-                        category,
+                        iconUrl,
                         effectiveGroupUrl,
                         webOptInUrl,
                         androidOptInUrl,

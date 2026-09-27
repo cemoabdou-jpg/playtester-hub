@@ -17,8 +17,8 @@ android {
     applicationId = "com.playtesterhub.app"
     minSdk = 24
     targetSdk = 36
-    versionCode = 12
-    versionName = "2.1"
+    versionCode = 14
+    versionName = "2.3"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -108,7 +108,7 @@ dependencies {
   // implementation(libs.androidx.navigation.compose)
   implementation(libs.androidx.room.ktx)
   implementation(libs.androidx.room.runtime)
-  // implementation(libs.coil.compose)
+  implementation(libs.coil.compose)
   implementation(libs.converter.moshi)
   implementation(libs.firebase.ai)
   implementation(libs.firebase.firestore)
