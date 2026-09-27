@@ -13,18 +13,40 @@ import kotlinx.coroutines.tasks.await
 
 class FirestoreService {
 
-    private val firestore: FirebaseFirestore? by lazy {
-        try {
+    private fun getFirestore(): FirebaseFirestore? {
+        return try {
             FirebaseFirestore.getInstance()
         } catch (e: Exception) {
-            Log.e("FirestoreService", "Firebase Firestore unavailable or not initialized: ${e.message}")
-            null
+            Log.w("FirestoreService", "Firebase Firestore default init note: ${e.message}")
+            try {
+                val app = try {
+                    com.google.firebase.FirebaseApp.getInstance()
+                } catch (ex: Exception) {
+                    val context = com.example.PlayTesterApplication.instance
+                    val options = com.google.firebase.FirebaseOptions.Builder()
+                        .setProjectId("playtester-hub-61bd6")
+                        .setApplicationId("1:170455936881:android:29bcec6a7e7d0f03c410d0")
+                        .setApiKey("AIzaSyCAjx_Z-syoM_CfDnlQqzdgYcAvmqe7Y0o")
+                        .setStorageBucket("playtester-hub-61bd6.firebasestorage.app")
+                        .build()
+                    com.google.firebase.FirebaseApp.initializeApp(context, options)
+                }
+                FirebaseFirestore.getInstance(app)
+            } catch (e2: Exception) {
+                Log.e("FirestoreService", "Firebase Firestore fallback init error: ${e2.message}")
+                null
+            }
         }
     }
 
     suspend fun ensureFirebaseAuth(): Result<String> {
         return try {
-            val auth = FirebaseAuth.getInstance()
+            val auth = try {
+                FirebaseAuth.getInstance()
+            } catch (e: Exception) {
+                val app = com.google.firebase.FirebaseApp.getInstance()
+                FirebaseAuth.getInstance(app)
+            }
             val current = auth.currentUser
             if (current != null) {
                 Result.success(current.uid)
@@ -41,7 +63,7 @@ class FirestoreService {
     }
 
     suspend fun publishAppToFirestore(app: CommunityApp): Result<Boolean> {
-        val db = firestore ?: return Result.failure(Exception("خدمة Firestore غير مهيأة أو غير متوفرة."))
+        val db = getFirestore() ?: return Result.failure(Exception("خدمة Firestore غير مهيأة أو غير متوفرة."))
         return try {
             ensureFirebaseAuth()
             val docData = hashMapOf(
@@ -99,7 +121,7 @@ class FirestoreService {
     }
 
     suspend fun fetchCommunityAppsOnce(): Result<List<CommunityApp>> {
-        val db = firestore ?: return Result.failure(Exception("قاعدة بيانات Firestore غير متوفرة."))
+        val db = getFirestore() ?: return Result.failure(Exception("قاعدة بيانات Firestore غير متوفرة."))
         return try {
             ensureFirebaseAuth()
             val snapshot = db.collection("community_apps").get().await()
@@ -144,7 +166,7 @@ class FirestoreService {
     }
 
     fun observeRemoteCommunityApps(): Flow<List<CommunityApp>> = callbackFlow {
-        val db = firestore
+        val db = getFirestore()
         if (db == null) {
             trySend(emptyList())
             close()
@@ -191,7 +213,7 @@ class FirestoreService {
     }
 
     suspend fun updateAppTestersInFirestore(packageName: String, newTestersCount: Int) {
-        val db = firestore ?: return
+        val db = getFirestore() ?: return
         try {
             ensureFirebaseAuth()
             db.collection("community_apps").document(packageName)
@@ -203,7 +225,7 @@ class FirestoreService {
     }
 
     suspend fun checkCloudConnectionStatus(): CloudDiagnosticResult {
-        val db = firestore
+        val db = getFirestore()
         if (db == null) {
             return CloudDiagnosticResult(
                 isInitialized = false,

@@ -76,6 +76,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        try {
+            com.google.firebase.FirebaseApp.initializeApp(this)
+        } catch (e: Exception) {
+            android.util.Log.w("MainActivity", "FirebaseApp startup: ${e.message}")
+        }
         enableEdgeToEdge()
         FcmService.initializeFcm(applicationContext)
         setContent {
