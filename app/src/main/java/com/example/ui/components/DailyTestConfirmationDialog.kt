@@ -84,6 +84,8 @@ import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
 import com.example.ui.theme.SuccessGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.LocalAppLanguage
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -93,6 +95,9 @@ fun DailyTestConfirmationDialog(
     onConfirm: (durationMinutes: Int, rating: Int, notes: String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val language = LocalAppLanguage.current
+    val isArabic = language == AppLanguage.AR
+
     val nextDayNumber = (test.daysCompleted + 1).coerceAtMost(14)
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -149,7 +154,11 @@ fun DailyTestConfirmationDialog(
                         installErrorMessage = null
                     } else {
                         isTimerCompleted = false
-                        installErrorMessage = "⚠️ لقد قضيت $totalAppUsageSeconds ثانية فقط داخل التطبيق المستهدف. يجب قضاء 30 ثانية على الأقل لتوثيق الاستخدام الفعلي في Google Play."
+                        installErrorMessage = if (isArabic) {
+                            "⚠️ لقد قضيت $totalAppUsageSeconds ثانية فقط داخل التطبيق المستهدف. يجب قضاء 30 ثانية على الأقل لتوثيق الاستخدام الفعلي في Google Play."
+                        } else {
+                            "⚠️ You spent only $totalAppUsageSeconds seconds in the target app. You need at least 30 seconds to document genuine usage for Google Play."
+                        }
                     }
                 }
             }
@@ -160,7 +169,7 @@ fun DailyTestConfirmationDialog(
         }
     }
 
-    // Simulation timer effect for developer demo
+    // Simulation timer effect for demo
     LaunchedEffect(isSimulationRunning) {
         if (isSimulationRunning && !isTimerCompleted) {
             while (simulationSecondsRemaining > 0) {
@@ -176,16 +185,28 @@ fun DailyTestConfirmationDialog(
     var selectedDuration by remember { mutableIntStateOf(10) }
     var selectedRating by remember { mutableIntStateOf(5) }
     var customNotes by remember { mutableStateOf("") }
-    var selectedTag by remember { mutableStateOf("الواجهات والميزات تعمل بسلاسة") }
+    
+    val presetTags = remember(isArabic) {
+        if (isArabic) {
+            listOf(
+                "الواجهات والميزات تعمل بسلاسة",
+                "تم اختبار الميزات الأساسية بنجاح",
+                "التصميم جذاب وسهل التصفح",
+                "لوحظ بطء طفيف عند التحميل",
+                "تطبيق رائع وبدون أية أخطاء"
+            )
+        } else {
+            listOf(
+                "UI and features run smoothly",
+                "Core functionality tested successfully",
+                "Great design and easy navigation",
+                "Minor delay noticed during loading",
+                "Excellent app, zero errors found"
+            )
+        }
+    }
 
-    val presetTags = listOf(
-        "الواجهات والميزات تعمل بسلاسة",
-        "تم اختبار الميزات الأساسية بنجاح",
-        "التصميم جذاب وسهل التصفح",
-        "لوحظ بطء طفيف عند التحميل",
-        "تطبيق رائع وبدون أية أخطاء"
-    )
-
+    var selectedTag by remember(presetTags) { mutableStateOf(presetTags.first()) }
     val durationOptions = listOf(5, 10, 15, 30)
 
     Dialog(
@@ -234,12 +255,12 @@ fun DailyTestConfirmationDialog(
                         }
                         Column {
                             Text(
-                                text = "تأكيد التجربة اليومية الإلزامية",
+                                text = if (isArabic) "تأكيد التجربة اليومية الإلزامية" else "Mandatory Daily Test Confirmation",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "${test.appName} • اليوم $nextDayNumber من 14",
+                                text = if (isArabic) "${test.appName} • اليوم $nextDayNumber من 14" else "${test.appName} • Day $nextDayNumber of 14",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -252,7 +273,7 @@ fun DailyTestConfirmationDialog(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "إغلاق",
+                            contentDescription = if (isArabic) "إغلاق" else "Close",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -282,13 +303,17 @@ fun DailyTestConfirmationDialog(
                         )
                         Column {
                             Text(
-                                text = "شرط سياسة Google Play للاختبار المغلق",
+                                text = if (isArabic) "شرط سياسة Google Play للاختبار المغلق" else "Google Play Closed Testing Policy Requirement",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = CyanAccent
                             )
                             Text(
-                                text = "تشترط Google فتح واستخدام التطبيق فعلياً يومياً لمدة 14 يوماً متواصلة. يتم قياس مدة الاستخدام لضمان التفاعل الحقيقي.",
+                                text = if (isArabic) {
+                                    "تشترط Google فتح واستخدام التطبيق فعلياً يومياً لمدة 14 يوماً متواصلة. يتم قياس مدة الاستخدام لضمان التفاعل الحقيقي."
+                                } else {
+                                    "Google requires real active usage every day for 14 continuous days. Usage duration is measured to ensure genuine engagement."
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -345,7 +370,11 @@ fun DailyTestConfirmationDialog(
                                     modifier = Modifier.size(22.dp)
                                 )
                                 Text(
-                                    text = if (isSimulationMode) "محاكاة الفحص (Demo)" else "التحقق من فتح التطبيق الفعلي",
+                                    text = if (isArabic) {
+                                        if (isSimulationMode) "محاكاة الفحص (Demo)" else "التحقق من فتح التطبيق الفعلي"
+                                    } else {
+                                        if (isSimulationMode) "Inspection Simulation (Demo)" else "App Launch & Usage Verification"
+                                    },
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -364,10 +393,10 @@ fun DailyTestConfirmationDialog(
                             ) {
                                 Text(
                                     text = when {
-                                        isTimerCompleted -> "مكتمل ✓ ($totalAppUsageSeconds ث)"
-                                        isWaitingForAppReturn -> "قيد الاستخدام الآن"
-                                        isSimulationRunning -> "$simulationSecondsRemaining ث"
-                                        else -> "مطلوب فتح التطبيق"
+                                        isTimerCompleted -> if (isArabic) "مكتمل ✓ ($totalAppUsageSeconds ث)" else "Done ✓ (${totalAppUsageSeconds}s)"
+                                        isWaitingForAppReturn -> if (isArabic) "قيد الاستخدام الآن" else "In Use Now"
+                                        isSimulationRunning -> if (isArabic) "$simulationSecondsRemaining ث" else "${simulationSecondsRemaining}s"
+                                        else -> if (isArabic) "مطلوب فتح التطبيق" else "Open App Required"
                                     },
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
@@ -409,9 +438,9 @@ fun DailyTestConfirmationDialog(
                                     )
                                     Text(
                                         text = if (isAppInstalled) {
-                                            "التطبيق مثبت على جهازك ✓ (${test.packageName})"
+                                            if (isArabic) "التطبيق مثبت على جهازك ✓ (${test.packageName})" else "App is installed on your device ✓ (${test.packageName})"
                                         } else {
-                                            "تنبيه: التطبيق غير مثبت على هاتفك! يجب تثبيته أولاً للبدء"
+                                            if (isArabic) "تنبيه: التطبيق غير مثبت على هاتفك! يجب تثبيته أولاً للبدء" else "Warning: Target app not installed! Install from Play Store first"
                                         },
                                         style = MaterialTheme.typography.bodySmall,
                                         fontWeight = FontWeight.SemiBold,
@@ -423,13 +452,13 @@ fun DailyTestConfirmationDialog(
                                 IconButton(
                                     onClick = {
                                         val nowInstalled = refreshInstallStatus()
-                                        installErrorMessage = if (nowInstalled) null else "لم يتم العثور على حزمة '${test.packageName}' مثبتة بعد."
+                                        installErrorMessage = if (nowInstalled) null else if (isArabic) "لم يتم العثور على حزمة '${test.packageName}' مثبتة بعد." else "Package '${test.packageName}' not found."
                                     },
                                     modifier = Modifier.size(32.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Refresh,
-                                        contentDescription = "إعادة فحص التثبيت",
+                                        contentDescription = if (isArabic) "إعادة فحص التثبيت" else "Recheck install",
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(16.dp)
                                     )
@@ -451,14 +480,22 @@ fun DailyTestConfirmationDialog(
 
                         if (isTimerCompleted) {
                             Text(
-                                text = "أحسنت! تم التحقق بنجاح من فتح وتجربة التطبيق لمدة كافية ($totalAppUsageSeconds ثانية). يمكنك الآن إرسال الملاحظات وتأكيد الحضور اليومي لاستلام النقاط.",
+                                text = if (isArabic) {
+                                    "أحسنت! تم التحقق بنجاح من فتح وتجربة التطبيق لمدة كافية ($totalAppUsageSeconds ثانية). يمكنك الآن إرسال الملاحظات وتأكيد الحضور اليومي لاستلام النقاط."
+                                } else {
+                                    "Great! App usage verified for sufficient time ($totalAppUsageSeconds seconds). You can now submit feedback and claim your daily streak points."
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                         } else if (isWaitingForAppReturn) {
                             Text(
-                                text = "تم تشغيل التطبيق المستهدف! تجول داخل شاشاته لمدة 30 ثانية على الأقل، وعند عودتك لهنا سيتم قياس وتوثيق وقت استخدامك الفعلي تلقائياً.",
+                                text = if (isArabic) {
+                                    "تم تشغيل التطبيق المستهدف! تجول داخل شاشاته لمدة 30 ثانية على الأقل، وعند عودتك لهنا سيتم قياس وتوثيق وقت استخدامك الفعلي تلقائياً."
+                                } else {
+                                    "Target app launched! Interact with it for at least 30 seconds. When you return here, your time will be recorded automatically."
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = CyanAccent
@@ -477,11 +514,11 @@ fun DailyTestConfirmationDialog(
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("العودة للتطبيق المستهدف", color = Color.Black, fontWeight = FontWeight.Bold)
+                                Text(if (isArabic) "العودة للتطبيق المستهدف" else "Return to Target App", color = Color.Black, fontWeight = FontWeight.Bold)
                             }
                         } else if (isSimulationRunning) {
                             Text(
-                                text = "وضع المحاكاة يعمل: متبقي $simulationSecondsRemaining ثانية...",
+                                text = if (isArabic) "وضع المحاكاة يعمل: متبقي $simulationSecondsRemaining ثانية..." else "Simulation running: $simulationSecondsRemaining seconds left...",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = AmberGold
@@ -499,7 +536,11 @@ fun DailyTestConfirmationDialog(
                             )
                         } else if (!isAppInstalled && !isSimulationMode) {
                             Text(
-                                text = "وفقاً لسياسة Google Play الصارمة، لا يمكن احتساب التجربة أو تسجيل الحضور بمجرد الضغط، بل يجب تثبيت التطبيق الفعلي على جهازك وفتحه يومياً.",
+                                text = if (isArabic) {
+                                    "وفقاً لسياسة Google Play الصارمة، لا يمكن احتساب التجربة أو تسجيل الحضور بمجرد الضغط، بل يجب تثبيت التطبيق الفعلي على جهازك وفتحه يومياً."
+                                } else {
+                                    "Under Google Play's strict policy, daily participation requires the actual app to be installed and opened on your physical device."
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = DangerRed
                             )
@@ -523,7 +564,7 @@ fun DailyTestConfirmationDialog(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "الانتقال لـ Google Play لتثبيت التطبيق",
+                                    text = if (isArabic) "الانتقال لـ Google Play لتثبيت التطبيق" else "Go to Google Play to Install App",
                                     fontWeight = FontWeight.Bold,
                                     color = Color.Black
                                 )
@@ -540,11 +581,11 @@ fun DailyTestConfirmationDialog(
                                         if (nowInstalled) {
                                             installErrorMessage = null
                                         } else {
-                                            installErrorMessage = "لم يتم تثبيت حزمة التطبيق '${test.packageName}' بعد. يرجى تثبيته من متجر Play أولاً."
+                                            installErrorMessage = if (isArabic) "لم يتم تثبيت حزمة التطبيق '${test.packageName}' بعد." else "App package '${test.packageName}' not yet installed."
                                         }
                                     }
                                 ) {
-                                    Text("تحديث الفحص", style = MaterialTheme.typography.labelSmall)
+                                    Text(if (isArabic) "تحديث الفحص" else "Recheck", style = MaterialTheme.typography.labelSmall)
                                 }
 
                                 TextButton(
@@ -552,12 +593,12 @@ fun DailyTestConfirmationDialog(
                                 ) {
                                     Icon(Icons.Default.Science, contentDescription = null, modifier = Modifier.size(14.dp), tint = AmberGold)
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("محاكاة الاختبار (Sandbox)", style = MaterialTheme.typography.labelSmall, color = AmberGold)
+                                    Text(if (isArabic) "محاكاة الاختبار (Sandbox)" else "Test Simulation (Sandbox)", style = MaterialTheme.typography.labelSmall, color = AmberGold)
                                 }
                             }
                         } else if (isSimulationMode) {
                             Text(
-                                text = "🧪 وضع المحاكاة للتطوير: يمكنك استخدام هذا الوضع لاختبار تدفق التطبيق دون الحاجة لتثبيت الحزمة الفعلية.",
+                                text = if (isArabic) "🧪 وضع المحاكاة للتطوير: يمكنك استخدام هذا الوضع لاختبار تدفق التطبيق دون الحاجة لتثبيت الحزمة الفعلية." else "🧪 Sandbox Mode: Simulate the 30-second testing timer without installing the actual package.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AmberGold
                             )
@@ -573,12 +614,16 @@ fun DailyTestConfirmationDialog(
                             ) {
                                 Icon(Icons.Default.Timer, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("بدء محاكاة الـ 30 ثانية", color = Color.Black, fontWeight = FontWeight.Bold)
+                                Text(if (isArabic) "بدء محاكاة الـ 30 ثانية" else "Start 30-second Simulation", color = Color.Black, fontWeight = FontWeight.Bold)
                             }
                         } else {
-                            // Installed state: User must launch the real app!
+                            // Installed state
                             Text(
-                                text = "لضمان مصداقية التجربة أمام Google Play، اضغط أدناه لفتح التطبيق واستخدامه لمدة 30 ثانية. عند عودتك سيتم توثيق الاستخدام.",
+                                text = if (isArabic) {
+                                    "لضمان مصداقية التجربة أمام Google Play، اضغط أدناه لفتح التطبيق واستخدامه لمدة 30 ثانية. عند عودتك سيتم توثيق الاستخدام."
+                                } else {
+                                    "To ensure valid test logs for Google Play, tap below to open the app and use it for 30 seconds. Your usage will be verified upon return."
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -593,10 +638,10 @@ fun DailyTestConfirmationDialog(
                                             isWaitingForAppReturn = true
                                             installErrorMessage = null
                                         } else {
-                                            installErrorMessage = "تعذر تشغيل التطبيق تلقائياً. تأكد من اكتمال التثبيت."
+                                            installErrorMessage = if (isArabic) "تعذر تشغيل التطبيق تلقائياً. تأكد من اكتمال التثبيت." else "Failed to launch app automatically. Ensure installation completed."
                                         }
                                     } else {
-                                        installErrorMessage = "التطبيق غير مثبت على جهازك بعد!"
+                                        installErrorMessage = if (isArabic) "التطبيق غير مثبت على جهازك بعد!" else "App is not installed on this device!"
                                     }
                                 },
                                 modifier = Modifier
@@ -613,7 +658,7 @@ fun DailyTestConfirmationDialog(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "تشغيل التطبيق وبدء تجربة الـ 30 ثانية",
+                                    text = if (isArabic) "تشغيل التطبيق وبدء تجربة الـ 30 ثانية" else "Launch App & Start 30s Test",
                                     fontWeight = FontWeight.Bold,
                                     color = Color.Black
                                 )
@@ -626,7 +671,7 @@ fun DailyTestConfirmationDialog(
 
                 // Section 1: Duration
                 Text(
-                    text = "1. مدة تجربة واستخدام التطبيق اليوم:",
+                    text = if (isArabic) "1. مدة تجربة واستخدام التطبيق اليوم:" else "1. Testing Duration Today:",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -662,7 +707,7 @@ fun DailyTestConfirmationDialog(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "$minutes د",
+                                    text = if (isArabic) "$minutes د" else "${minutes}m",
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurface
@@ -676,7 +721,7 @@ fun DailyTestConfirmationDialog(
 
                 // Section 2: Rating
                 Text(
-                    text = "2. تقييم أداء التطبيق اليوم:",
+                    text = if (isArabic) "2. تقييم أداء التطبيق اليوم:" else "2. App Performance Rating Today:",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -693,7 +738,7 @@ fun DailyTestConfirmationDialog(
                         ) {
                             Icon(
                                 imageVector = if (star <= selectedRating) Icons.Default.Star else Icons.Default.StarBorder,
-                                contentDescription = "تقييم $star نجوم",
+                                contentDescription = "$star stars",
                                 tint = if (star <= selectedRating) AmberGold else MaterialTheme.colorScheme.outlineVariant,
                                 modifier = Modifier.size(28.dp)
                             )
@@ -702,11 +747,11 @@ fun DailyTestConfirmationDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = when (selectedRating) {
-                            5 -> "ممتاز ومستقر جداً"
-                            4 -> "جيد جداً وسلس"
-                            3 -> "مقبول مع ملاحظات بسيطة"
-                            2 -> "يوجد بطء أو أخطاء"
-                            else -> "يحتاج تحسين جذري"
+                            5 -> if (isArabic) "ممتاز ومستقر جداً" else "Excellent & Very Stable"
+                            4 -> if (isArabic) "جيد جداً وسلس" else "Very Good & Smooth"
+                            3 -> if (isArabic) "مقبول مع ملاحظات بسيطة" else "Fair with minor feedback"
+                            2 -> if (isArabic) "يوجد بطء أو أخطاء" else "Slow or contains bugs"
+                            else -> if (isArabic) "يحتاج تحسين جذري" else "Needs major improvement"
                         },
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium,
@@ -718,7 +763,7 @@ fun DailyTestConfirmationDialog(
 
                 // Section 3: Preset Feedback & Notes
                 Text(
-                    text = "3. ملاحظات الفحص السريع:",
+                    text = if (isArabic) "3. ملاحظات الفحص السريع:" else "3. Quick Feedback Tags:",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -760,8 +805,8 @@ fun DailyTestConfirmationDialog(
                 OutlinedTextField(
                     value = customNotes,
                     onValueChange = { customNotes = it },
-                    label = { Text("تفاصيل أو ملاحظات إضافية للمطور (اختياري)") },
-                    placeholder = { Text("مثال: تم تجربة تسجيل الدخول والتنقل بين الصفحات بنجاح...") },
+                    label = { Text(if (isArabic) "تفاصيل أو ملاحظات إضافية للمطور (اختياري)" else "Additional Feedback Details (Optional)") },
+                    placeholder = { Text(if (isArabic) "مثال: تم تجربة تسجيل الدخول والتنقل بنجاح..." else "e.g. Login flow tested successfully...") },
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("input_daily_notes"),
@@ -799,9 +844,17 @@ fun DailyTestConfirmationDialog(
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = if (isTimerCompleted) {
-                                "أقر وأؤكد بأنني قمت بفتح تطبيق '${test.appName}' وتجربته اليوم لمدة 30 ثانية على الأقل وفق إرشادات الاختبار المغلق."
+                                if (isArabic) {
+                                    "أقر وأؤكد بأنني قمت بفتح تطبيق '${test.appName}' وتجربته اليوم لمدة 30 ثانية على الأقل وفق إرشادات الاختبار المغلق."
+                                } else {
+                                    "I confirm that I opened and tested '${test.appName}' for at least 30 seconds today in accordance with closed testing guidelines."
+                                }
                             } else {
-                                "يرجى تشغيل واختبار التطبيق لمدة 30 ثانية لتفعيل إقرار وتأكيد اليوم."
+                                if (isArabic) {
+                                    "يرجى تشغيل واختبار التطبيق لمدة 30 ثانية لتفعيل إقرار وتأكيد اليوم."
+                                } else {
+                                    "Please launch and test the app for 30 seconds to enable daily confirmation."
+                                }
                             },
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Medium,
@@ -838,12 +891,12 @@ fun DailyTestConfirmationDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = when {
-                            !isAppInstalled && !isSimulationMode -> "التطبيق غير مثبت على هاتفك - ثبته أولاً"
-                            isWaitingForAppReturn -> "بانتظار إكمال الـ 30 ثانية داخل التطبيق..."
-                            isSimulationRunning -> "جاري المحاكاة: $simulationSecondsRemaining ث..."
-                            !isTimerCompleted -> "يلزم فتح واختبار التطبيق 30 ثانية أولاً"
-                            !hasConfirmedTesting -> "يرجى تأكيد الإقرار أعلاه للمتابعة"
-                            else -> "توثيق وتأكيد تجربة اليوم (+25 نقطة) ✓"
+                            !isAppInstalled && !isSimulationMode -> if (isArabic) "التطبيق غير مثبت على هاتفك - ثبته أولاً" else "App not installed on device - Install first"
+                            isWaitingForAppReturn -> if (isArabic) "بانتظار إكمال الـ 30 ثانية داخل التطبيق..." else "Waiting for 30 seconds inside app..."
+                            isSimulationRunning -> if (isArabic) "جاري المحاكاة: $simulationSecondsRemaining ث..." else "Simulating: ${simulationSecondsRemaining}s..."
+                            !isTimerCompleted -> if (isArabic) "يلزم فتح واختبار التطبيق 30 ثانية أولاً" else "30-second app test required first"
+                            !hasConfirmedTesting -> if (isArabic) "يرجى تأكيد الإقرار أعلاه للمتابعة" else "Please check confirmation box above"
+                            else -> if (isArabic) "توثيق وتأكيد تجربة اليوم (+25 نقطة) ✓" else "Confirm Daily Test (+25 pts) ✓"
                         },
                         color = if (isSubmitEnabled) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Bold,
@@ -851,6 +904,27 @@ fun DailyTestConfirmationDialog(
                     )
                 }
             }
+        }
+    }
+}
+
+private fun launchOrOpenApp(context: Context, packageName: String, optInUrl: String): Boolean {
+    val pm = context.packageManager
+    val launchIntent = pm.getLaunchIntentForPackage(packageName)
+    return if (launchIntent != null) {
+        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(launchIntent)
+        true
+    } else {
+        try {
+            val url = if (optInUrl.isNotBlank()) optInUrl else "https://play.google.com/store/apps/details?id=$packageName"
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+            true
+        } catch (e: Exception) {
+            false
         }
     }
 }

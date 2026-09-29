@@ -41,6 +41,9 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Spellcheck
 import androidx.compose.material.icons.filled.Update
@@ -48,10 +51,14 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import com.example.ui.components.ChangelogGeneratorDialog
+import com.example.ui.components.ConsoleShortcutsAndBundleHelperDialog
 import com.example.ui.components.DeviceDiversityMatrixDialog
+import com.example.ui.components.PlayApprovalGuideDialog
 import com.example.ui.components.PlayPolicyLinterDialog
 import com.example.ui.components.PreFlightChecklistDialog
 import com.example.ui.components.PrivacyPolicyGeneratorDialog
+import com.example.ui.components.ProductionReadinessCertificateDialog
+import com.example.ui.components.TrackProgressTimelineDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -64,6 +71,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -100,6 +108,7 @@ import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
 import com.example.ui.theme.SuccessGreen
+import com.example.ui.util.L
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -136,6 +145,7 @@ fun MyAppsScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val s = L.strings()
     val todayStr = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
     var uploadStatusMsg by remember { mutableStateOf<String?>(null) }
     var appToShare by remember { mutableStateOf<UserApp?>(null) }
@@ -144,6 +154,10 @@ fun MyAppsScreen(
     var appForDailyLogs by remember { mutableStateOf<UserApp?>(null) }
     var appForEditGroupUrl by remember { mutableStateOf<UserApp?>(null) }
     var appForReadinessReport by remember { mutableStateOf<UserApp?>(null) }
+    var appForTimeline by remember { mutableStateOf<UserApp?>(null) }
+    var appForConsoleHelper by remember { mutableStateOf<UserApp?>(null) }
+    var appForCertificate by remember { mutableStateOf<UserApp?>(null) }
+    var showApprovalGuide by remember { mutableStateOf(false) }
     var appForValidator by remember { mutableStateOf<UserApp?>(null) }
     var appForPrivacyPolicy by remember { mutableStateOf<UserApp?>(null) }
     var appForPolicyLinter by remember { mutableStateOf<UserApp?>(null) }
@@ -173,10 +187,75 @@ fun MyAppsScreen(
                     Icon(imageVector = Icons.Default.Add, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "نشر تطبيق جديد لطلب 20 مختبراً",
+                        text = s.postAppHeroCta,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
+                }
+            }
+
+            // Google Play Approval Secrets Top Banner
+            item {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = AmberGold.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, AmberGold.copy(alpha = 0.45f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showApprovalGuide = true }
+                        .testTag("banner_play_approval_secrets")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = AmberGold,
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.Star,
+                                        contentDescription = null,
+                                        tint = Color.Black,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = s.playApprovalSecretsTitle,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = s.playApprovalSecretsSubtitle,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = AmberGold.copy(alpha = 0.25f),
+                            border = BorderStroke(1.dp, AmberGold)
+                        ) {
+                            Text(
+                                text = s.viewSecretsBtn,
+                                color = Color.Black,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
                 }
             }
 
@@ -195,7 +274,7 @@ fun MyAppsScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "تطبيقاتك المنشورة (${userApps.size})",
+                                    text = "${s.myAppsTitle} (${userApps.size})",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -774,16 +853,17 @@ fun MyAppsScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        // Action Buttons
+                        // --- 1. Primary Action Buttons (Streamlined & Spacious) ---
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            // Share Invite Button (Primary)
                             Button(
                                 onClick = { appToShare = app },
                                 modifier = Modifier
-                                    .weight(1.2f)
+                                    .weight(1.3f)
                                     .testTag("share_app_btn_${app.id}"),
                                 colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
                                 shape = RoundedCornerShape(10.dp)
@@ -793,13 +873,16 @@ fun MyAppsScreen(
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("مشاركة الدعوة", fontSize = 12.sp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(s.shareInviteBtn, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
 
+                            // Manage Testers Button
                             OutlinedButton(
-                                onClick = { openUrl(context, app.googleGroupUrl) },
-                                modifier = Modifier.weight(1f),
+                                onClick = { appForTesters = app },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("btn_manage_testers_${app.id}"),
                                 shape = RoundedCornerShape(10.dp)
                             ) {
                                 Icon(
@@ -808,31 +891,18 @@ fun MyAppsScreen(
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("المجموعة", fontSize = 12.sp)
+                                Text(s.manageTestersBtn, fontSize = 11.sp, maxLines = 1)
                             }
 
-                            // Edit Group Link Button
-                            IconButton(
-                                onClick = { appForEditGroupUrl = app },
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .background(PlayGreen.copy(alpha = 0.1f), RoundedCornerShape(10.dp))
-                                    .testTag("btn_edit_group_url_${app.id}")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "تعديل رابط المجموعة",
-                                    tint = PlayGreen,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-
+                            // Store Link Button
                             OutlinedButton(
                                 onClick = {
                                     val url = if (app.androidOptInUrl.isNotBlank()) app.androidOptInUrl else app.webOptInUrl
                                     openUrl(context, url)
                                 },
-                                modifier = Modifier.weight(0.9f),
+                                modifier = Modifier
+                                    .weight(0.9f)
+                                    .testTag("btn_store_link_${app.id}"),
                                 shape = RoundedCornerShape(10.dp)
                             ) {
                                 Icon(
@@ -841,64 +911,16 @@ fun MyAppsScreen(
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("المتجر", fontSize = 12.sp)
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            OutlinedButton(
-                                onClick = { appForValidator = app },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .testTag("btn_validate_links_${app.id}"),
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.QrCode2,
-                                    contentDescription = null,
-                                    tint = CyanAccent,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("فحص الروابط وQR", fontSize = 12.sp)
-                            }
-
-                            // Production Readiness Report Button
-                            OutlinedButton(
-                                onClick = { appForReadinessReport = app },
-                                modifier = Modifier
-                                    .weight(1.5f)
-                                    .testTag("btn_readiness_report_${app.id}"),
-                                shape = RoundedCornerShape(10.dp),
-                                border = BorderStroke(1.dp, if (isReadyForProduction) SuccessGreen else MaterialTheme.colorScheme.outline)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Assignment,
-                                    contentDescription = null,
-                                    tint = if (isReadyForProduction) SuccessGreen else CyanAccent,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "تقرير الجاهزية",
-                                    color = if (isReadyForProduction) SuccessGreen else MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 12.sp
-                                )
+                                Text(s.storeLinkBtn, fontSize = 11.sp, maxLines = 1)
                             }
                         }
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        // Google Play Developer Toolkit Suite (5 Essential Tools - Collapsible to prevent clutter)
+                        // --- 2. Advanced Console & Review Tools (Clean Accordion) ---
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -911,92 +933,201 @@ fun MyAppsScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable { isToolkitExpanded = !isToolkitExpanded }
+                                        .padding(vertical = 4.dp)
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(
                                             imageVector = Icons.Default.Build,
                                             contentDescription = null,
                                             tint = PlayGreen,
-                                            modifier = Modifier.size(16.dp)
+                                            modifier = Modifier.size(18.dp)
                                         )
-                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            text = "مجموعة أدوات كونسول Google Play (5 أدوات)",
+                                            text = s.devToolsSectionTitle,
                                             style = MaterialTheme.typography.labelMedium,
                                             fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
-                                    Icon(
-                                        imageVector = if (isToolkitExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                        contentDescription = if (isToolkitExpanded) "طي" else "توسيع",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    Text(
+                                        text = if (isToolkitExpanded) s.collapseTools else s.expandTools,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = PlayGreen,
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
+
                                 if (isToolkitExpanded) {
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                    // Row 1: 14-Day Timeline & Console Helper
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         OutlinedButton(
-                                            onClick = { appForPrivacyPolicy = app },
+                                            onClick = { appForTimeline = app },
+                                            modifier = Modifier.weight(1f).testTag("btn_timeline_${app.id}"),
                                             shape = RoundedCornerShape(8.dp),
-                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
-                                            modifier = Modifier.weight(1f).testTag("btn_policy_gen_${app.id}")
+                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
                                         ) {
-                                            Icon(Icons.Default.Policy, contentDescription = null, modifier = Modifier.size(14.dp), tint = PlayGreen)
+                                            Icon(Icons.Default.Timeline, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(15.dp))
                                             Spacer(modifier = Modifier.width(4.dp))
-                                            Text("سياسة الخصوصية", fontSize = 10.sp)
+                                            Text(s.timeline14DaysBtn, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PlayGreen)
                                         }
 
                                         OutlinedButton(
-                                            onClick = { appForPolicyLinter = app },
+                                            onClick = { appForConsoleHelper = app },
+                                            modifier = Modifier.weight(1f).testTag("btn_console_helper_${app.id}"),
                                             shape = RoundedCornerShape(8.dp),
-                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
-                                            modifier = Modifier.weight(1f).testTag("btn_policy_linter_${app.id}")
+                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
                                         ) {
-                                            Icon(Icons.Default.Spellcheck, contentDescription = null, modifier = Modifier.size(14.dp), tint = AmberGold)
+                                            Icon(Icons.Default.RocketLaunch, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(15.dp))
                                             Spacer(modifier = Modifier.width(4.dp))
-                                            Text("مدقق الكلمات", fontSize = 10.sp)
-                                        }
-
-                                        OutlinedButton(
-                                            onClick = { appForChangelog = app },
-                                            shape = RoundedCornerShape(8.dp),
-                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
-                                            modifier = Modifier.weight(1f).testTag("btn_changelog_${app.id}")
-                                        ) {
-                                            Icon(Icons.Default.Update, contentDescription = null, modifier = Modifier.size(14.dp), tint = CyanAccent)
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text("سجل التحديث", fontSize = 10.sp)
+                                            Text(s.consoleHelperBtn, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = CyanAccent)
                                         }
                                     }
+
                                     Spacer(modifier = Modifier.height(6.dp))
+
+                                    // Row 2: Manage Versions & Pre-Flight Checklist
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        OutlinedButton(
+                                            onClick = { appForVersions = app },
+                                            modifier = Modifier.weight(1f).testTag("btn_versions_${app.id}"),
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                                        ) {
+                                            Icon(Icons.Default.Layers, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(15.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(s.manageVersionsBtn, fontSize = 11.sp)
+                                        }
+
+                                        OutlinedButton(
+                                            onClick = { appForPreFlight = app },
+                                            modifier = Modifier.weight(1f).testTag("btn_preflight_${app.id}"),
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                                        ) {
+                                            Icon(Icons.Default.FactCheck, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(15.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(s.checklistBtn, fontSize = 11.sp)
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    // Row 3: Policy Linter & Link Validator
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        OutlinedButton(
+                                            onClick = { appForPolicyLinter = app },
+                                            modifier = Modifier.weight(1f).testTag("btn_policy_linter_${app.id}"),
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                                        ) {
+                                            Icon(Icons.Default.Spellcheck, contentDescription = null, tint = AmberGold, modifier = Modifier.size(15.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(s.policyLinterBtn, fontSize = 11.sp)
+                                        }
+
+                                        OutlinedButton(
+                                            onClick = { appForValidator = app },
+                                            modifier = Modifier.weight(1f).testTag("btn_validate_links_${app.id}"),
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                                        ) {
+                                            Icon(Icons.Default.QrCode2, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(15.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(s.linkValidatorBtn, fontSize = 11.sp)
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    // Row 4: Changelog, Device Diversity & Privacy Policy
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
                                         OutlinedButton(
-                                            onClick = { appForPreFlight = app },
+                                            onClick = { appForChangelog = app },
+                                            modifier = Modifier.weight(1f).testTag("btn_changelog_${app.id}"),
                                             shape = RoundedCornerShape(8.dp),
-                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
-                                            modifier = Modifier.weight(1f).testTag("btn_preflight_${app.id}")
+                                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
                                         ) {
-                                            Icon(Icons.Default.FactCheck, contentDescription = null, modifier = Modifier.size(14.dp), tint = SuccessGreen)
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text("فحص الامتثال", fontSize = 10.sp)
+                                            Icon(Icons.Default.Update, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(14.dp))
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text(s.changelogBtn, fontSize = 10.sp)
                                         }
 
                                         OutlinedButton(
                                             onClick = { appForDiversity = app },
+                                            modifier = Modifier.weight(1f).testTag("btn_diversity_${app.id}"),
                                             shape = RoundedCornerShape(8.dp),
-                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
-                                            modifier = Modifier.weight(1f).testTag("btn_diversity_${app.id}")
+                                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
                                         ) {
-                                            Icon(Icons.Default.Devices, contentDescription = null, modifier = Modifier.size(14.dp), tint = CyanAccent)
+                                            Icon(Icons.Default.Devices, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(14.dp))
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text(s.deviceDiversityBtn, fontSize = 10.sp)
+                                        }
+
+                                        OutlinedButton(
+                                            onClick = { appForPrivacyPolicy = app },
+                                            modifier = Modifier.weight(1f).testTag("btn_policy_gen_${app.id}"),
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                                        ) {
+                                            Icon(Icons.Default.Policy, contentDescription = null, tint = AmberGold, modifier = Modifier.size(14.dp))
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text(s.privacyPolicyBtn, fontSize = 10.sp)
+                                        }
+                                    }
+
+                                    if (isReadyForProduction || app.daysElapsed >= 14) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Button(
+                                            onClick = { appForCertificate = app },
+                                            modifier = Modifier.fillMaxWidth().testTag("btn_certificate_${app.id}"),
+                                            shape = RoundedCornerShape(8.dp),
+                                            colors = ButtonDefaults.buttonColors(containerColor = AmberGold)
+                                        ) {
+                                            Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(s.readinessCertificateBtn, color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    // Secondary Actions: Edit Group URL & Delete App
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        TextButton(
+                                            onClick = { appForEditGroupUrl = app },
+                                            modifier = Modifier.testTag("btn_edit_group_url_${app.id}")
+                                        ) {
+                                            Icon(Icons.Default.Edit, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(14.dp))
                                             Spacer(modifier = Modifier.width(4.dp))
-                                            Text("تنوع الأجهزة", fontSize = 10.sp)
+                                            Text(s.editGroupLink, fontSize = 11.sp, color = PlayGreen)
+                                        }
+
+                                        TextButton(
+                                            onClick = { onDeleteApp(app.id) },
+                                            modifier = Modifier.testTag("btn_delete_app_${app.id}")
+                                        ) {
+                                            Icon(Icons.Default.Delete, contentDescription = null, tint = DangerRed, modifier = Modifier.size(14.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(s.deleteAppBtn, fontSize = 11.sp, color = DangerRed)
                                         }
                                     }
                                 }
@@ -1132,6 +1263,38 @@ fun MyAppsScreen(
         DeviceDiversityMatrixDialog(
             app = app,
             onDismiss = { appForDiversity = null }
+        )
+    }
+
+    // 14-Day Track Progress Timeline Dialog
+    appForTimeline?.let { app ->
+        TrackProgressTimelineDialog(
+            app = app,
+            onDismiss = { appForTimeline = null },
+            onOpenReadinessReport = { appForReadinessReport = it }
+        )
+    }
+
+    // Console Shortcuts and Bundle/Mapping Helper Dialog
+    appForConsoleHelper?.let { app ->
+        ConsoleShortcutsAndBundleHelperDialog(
+            app = app,
+            onDismiss = { appForConsoleHelper = null }
+        )
+    }
+
+    // Production Readiness Certificate Dialog
+    appForCertificate?.let { app ->
+        ProductionReadinessCertificateDialog(
+            app = app,
+            onDismiss = { appForCertificate = null }
+        )
+    }
+
+    // Google Play Approval Secrets Guide Dialog
+    if (showApprovalGuide) {
+        PlayApprovalGuideDialog(
+            onDismiss = { showApprovalGuide = false }
         )
     }
 

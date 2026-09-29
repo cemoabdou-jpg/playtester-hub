@@ -6,8 +6,10 @@ import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -52,6 +54,7 @@ import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.ViewAgenda
 import androidx.compose.material.icons.filled.Visibility
@@ -79,8 +82,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.launch
-import com.example.ui.components.JsonBackupDialog
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -92,23 +93,24 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.data.model.AuthUser
 import com.example.data.model.UserWallet
-import com.example.ui.components.DeveloperXpRankCard
+import com.example.ui.components.JsonBackupDialog
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
-import com.example.ui.theme.PlayGreenDark
 import com.example.ui.theme.SuccessGreen
 import com.example.ui.theme.ThemeMode
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.L
 import com.example.util.AppUpdateHelper
 import com.example.util.EmailHelper
 import com.example.util.NotificationHelper
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -123,6 +125,8 @@ fun ProfileSettingsScreen(
     hapticEnabled: Boolean,
     isSimplifiedMode: Boolean,
     themeMode: ThemeMode = ThemeMode.SYSTEM,
+    language: AppLanguage = AppLanguage.AR,
+    onLanguageChange: (AppLanguage) -> Unit = {},
     onThemeModeChange: (ThemeMode) -> Unit = {},
     onUpdateProfile: (name: String) -> Unit,
     onChangePassword: (oldPass: String, newPass: String) -> Unit,
@@ -137,6 +141,8 @@ fun ProfileSettingsScreen(
     onRestoreBackup: suspend (String) -> Pair<Boolean, String> = { Pair(false, "") },
     modifier: Modifier = Modifier
 ) {
+    val s = L.strings()
+    val isArabic = (language == AppLanguage.AR)
     val coroutineScope = rememberCoroutineScope()
     var showBackupDialog by remember { mutableStateOf(false) }
     var currentBackupJson by remember { mutableStateOf("") }
@@ -167,20 +173,21 @@ fun ProfileSettingsScreen(
     ) { isGranted ->
         permissionGranted = isGranted
         if (isGranted) {
-            Toast.makeText(context, "تم تفعيل إذن الإشعارات بنجاح!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, if (isArabic) "تم تفعيل إذن الإشعارات بنجاح!" else "Notifications enabled successfully!", Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(context, "تم رفض الإذن، يرجى تفعيله من إعدادات النظام", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, if (isArabic) "تم رفض الإذن، يرجى تفعيله من إعدادات النظام" else "Permission denied, please enable in system settings", Toast.LENGTH_LONG).show()
         }
     }
 
-    var selectedReminderTime by remember { mutableStateOf("09:00 ص") }
+    var selectedReminderTime by remember { mutableStateOf(if (isArabic) "09:00 ص" else "09:00 AM") }
     var notifyNewApps by remember { mutableStateOf(true) }
     var notifyNewTesters by remember { mutableStateOf(true) }
     var notifyReadinessReport by remember { mutableStateOf(true) }
 
-    val registeredDateFormatted = remember(currentUser?.registeredAt) {
+    val registeredDateFormatted = remember(currentUser?.registeredAt, isArabic) {
         val time = currentUser?.registeredAt ?: System.currentTimeMillis()
-        val sdf = SimpleDateFormat("dd MMMM yyyy", Locale.forLanguageTag("ar"))
+        val locale = if (isArabic) Locale.forLanguageTag("ar") else Locale.ENGLISH
+        val sdf = SimpleDateFormat("dd MMMM yyyy", locale)
         sdf.format(Date(time))
     }
 
@@ -196,21 +203,100 @@ fun ProfileSettingsScreen(
             ProfileHeroCard(
                 user = currentUser,
                 registeredDate = registeredDateFormatted,
+                s = s,
                 onEditNameClick = { showEditNameDialog = true }
             )
+        }
+
+        // --- 1.5. App Language Selection Card ---
+        item {
+            SettingsSectionHeader(title = s.appLanguageTitle, icon = Icons.Default.Translate)
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("card_language_selection")
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = s.appLanguageDesc,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // Arabic Option
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (language == AppLanguage.AR) PlayGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(1.5.dp, if (language == AppLanguage.AR) PlayGreen else MaterialTheme.colorScheme.outlineVariant),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { onLanguageChange(AppLanguage.AR) }
+                                .testTag("lang_select_ar")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(text = "🇸🇦", fontSize = 18.sp)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "العربية",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = if (language == AppLanguage.AR) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (language == AppLanguage.AR) PlayGreen else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+
+                        // English Option
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (language == AppLanguage.EN) PlayGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(1.5.dp, if (language == AppLanguage.EN) PlayGreen else MaterialTheme.colorScheme.outlineVariant),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { onLanguageChange(AppLanguage.EN) }
+                                .testTag("lang_select_en")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(text = "🇬🇧", fontSize = 18.sp)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "English",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = if (language == AppLanguage.EN) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (language == AppLanguage.EN) PlayGreen else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // --- 2. Stats & Rank Summary Card ---
         item {
             UserStatsOverviewCard(
                 wallet = wallet,
+                s = s,
                 onOpenBadges = onOpenBadges
             )
         }
 
         // --- 3. Personal Account Settings ---
         item {
-            SettingsSectionHeader(title = "الحساب والأمان", icon = Icons.Default.Security)
+            SettingsSectionHeader(title = s.accountSection, icon = Icons.Default.Security)
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
@@ -219,11 +305,11 @@ fun ProfileSettingsScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     SettingsRowItem(
                         icon = Icons.Default.Person,
-                        title = "الاسم الظاهر",
-                        subtitle = currentUser?.displayName ?: "غير محدد",
+                        title = s.displayNameLabel,
+                        subtitle = currentUser?.displayName ?: (if (isArabic) "غير محدد" else "Not set"),
                         trailingContent = {
                             IconButton(onClick = { showEditNameDialog = true }, modifier = Modifier.testTag("btn_edit_profile_name")) {
-                                Icon(imageVector = Icons.Default.Edit, contentDescription = "تعديل الاسم", tint = PlayGreen)
+                                Icon(imageVector = Icons.Default.Edit, contentDescription = s.editName, tint = PlayGreen)
                             }
                         }
                     )
@@ -232,8 +318,8 @@ fun ProfileSettingsScreen(
 
                     SettingsRowItem(
                         icon = Icons.Default.Lock,
-                        title = "كلمة المرور",
-                        subtitle = if (currentUser?.authProvider == "GOOGLE") "تم تسجيل الدخول عبر حساب Google" else "••••••••",
+                        title = s.passwordLabel,
+                        subtitle = if (currentUser?.authProvider == "GOOGLE") s.googleSignedIn else "••••••••",
                         trailingContent = {
                             if (currentUser?.authProvider != "GOOGLE") {
                                 OutlinedButton(
@@ -242,7 +328,7 @@ fun ProfileSettingsScreen(
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                                     modifier = Modifier.testTag("btn_change_password")
                                 ) {
-                                    Text("تغيير", style = MaterialTheme.typography.labelMedium)
+                                    Text(s.changeBtn, style = MaterialTheme.typography.labelMedium)
                                 }
                             }
                         }
@@ -252,8 +338,8 @@ fun ProfileSettingsScreen(
 
                     SettingsRowItem(
                         icon = Icons.Default.Email,
-                        title = "البريد الإلكتروني المعتمد",
-                        subtitle = currentUser?.email ?: "غير محدد",
+                        title = s.verifiedEmail,
+                        subtitle = currentUser?.email ?: (if (isArabic) "غير محدد" else "Not set"),
                         trailingContent = {
                             OutlinedButton(
                                 onClick = {
@@ -266,7 +352,7 @@ fun ProfileSettingsScreen(
                             ) {
                                 Icon(imageVector = Icons.Default.Email, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("إرسال تجريبي", style = MaterialTheme.typography.labelSmall)
+                                Text(s.sendTestEmail, style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     )
@@ -276,7 +362,7 @@ fun ProfileSettingsScreen(
 
         // --- 4. Advanced Notification & Alerts Management ---
         item {
-            SettingsSectionHeader(title = "إعدادات الإشعارات والتنبيهات المتقدمة", icon = Icons.Default.Notifications)
+            SettingsSectionHeader(title = s.notificationsSettingsTitle, icon = Icons.Default.Notifications)
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
@@ -287,7 +373,7 @@ fun ProfileSettingsScreen(
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = if (permissionGranted) SuccessGreen.copy(alpha = 0.12f) else AmberGold.copy(alpha = 0.15f),
-                        border = androidx.compose.foundation.BorderStroke(
+                        border = BorderStroke(
                             1.dp,
                             if (permissionGranted) SuccessGreen.copy(alpha = 0.4f) else AmberGold.copy(alpha = 0.4f)
                         ),
@@ -308,13 +394,13 @@ fun ProfileSettingsScreen(
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column {
                                     Text(
-                                        text = if (permissionGranted) "إذن إشعارات النظام: مفعّل وجاهز" else "إذن إشعارات النظام: يحتاج تفعيل",
+                                        text = if (permissionGranted) s.notifPermGranted else s.notifPermNeeded,
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = if (permissionGranted) SuccessGreen else AmberGold
                                     )
                                     Text(
-                                        text = if (permissionGranted) "ستصلك تنبيهات الاختبار اليومي وتحديثات المختبرين." else "اضغط لمنح إذن الإشعارات لضمان عدم تفويت الستريك.",
+                                        text = if (permissionGranted) s.notifPermDescActive else s.notifPermDescInactive,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -330,7 +416,7 @@ fun ProfileSettingsScreen(
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                                     modifier = Modifier.testTag("btn_request_notif_perm")
                                 ) {
-                                    Text("تفعيل", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                                    Text(s.enableBtn, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
                                 }
                             }
                         }
@@ -341,13 +427,13 @@ fun ProfileSettingsScreen(
                         onClick = {
                             val success = NotificationHelper.showSystemNotification(
                                 context = context,
-                                title = "🔔 إشعار تجريبي من PlayTester Hub",
-                                message = "نظام الإشعارات يعمل بكفاءة تامة! ستتلقى التذكيرات اليومية وتحديثات الـ 20 مختبراً في موعدها."
+                                title = if (isArabic) "🔔 إشعار تجريبي من PlayTester Hub" else "🔔 Test Notification from PlayTester Hub",
+                                message = if (isArabic) "نظام الإشعارات يعمل بكفاءة تامة! ستتلقى التذكيرات اليومية وتحديثات الـ 20 مختبراً في موعدها." else "Notification system is active! You will receive daily test reminders on time."
                             )
                             if (success) {
-                                Toast.makeText(context, "تم إرسال إشعار تجريبي للجهاز بنجاح!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, if (isArabic) "تم إرسال إشعار تجريبي للجهاز بنجاح!" else "Test notification sent successfully!", Toast.LENGTH_SHORT).show()
                             } else {
-                                Toast.makeText(context, "يرجى منح إذن الإشعارات أولاً لإظهار التنبيه", Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, if (isArabic) "يرجى منح إذن الإشعارات أولاً لإظهار التنبيه" else "Please grant notification permission first", Toast.LENGTH_LONG).show()
                             }
                         },
                         shape = RoundedCornerShape(10.dp),
@@ -357,7 +443,7 @@ fun ProfileSettingsScreen(
                     ) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("إرسال إشعار تجريبي فوري للتأكد", fontWeight = FontWeight.SemiBold)
+                        Text(s.sendTestNotifBtn, fontWeight = FontWeight.SemiBold)
                     }
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
@@ -372,8 +458,8 @@ fun ProfileSettingsScreen(
                             Icon(imageVector = Icons.Default.NotificationsActive, contentDescription = null, tint = AmberGold, modifier = Modifier.size(22.dp))
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
-                                Text("تذكير الفحص اليومي (14-Day Streak)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("تلقي إشعار لتسجيل فتح وتجربة التطبيقات والحفاظ على الستريك", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(s.dailyStreakReminderTitle, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                Text(s.dailyStreakReminderDesc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                         Switch(
@@ -390,9 +476,10 @@ fun ProfileSettingsScreen(
 
                     // Reminder Preferred Time Chips
                     if (editReminder) {
+                        val timeSlots = if (isArabic) listOf("09:00 ص", "03:00 م", "08:00 م") else listOf("09:00 AM", "03:00 PM", "08:00 PM")
                         Column(modifier = Modifier.padding(start = 32.dp)) {
                             Text(
-                                text = "توقيت التذكير اليومي المفضل:",
+                                text = s.preferredReminderTime,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -401,18 +488,18 @@ fun ProfileSettingsScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                listOf("09:00 ص", "03:00 م", "08:00 م").forEach { timeSlot ->
+                                timeSlots.forEach { timeSlot ->
                                     FilterChip(
                                         selected = selectedReminderTime == timeSlot,
                                         onClick = {
                                             selectedReminderTime = timeSlot
                                             val hour = when (timeSlot) {
-                                                "09:00 ص" -> 9
-                                                "03:00 م" -> 15
+                                                "09:00 ص", "09:00 AM" -> 9
+                                                "03:00 م", "03:00 PM" -> 15
                                                 else -> 20
                                             }
                                             NotificationHelper.setReminderHour(context, hour)
-                                            Toast.makeText(context, "تم جدولة التذكير اليومي الساعة $timeSlot", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, if (isArabic) "تم جدولة التذكير اليومي الساعة $timeSlot" else "Reminder scheduled for $timeSlot", Toast.LENGTH_SHORT).show()
                                         },
                                         label = { Text(timeSlot, fontSize = 12.sp) },
                                         leadingIcon = {
@@ -436,8 +523,8 @@ fun ProfileSettingsScreen(
                             Icon(imageVector = Icons.Default.Group, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(22.dp))
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
-                                Text("تنبيهات انضمام المختبرين لتطبيقي", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("إشعار فوري عند انضمام مطور جديد لاختبار أحد تطبيقاتك", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(s.newTestersAlertsTitle, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                Text(s.newTestersAlertsDesc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                         Switch(
@@ -458,8 +545,8 @@ fun ProfileSettingsScreen(
                             Icon(imageVector = Icons.Default.Bolt, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(22.dp))
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
-                                Text("تنبيهات التطبيقات الجديدة بالمجتمع", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("إشعار عند نشر تطبيقات جديدة تحتاج لمختبرين لكسب نقاط سريعة", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(s.newAppsAlertsTitle, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                Text(s.newAppsAlertsDesc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                         Switch(
@@ -480,8 +567,8 @@ fun ProfileSettingsScreen(
                             Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(22.dp))
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
-                                Text("تنبيهات تقرير الجاهزية واكتمال الاختبار", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("إشعار عند وصول أي تطبيق لـ 20 مختبراً واكتمال 14 يوماً بنجاح", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(s.readinessReportAlertsTitle, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                Text(s.readinessReportAlertsDesc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                         Switch(
@@ -497,7 +584,7 @@ fun ProfileSettingsScreen(
 
         // --- 5. Testing Device & Environment Preferences ---
         item {
-            SettingsSectionHeader(title = "بيئة ومواصفات جهاز الاختبار", icon = Icons.Default.PhoneAndroid)
+            SettingsSectionHeader(title = s.testDeviceEnvTitle, icon = Icons.Default.PhoneAndroid)
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
@@ -505,7 +592,7 @@ fun ProfileSettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "حدد مواصفات هاتفك لتسهيل توجيه التطبيقات المتوافقة وتأكيد تقارير الـ 14 يوماً:",
+                        text = s.testDeviceEnvDesc,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -513,8 +600,8 @@ fun ProfileSettingsScreen(
                     OutlinedTextField(
                         value = editDevice,
                         onValueChange = { editDevice = it },
-                        label = { Text("طراز الجهاز (Device Model)") },
-                        placeholder = { Text("مثال: Samsung S23, Xiaomi 13, Pixel 8") },
+                        label = { Text(s.deviceModelLabel) },
+                        placeholder = { Text(if (isArabic) "مثال: Samsung S23, Xiaomi 13, Pixel 8" else "e.g. Pixel 8, Samsung S23") },
                         leadingIcon = { Icon(imageVector = Icons.Default.PhoneAndroid, contentDescription = null, tint = CyanAccent) },
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
@@ -525,8 +612,8 @@ fun ProfileSettingsScreen(
                     OutlinedTextField(
                         value = editAndroidVer,
                         onValueChange = { editAndroidVer = it },
-                        label = { Text("إصدار الأندرويد (Android OS)") },
-                        placeholder = { Text("مثال: Android 14 (API 34)") },
+                        label = { Text(s.androidVersionLabel) },
+                        placeholder = { Text(if (isArabic) "مثال: Android 14 (API 34)" else "e.g. Android 14 (API 34)") },
                         leadingIcon = { Icon(imageVector = Icons.Default.Android, contentDescription = null, tint = PlayGreen) },
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
@@ -545,8 +632,8 @@ fun ProfileSettingsScreen(
                             Icon(imageVector = Icons.Default.Vibration, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(22.dp))
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
-                                Text("الاستجابة اللمسية (Haptics)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("اهتزاز تفاعلي خفيف عند تأكيد الاختبار وإرسال الملاحظات", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(s.hapticFeedbackTitle, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                Text(s.hapticFeedbackDesc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                         Switch(
@@ -562,7 +649,7 @@ fun ProfileSettingsScreen(
                     Button(
                         onClick = {
                             onUpdatePreferences(editDevice, editAndroidVer, editReminder, editHaptic)
-                            Toast.makeText(context, "تم حفظ بيانات بيئة الاختبار بنجاح!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, if (isArabic) "تم حفظ بيانات بيئة الاختبار بنجاح!" else "Testing device preferences saved successfully!", Toast.LENGTH_SHORT).show()
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
                         shape = RoundedCornerShape(10.dp),
@@ -572,7 +659,7 @@ fun ProfileSettingsScreen(
                     ) {
                         Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("حفظ بيانات بيئة الاختبار", fontWeight = FontWeight.Bold)
+                        Text(s.saveDeviceSpecsBtn, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -587,7 +674,7 @@ fun ProfileSettingsScreen(
                 ThemeMode.SYSTEM -> isSystemDark
             }
 
-            SettingsSectionHeader(title = "المظهر ووضع الإضاءة (Theme Mode)", icon = Icons.Default.BrightnessMedium)
+            SettingsSectionHeader(title = s.themeModeTitle, icon = Icons.Default.BrightnessMedium)
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
@@ -597,7 +684,7 @@ fun ProfileSettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Text(
-                        text = "اختر وضع الإضاءة المناسب لراحة عينيك وتقليل استهلاك البطارية في الإضاءة المنخفضة:",
+                        text = s.themeModeDesc,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -608,8 +695,8 @@ fun ProfileSettingsScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         ThemeOptionCard(
-                            title = "تلقائي",
-                            subtitle = "حسب النظام",
+                            title = s.themeAuto,
+                            subtitle = s.themeAutoSub,
                             icon = Icons.Default.BrightnessAuto,
                             isSelected = themeMode == ThemeMode.SYSTEM,
                             modifier = Modifier
@@ -619,8 +706,8 @@ fun ProfileSettingsScreen(
                         )
 
                         ThemeOptionCard(
-                            title = "فاتح",
-                            subtitle = "نهاري ناصع",
+                            title = s.themeLight,
+                            subtitle = s.themeLightSub,
                             icon = Icons.Default.LightMode,
                             isSelected = themeMode == ThemeMode.LIGHT,
                             modifier = Modifier
@@ -630,8 +717,8 @@ fun ProfileSettingsScreen(
                         )
 
                         ThemeOptionCard(
-                            title = "داكن",
-                            subtitle = "ليلي مريح",
+                            title = s.themeDark,
+                            subtitle = s.themeDarkSub,
                             icon = Icons.Default.DarkMode,
                             isSelected = themeMode == ThemeMode.DARK,
                             modifier = Modifier
@@ -659,12 +746,12 @@ fun ProfileSettingsScreen(
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Text(
-                                    text = if (effectiveDark) "الوضع الداكن مفعّل حالياً" else "الوضع الفاتح مفعّل حالياً",
+                                    text = if (effectiveDark) s.darkModeActive else s.lightModeActive,
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = if (effectiveDark) "ألوان داكنة مريحة للعين في الأماكن المظلمة" else "ألوان واضحة ومتباينة في الإضاءة الخارجية",
+                                    text = if (effectiveDark) (if (isArabic) "ألوان داكنة مريحة للعين في الأماكن المظلمة" else "Comfortable dark palette for low-light environments") else (if (isArabic) "ألوان واضحة ومتباينة في الإضاءة الخارجية" else "High-contrast bright theme for daylight use"),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -685,7 +772,7 @@ fun ProfileSettingsScreen(
 
         // --- 6. App Interface & System Options ---
         item {
-            SettingsSectionHeader(title = "الواجهة والنظام", icon = Icons.Default.ViewAgenda)
+            SettingsSectionHeader(title = s.interfaceAndSystem, icon = Icons.Default.ViewAgenda)
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
@@ -701,8 +788,8 @@ fun ProfileSettingsScreen(
                             Icon(imageVector = Icons.Default.ViewAgenda, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(22.dp))
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
-                                Text("الوضع المبسط (Quick Hub)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("عرض بطاقة الإجراءات السريعة في أعلى الشاشة الرئيسية", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(s.simplifiedModeHubTitle, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                Text(s.simplifiedModeHubDesc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                         Switch(
@@ -718,9 +805,9 @@ fun ProfileSettingsScreen(
                     SettingsActionRow(
                         icon = Icons.AutoMirrored.Filled.HelpOutline,
                         iconTint = CyanAccent,
-                        title = "إعادة جولة الشرح التفاعلية",
-                        subtitle = "تعرف على شروط الـ 20 مختبراً وطريقة نشر وقبول التطبيقات",
-                        buttonText = "بدء الجولة",
+                        title = s.replayOnboardingTitle,
+                        subtitle = s.replayOnboardingDesc,
+                        buttonText = s.startTourBtn,
                         onClick = onOpenOnboarding,
                         testTag = "btn_reopen_onboarding"
                     )
@@ -730,9 +817,9 @@ fun ProfileSettingsScreen(
                     SettingsActionRow(
                         icon = Icons.Default.Backup,
                         iconTint = PlayGreen,
-                        title = "النسخ الاحتياطي واستعادة البيانات (JSON)",
-                        subtitle = "تصدير نسخة احتياطية من نقاطك وتطبيقاتك وسجلاتك أو استعادتها بأمان",
-                        buttonText = "إدارة النسخ",
+                        title = s.backupJsonTitle,
+                        subtitle = s.backupJsonDesc,
+                        buttonText = s.manageBackupBtn,
                         onClick = {
                             coroutineScope.launch {
                                 currentBackupJson = onExportBackup()
@@ -747,7 +834,7 @@ fun ProfileSettingsScreen(
 
         // --- 7. About & Google Play Compliance ---
         item {
-            SettingsSectionHeader(title = "حول المنصة والشروط", icon = Icons.Default.Info)
+            SettingsSectionHeader(title = s.aboutAndComplianceTitle, icon = Icons.Default.Info)
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
@@ -759,7 +846,7 @@ fun ProfileSettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("رقم الإصدار (App Version)", style = MaterialTheme.typography.bodyMedium)
+                        Text(s.appVersionLabel, style = MaterialTheme.typography.bodyMedium)
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = MaterialTheme.colorScheme.primaryContainer
@@ -790,7 +877,7 @@ fun ProfileSettingsScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "التحقق من وجود تحديثات على Google Play",
+                            text = s.checkForUpdatesBtn,
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.labelLarge
                         )
@@ -803,16 +890,16 @@ fun ProfileSettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("معيار الـ 14 يوماً لـ Google Play", style = MaterialTheme.typography.bodyMedium)
+                        Text(s.googlePlay14DaysStandard, style = MaterialTheme.typography.bodyMedium)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("متوافق 100%", style = MaterialTheme.typography.labelMedium, color = PlayGreen, fontWeight = FontWeight.Bold)
+                            Text(s.compliant100, style = MaterialTheme.typography.labelMedium, color = PlayGreen, fontWeight = FontWeight.Bold)
                         }
                     }
 
                     Text(
-                        text = "المنصة تضمن تتبع واستمرارية 20 مختبراً حقيقياً عبر مجموعات Google Groups وروابط الاختبار المغلق الرسمية.",
+                        text = s.complianceNotice,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -820,9 +907,9 @@ fun ProfileSettingsScreen(
             }
         }
 
-        // --- 7. Danger Zone / Logout & Delete ---
+        // --- 8. Danger Zone / Logout & Delete ---
         item {
-            SettingsSectionHeader(title = "إجراءات الحساب", icon = Icons.AutoMirrored.Filled.ExitToApp)
+            SettingsSectionHeader(title = s.accountActionsTitle, icon = Icons.AutoMirrored.Filled.ExitToApp)
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f)),
@@ -839,7 +926,7 @@ fun ProfileSettingsScreen(
                     ) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("تسجيل الخروج من الحساب", fontWeight = FontWeight.Bold)
+                        Text(s.signOutBtn, fontWeight = FontWeight.Bold)
                     }
 
                     TextButton(
@@ -851,7 +938,7 @@ fun ProfileSettingsScreen(
                     ) {
                         Icon(imageVector = Icons.Default.DeleteForever, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("حذف الحساب نهائياً", fontWeight = FontWeight.Bold)
+                        Text(s.deleteAccountPermBtn, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -880,15 +967,15 @@ fun ProfileSettingsScreen(
         var newName by remember { mutableStateOf(currentUser?.displayName ?: "") }
         AlertDialog(
             onDismissRequest = { showEditNameDialog = false },
-            title = { Text("تعديل الاسم الشخصي", fontWeight = FontWeight.Bold) },
+            title = { Text(if (isArabic) "تعديل الاسم الشخصي" else "Edit Display Name", fontWeight = FontWeight.Bold) },
             text = {
                 Column {
-                    Text("أدخل اسمك أو اسم فريق التطوير الذي سيظهر لباقي المختبرين:", style = MaterialTheme.typography.bodySmall)
+                    Text(if (isArabic) "أدخل اسمك أو اسم فريق التطوير الذي سيظهر لباقي المختبرين:" else "Enter your name or dev team name that testers will see:", style = MaterialTheme.typography.bodySmall)
                     Spacer(modifier = Modifier.height(10.dp))
                     OutlinedTextField(
                         value = newName,
                         onValueChange = { newName = it },
-                        label = { Text("الاسم") },
+                        label = { Text(if (isArabic) "الاسم" else "Name") },
                         singleLine = true,
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier
@@ -908,12 +995,12 @@ fun ProfileSettingsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
                     modifier = Modifier.testTag("dialog_btn_confirm_name")
                 ) {
-                    Text("حفظ التغيير", fontWeight = FontWeight.Bold)
+                    Text(if (isArabic) "حفظ التغيير" else "Save Changes", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showEditNameDialog = false }) {
-                    Text("إلغاء")
+                    Text(if (isArabic) "إلغاء" else "Cancel")
                 }
             }
         )
@@ -929,13 +1016,13 @@ fun ProfileSettingsScreen(
 
         AlertDialog(
             onDismissRequest = { showChangePasswordDialog = false },
-            title = { Text("تغيير كلمة المرور", fontWeight = FontWeight.Bold) },
+            title = { Text(if (isArabic) "تغيير كلمة المرور" else "Change Password", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
                         value = oldPass,
                         onValueChange = { oldPass = it; passError = null },
-                        label = { Text("كلمة المرور الحالية") },
+                        label = { Text(if (isArabic) "كلمة المرور الحالية" else "Current Password") },
                         visualTransformation = if (showPasswordText) VisualTransformation.None else PasswordVisualTransformation(),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.fillMaxWidth().testTag("input_old_password")
@@ -944,7 +1031,7 @@ fun ProfileSettingsScreen(
                     OutlinedTextField(
                         value = newPass,
                         onValueChange = { newPass = it; passError = null },
-                        label = { Text("كلمة المرور الجديدة (6 أحرف فأكثر)") },
+                        label = { Text(if (isArabic) "كلمة المرور الجديدة (6 أحرف فأكثر)" else "New Password (6+ characters)") },
                         visualTransformation = if (showPasswordText) VisualTransformation.None else PasswordVisualTransformation(),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.fillMaxWidth().testTag("input_new_password")
@@ -953,7 +1040,7 @@ fun ProfileSettingsScreen(
                     OutlinedTextField(
                         value = confirmPass,
                         onValueChange = { confirmPass = it; passError = null },
-                        label = { Text("تأكيد كلمة المرور الجديدة") },
+                        label = { Text(if (isArabic) "تأكيد كلمة المرور الجديدة" else "Confirm New Password") },
                         visualTransformation = if (showPasswordText) VisualTransformation.None else PasswordVisualTransformation(),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.fillMaxWidth().testTag("input_confirm_new_password")
@@ -971,7 +1058,7 @@ fun ProfileSettingsScreen(
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(if (showPasswordText) "إخفاء الرموز" else "إظهار الرموز", fontSize = 12.sp)
+                            Text(if (showPasswordText) (if (isArabic) "إخفاء الرموز" else "Hide Password") else (if (isArabic) "إظهار الرموز" else "Show Password"), fontSize = 12.sp)
                         }
                     }
 
@@ -984,9 +1071,9 @@ fun ProfileSettingsScreen(
                 Button(
                     onClick = {
                         if (newPass.length < 6) {
-                            passError = "كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل"
+                            passError = if (isArabic) "كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل" else "New password must be at least 6 characters"
                         } else if (newPass != confirmPass) {
-                            passError = "كلمتا المرور غير متطابقتين"
+                            passError = if (isArabic) "كلمتا المرور غير متطابقتين" else "Passwords do not match"
                         } else {
                             onChangePassword(oldPass, newPass)
                             showChangePasswordDialog = false
@@ -995,12 +1082,12 @@ fun ProfileSettingsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
                     modifier = Modifier.testTag("dialog_btn_confirm_password")
                 ) {
-                    Text("تحديث كلمة المرور", fontWeight = FontWeight.Bold)
+                    Text(if (isArabic) "تحديث كلمة المرور" else "Update Password", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showChangePasswordDialog = false }) {
-                    Text("إلغاء")
+                    Text(if (isArabic) "إلغاء" else "Cancel")
                 }
             }
         )
@@ -1014,12 +1101,12 @@ fun ProfileSettingsScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = Icons.Default.DeleteForever, contentDescription = null, tint = DangerRed)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("تأكيد حذف الحساب", fontWeight = FontWeight.Bold, color = DangerRed)
+                    Text(if (isArabic) "تأكيد حذف الحساب" else "Confirm Delete Account", fontWeight = FontWeight.Bold, color = DangerRed)
                 }
             },
             text = {
                 Text(
-                    text = "هل أنت متأكد من رغبتك في حذف حسابك؟ سيؤدي هذا الإجراء إلى مسح بيانات الدخول الخاصة بك والعودة لشاشة البدء.",
+                    text = if (isArabic) "هل أنت متأكد من رغبتك في حذف حسابك؟ سيؤدي هذا الإجراء إلى مسح بيانات الدخول الخاصة بك والعودة لشاشة البدء." else "Are you sure you want to permanently delete your account? This will wipe your login credentials and return to welcome screen.",
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
@@ -1032,12 +1119,12 @@ fun ProfileSettingsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = DangerRed),
                     modifier = Modifier.testTag("dialog_btn_confirm_delete_account")
                 ) {
-                    Text("نعم، احذف الحساب", fontWeight = FontWeight.Bold)
+                    Text(if (isArabic) "نعم، احذف الحساب" else "Yes, Delete Account", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteAccountDialog = false }) {
-                    Text("تراجع")
+                    Text(if (isArabic) "تراجع" else "Cancel")
                 }
             }
         )
@@ -1050,6 +1137,7 @@ fun ProfileSettingsScreen(
 private fun ProfileHeroCard(
     user: AuthUser?,
     registeredDate: String,
+    s: com.example.ui.util.AppStrings,
     onEditNameClick: () -> Unit
 ) {
     Card(
@@ -1088,12 +1176,12 @@ private fun ProfileHeroCard(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = user?.displayName ?: "المطور المعتمد",
+                    text = user?.displayName ?: s.roleTester,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
                 IconButton(onClick = onEditNameClick, modifier = Modifier.size(28.dp)) {
-                    Icon(imageVector = Icons.Default.Edit, contentDescription = "تعديل", tint = PlayGreen, modifier = Modifier.size(16.dp))
+                    Icon(imageVector = Icons.Default.Edit, contentDescription = s.editName, tint = PlayGreen, modifier = Modifier.size(16.dp))
                 }
             }
 
@@ -1113,10 +1201,10 @@ private fun ProfileHeroCard(
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = if (user?.role == "ADMIN") AmberGold.copy(alpha = 0.2f) else PlayGreen.copy(alpha = 0.15f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, if (user?.role == "ADMIN") AmberGold else PlayGreen)
+                    border = BorderStroke(1.dp, if (user?.role == "ADMIN") AmberGold else PlayGreen)
                 ) {
                     Text(
-                        text = if (user?.role == "ADMIN") "👑 صاحب المنصة (Admin)" else "⭐ مطور معتمد (Tester)",
+                        text = if (user?.role == "ADMIN") s.roleAdmin else s.roleTester,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (user?.role == "ADMIN") AmberGold else PlayGreen,
@@ -1141,7 +1229,7 @@ private fun ProfileHeroCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "عضو منذ: $registeredDate",
+                text = "${s.memberSinceLabel} $registeredDate",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
             )
@@ -1152,6 +1240,7 @@ private fun ProfileHeroCard(
 @Composable
 private fun UserStatsOverviewCard(
     wallet: UserWallet,
+    s: com.example.ui.util.AppStrings,
     onOpenBadges: () -> Unit
 ) {
     Card(
@@ -1166,12 +1255,12 @@ private fun UserStatsOverviewCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "سجل الإنجازات والرتب",
+                    text = s.achievementsTitle,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
                 TextButton(onClick = onOpenBadges, contentPadding = PaddingValues(0.dp)) {
-                    Text("عرض الشارات 🏆", style = MaterialTheme.typography.labelMedium, color = AmberGold, fontWeight = FontWeight.Bold)
+                    Text(s.viewBadgesBtn, style = MaterialTheme.typography.labelMedium, color = AmberGold, fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -1181,9 +1270,9 @@ private fun UserStatsOverviewCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                StatItem(icon = Icons.Default.MonetizationOn, tint = AmberGold, value = "${wallet.points}", label = "رصيد النقاط")
-                StatItem(icon = Icons.Default.Bolt, tint = PlayGreen, value = "${wallet.currentStreak} أيام", label = "الستريك النشط")
-                StatItem(icon = Icons.Default.CheckCircle, tint = CyanAccent, value = "${wallet.testsCompleted}", label = "اختبارات مكتملة")
+                StatItem(icon = Icons.Default.MonetizationOn, tint = AmberGold, value = "${wallet.points}", label = s.pointsBalanceLabel)
+                StatItem(icon = Icons.Default.Bolt, tint = PlayGreen, value = "${wallet.currentStreak}", label = s.activeStreakLabel)
+                StatItem(icon = Icons.Default.CheckCircle, tint = CyanAccent, value = "${wallet.testsCompleted}", label = s.testsCompletedLabel)
             }
         }
     }
@@ -1304,7 +1393,7 @@ private fun ThemeOptionCard(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
         color = if (isSelected) PlayGreen.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(
+        border = BorderStroke(
             width = if (isSelected) 1.5.dp else 1.dp,
             color = if (isSelected) PlayGreen else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
         ),
@@ -1337,4 +1426,3 @@ private fun ThemeOptionCard(
         }
     }
 }
-

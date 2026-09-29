@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.ui.theme.PlayGreen
+import com.example.ui.util.L
 import com.example.util.AppUpdateHelper
 import com.example.util.AppUpdateStatus
 
@@ -51,6 +52,7 @@ fun InAppUpdateDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    val s = L.strings()
 
     Dialog(
         onDismissRequest = {
@@ -96,7 +98,7 @@ fun InAppUpdateDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "يتوفر تحديث جديد على Google Play",
+                    text = s.updateDialogTitle,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -124,7 +126,7 @@ fun InAppUpdateDialog(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "الإصدار v${updateStatus.latestVersionName} (Build ${updateStatus.latestVersionCode})",
+                                text = "v${updateStatus.latestVersionName} (Build ${updateStatus.latestVersionCode})",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = PlayGreen,
                                 fontWeight = FontWeight.Bold
@@ -145,14 +147,14 @@ fun InAppUpdateDialog(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "ما الجديد في هذا التحديث؟",
+                            text = s.updateWhatsNewTitle,
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = if (updateStatus.releaseNotes.isNotBlank()) updateStatus.releaseNotes else "تحسين أداء التطبيق، إضافة مزايا جديدة في سوق التبادل، واستقرار أسرع في المزامنة مع متجر جوجل بلاي.",
+                            text = if (updateStatus.releaseNotes.isNotBlank()) updateStatus.releaseNotes else s.updateDefaultReleaseNotes,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             lineHeight = 20.sp
@@ -193,7 +195,7 @@ fun InAppUpdateDialog(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "تحديث الآن عبر متجر جوجل بلاي",
+                        text = s.updateNowBtn,
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp
                     )
@@ -210,7 +212,7 @@ fun InAppUpdateDialog(
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Text(
-                            text = "تذكيري لاحقاً",
+                            text = s.remindMeLaterBtn,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }

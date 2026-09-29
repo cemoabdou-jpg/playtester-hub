@@ -1,6 +1,10 @@
 package com.example.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,6 +24,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.NotificationsActive
@@ -59,6 +67,9 @@ import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.PlayGreen
 import com.example.ui.theme.SuccessGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.LocalAppLanguage
+import com.example.ui.util.L
 import com.example.util.NotificationHelper
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -77,29 +88,30 @@ fun MyTestingScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val language = LocalAppLanguage.current
+    val isArabic = language == AppLanguage.AR
+    val s = L.strings()
     var selectedTestForFeedback by remember { mutableStateOf<JoinedTest?>(null) }
     var selectedTestForDailyConfirmation by remember { mutableStateOf<JoinedTest?>(null) }
-    var reminderEnabled by remember { mutableStateOf(NotificationHelper.isDailyReminderEnabled(context)) }
-    var reminderSentNotice by remember { mutableStateOf(false) }
+    var showMissionsAndXp by remember { mutableStateOf(false) }
 
     val todayStr = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
     val activeCount = joinedTests.count { !it.isCompleted }
     val completedCount = joinedTests.count { it.isCompleted }
-    val pendingDailyConfirmCount = joinedTests.count { !it.isCompleted && it.lastCheckInDate != todayStr }
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .testTag("my_testing_list"),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 88.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Stats Row
+            // Compact Decluttered Stats & Missions Bar
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Card(
                         modifier = Modifier.weight(1f),
@@ -107,7 +119,7 @@ fun MyTestingScreen(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         Column(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(10.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
@@ -117,7 +129,7 @@ fun MyTestingScreen(
                                 color = CyanAccent
                             )
                             Text(
-                                text = "تطبيقات قيد الاختبار",
+                                text = s.testingActiveCount,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -130,7 +142,7 @@ fun MyTestingScreen(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         Column(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(10.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
@@ -140,7 +152,7 @@ fun MyTestingScreen(
                                 color = SuccessGreen
                             )
                             Text(
-                                text = "أتممت 14 يوماً",
+                                text = s.testingCompletedCount,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -149,26 +161,74 @@ fun MyTestingScreen(
                 }
             }
 
-            // Developer XP Level & Rank
+            // Collapsible Missions & XP Card (Declutters screen while keeping full functionality)
             item {
-                val totalPoints = joinedTests.sumOf { it.daysCompleted * 25 } + (currentStreak * 25)
-                DeveloperXpRankCard(
-                    points = totalPoints,
-                    streakDays = currentStreak
-                )
-            }
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateContentSize()
+                        .testTag("missions_xp_header_card")
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showMissionsAndXp = !showMissionsAndXp }
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.EmojiEvents,
+                                    contentDescription = null,
+                                    tint = AmberGold,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = if (isArabic) "المهام اليومية ورتبة المطور 🏆" else "Daily Missions & Developer XP 🏆",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            Icon(
+                                imageVector = if (showMissionsAndXp) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
 
-            // Daily Developer Missions Card
-            item {
-                DailyMissionsCard(
-                    joinedTests = joinedTests,
-                    currentStreak = currentStreak,
-                    todayStr = todayStr,
-                    onNavigateToCommunity = onNavigateToCommunity,
-                    onQuickFeedbackClick = if (joinedTests.isNotEmpty()) {
-                        { selectedTestForFeedback = joinedTests.first() }
-                    } else null
-                )
+                        if (showMissionsAndXp) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                val totalPoints = joinedTests.sumOf { it.daysCompleted * 25 } + (currentStreak * 25)
+                                DeveloperXpRankCard(
+                                    points = totalPoints,
+                                    streakDays = currentStreak
+                                )
+
+                                DailyMissionsCard(
+                                    joinedTests = joinedTests,
+                                    currentStreak = currentStreak,
+                                    todayStr = todayStr,
+                                    onNavigateToCommunity = onNavigateToCommunity,
+                                    onQuickFeedbackClick = if (joinedTests.isNotEmpty()) {
+                                        { selectedTestForFeedback = joinedTests.first() }
+                                    } else null
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             // Empty state
@@ -179,29 +239,32 @@ fun MyTestingScreen(
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 24.dp)
+                            .padding(vertical = 16.dp)
                     ) {
                         Column(
-                            modifier = Modifier.padding(24.dp),
+                            modifier = Modifier.padding(20.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Schedule,
                                 contentDescription = null,
-                                modifier = Modifier.size(54.dp),
+                                modifier = Modifier.size(48.dp),
                                 tint = MaterialTheme.colorScheme.primary
                             )
-                            Spacer(modifier = Modifier.height(14.dp))
+                            Spacer(modifier = Modifier.height(10.dp))
                             Text(
-                                text = "لم تنضم لأي اختبار بعد!",
+                                text = s.noTestsJoinedYet,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "انضم لتطبيقات المطورين وافتحها يومياً لتبادل الاختبار، ويمكنك نشر تطبيقاتك مجاناً وبدون أي شروط!",
+                                text = if (isArabic)
+                                    "انضم لتطبيقات المطورين وافتحها يومياً لتبادل الاختبار، ونشر تطبيقاتك مجاناً!"
+                                else
+                                    "Join peer apps and test daily to exchange tests and publish your apps freely!",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
+                                modifier = Modifier.padding(top = 4.dp, bottom = 14.dp)
                             )
                             Button(
                                 onClick = onNavigateToCommunity,
@@ -210,7 +273,7 @@ fun MyTestingScreen(
                             ) {
                                 Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.size(6.dp))
-                                Text("تصفح سوق التطبيقات")
+                                Text(s.browseMarketBtn)
                             }
                         }
                     }

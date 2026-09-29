@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -69,6 +71,10 @@ import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
 import com.example.ui.theme.SuccessGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.L
+import com.example.ui.util.LocalAppLanguage
+import com.example.util.AppUpdateStatus
 
 @Composable
 fun CommunityScreen(
@@ -77,6 +83,8 @@ fun CommunityScreen(
     searchQuery: String,
     selectedCategory: String,
     currentUser: AuthUser? = null,
+    appUpdateStatus: AppUpdateStatus? = null,
+    onUpdateClick: (() -> Unit)? = null,
     isSyncing: Boolean = false,
     syncStatusMessage: String? = null,
     diagnosticResult: CloudDiagnosticResult? = null,
@@ -95,11 +103,26 @@ fun CommunityScreen(
     modifier: Modifier = Modifier
 ) {
     val joinedAppIds = joinedTests.map { it.communityAppId }.toSet()
+    val s = L.strings()
+    val language = LocalAppLanguage.current
+    val isArabic = language == AppLanguage.AR
 
     var sortBy by remember { mutableStateOf("PRIORITY") } // "PRIORITY", "URGENT", "REWARD"
     var showReciprocalDialog by remember { mutableStateOf(false) }
     var showImportAppDialog by remember { mutableStateOf(false) }
     var showCloudDiagnosticsDialog by remember { mutableStateOf(false) }
+
+    val categories = remember(s) {
+        listOf(
+            "الكل" to s.categoryAll,
+            "أدوات" to s.categoryTools,
+            "ألعاب" to s.categoryGames,
+            "إنتاجية" to s.categoryProductivity,
+            "تواصل" to s.categorySocial,
+            "تعليم" to s.categoryEducation,
+            "مالية" to s.categoryFinance
+        )
+    }
 
     val sortedCommunityApps: List<CommunityApp> = remember(communityApps, sortBy) {
         val uniqueApps = communityApps.distinctBy { it.packageName.trim().lowercase() }
@@ -119,68 +142,161 @@ fun CommunityScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .testTag("community_apps_list"),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 88.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Hero Banner
-            item {
-                HeroBannerCard(onPublishClick = onPublishClick)
-            }
-
-            // 1-on-1 Reciprocal Matching Banner
-            item {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = AmberGold.copy(alpha = 0.12f),
-                    border = BorderStroke(1.dp, AmberGold.copy(alpha = 0.4f)),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { showReciprocalDialog = true }
-                        .testTag("banner_reciprocal_matching")
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+            // --- 0. Update Notice Banner ---
+            if (appUpdateStatus?.isUpdateAvailable == true) {
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = AmberGold.copy(alpha = 0.15f),
+                        border = BorderStroke(1.5.dp, AmberGold),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onUpdateClick?.invoke() }
+                            .testTag("banner_app_update_available")
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = AmberGold,
-                                modifier = Modifier.size(36.dp)
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
                             ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Default.Handshake, contentDescription = null, tint = Color.Black, modifier = Modifier.size(20.dp))
+                                Surface(
+                                    shape = CircleShape,
+                                    color = AmberGold,
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.SystemUpdate,
+                                            contentDescription = null,
+                                            tint = Color.Black,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = s.updateBannerTitle,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = s.updateBannerSubtitleFmt(appUpdateStatus.latestVersionName),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 12.sp
+                                    )
                                 }
                             }
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column {
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            Button(
+                                onClick = { onUpdateClick?.invoke() },
+                                colors = ButtonDefaults.buttonColors(containerColor = AmberGold),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                modifier = Modifier.testTag("btn_banner_update_now")
+                            ) {
                                 Text(
-                                    text = "شراكات التبادل والالتزام المتبادل (1-on-1)",
-                                    style = MaterialTheme.typography.titleSmall,
+                                    text = s.updateNowBtn,
+                                    color = Color.Black,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "اختبر تطبيق مطور آخر يومياً لـ 14 يوماً مقابل اختبار تطبيقك + نقاط مضاعفة!",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    fontSize = 12.sp
                                 )
                             }
                         }
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = AmberGold.copy(alpha = 0.25f),
-                            border = BorderStroke(1.dp, AmberGold)
+                    }
+                }
+            }
+
+            // --- Top Quick Action Bar ---
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Publish Button
+                    Button(
+                        onClick = onPublishClick,
+                        colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        modifier = Modifier.testTag("btn_quick_publish")
+                    ) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(s.publishNewAppBtn, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    // Reciprocal 1-on-1 Matching
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = AmberGold.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, AmberGold.copy(alpha = 0.4f)),
+                        modifier = Modifier
+                            .clickable { showReciprocalDialog = true }
+                            .testTag("chip_reciprocal_matching")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "عرض الشراكات ←",
-                                color = Color.Black,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
+                            Icon(Icons.Default.Handshake, contentDescription = null, tint = AmberGold, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(s.reciprocalTitle, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
+
+                    // Import direct link
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = CyanAccent.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, CyanAccent.copy(alpha = 0.4f)),
+                        modifier = Modifier
+                            .clickable { showImportAppDialog = true }
+                            .testTag("chip_import_app")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.AddLink, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(s.importAppBtn, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
+
+                    // Cloud Health / Sync
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier
+                            .clickable {
+                                showCloudDiagnosticsDialog = true
+                                onRunCloudDiagnostics()
+                            }
+                            .testTag("chip_cloud_diagnostics")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.CloudSync, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(s.cloudSyncTitle, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
@@ -194,24 +310,55 @@ fun CommunityScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("search_field"),
-                    placeholder = { Text("ابحث عن تطبيق أو مطور...") },
+                    placeholder = { Text(s.searchPlaceholder) },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Search,
-                            contentDescription = "بحث",
+                            contentDescription = "Search",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { onSearchChange("") }) {
-                                Icon(imageVector = Icons.Default.Clear, contentDescription = "مسح")
+                                Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear")
                             }
                         }
                     },
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true
                 )
+            }
+
+            // Categories Filter Chips
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    categories.forEach { (catKey, catLabel) ->
+                        val isSelected = selectedCategory == catKey || (catKey == "الكل" && (selectedCategory == "الكل" || selectedCategory == "All"))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isSelected) PlayGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
+                            border = BorderStroke(1.dp, if (isSelected) PlayGreen else MaterialTheme.colorScheme.outlineVariant),
+                            modifier = Modifier
+                                .clickable { onCategorySelect(catKey) }
+                                .testTag("cat_chip_$catKey")
+                        ) {
+                            Text(
+                                text = catLabel,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) PlayGreen else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
             }
 
             // Sorting Options Row
@@ -224,7 +371,7 @@ fun CommunityScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "ترتيب حسب:",
+                        text = s.sortLabel,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -239,7 +386,7 @@ fun CommunityScreen(
                             .clickable { sortBy = "PRIORITY" }
                     ) {
                         Text(
-                            text = "⭐ الأولوية",
+                            text = s.sortPriority,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = if (sortBy == "PRIORITY") PlayGreen else MaterialTheme.colorScheme.onSurface,
@@ -256,7 +403,7 @@ fun CommunityScreen(
                             .clickable { sortBy = "URGENT" }
                     ) {
                         Text(
-                            text = "🔥 الأكثر احتياجاً",
+                            text = s.sortUrgent,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = if (sortBy == "URGENT") AmberGold else MaterialTheme.colorScheme.onSurface,
@@ -273,7 +420,7 @@ fun CommunityScreen(
                             .clickable { sortBy = "REWARD" }
                     ) {
                         Text(
-                            text = "💎 الأعلى مكافأة",
+                            text = s.sortReward,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = if (sortBy == "REWARD") CyanAccent else MaterialTheme.colorScheme.onSurface,
@@ -292,7 +439,7 @@ fun CommunityScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "تطبيقات بحاجة لمختبرين (${communityApps.size})",
+                            text = "${s.marketTitle} (${communityApps.size})",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -314,7 +461,7 @@ fun CommunityScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.CloudSync,
-                                    contentDescription = "حالة السحابة",
+                                    contentDescription = if (isArabic) "حالة السحابة" else "Cloud Status",
                                     tint = AmberGold,
                                     modifier = Modifier.size(20.dp)
                                 )
@@ -337,16 +484,16 @@ fun CommunityScreen(
                                         color = PlayGreen
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("مزامنة...", fontSize = 11.sp, color = PlayGreen)
+                                    Text(if (isArabic) "مزامنة..." else "Syncing...", fontSize = 11.sp, color = PlayGreen)
                                 } else {
                                     Icon(
                                         imageVector = Icons.Default.Refresh,
-                                        contentDescription = "مزامنة السحابة",
+                                        contentDescription = if (isArabic) "مزامنة السحابة" else "Cloud Sync",
                                         tint = PlayGreen,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("تحديث", fontSize = 11.sp, color = PlayGreen, fontWeight = FontWeight.SemiBold)
+                                    Text(if (isArabic) "تحديث" else "Refresh", fontSize = 11.sp, color = PlayGreen, fontWeight = FontWeight.SemiBold)
                                 }
                             }
                         }
@@ -370,9 +517,9 @@ fun CommunityScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = if (msg.contains("نجاح") || msg.contains("تحديث")) Icons.Default.CloudDone else Icons.Default.CloudSync,
+                                    imageVector = if (msg.contains("نجاح") || msg.contains("Success") || msg.contains("up to date")) Icons.Default.CloudDone else Icons.Default.CloudSync,
                                     contentDescription = null,
-                                    tint = if (msg.contains("نجاح") || msg.contains("تحديث")) SuccessGreen else if (msg.contains("تنبيه") || msg.contains("فشل")) DangerRed else PlayGreen,
+                                    tint = if (msg.contains("نجاح") || msg.contains("Success")) SuccessGreen else if (msg.contains("تنبيه") || msg.contains("Error") || msg.contains("fail")) DangerRed else PlayGreen,
                                     modifier = Modifier.size(14.dp)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -383,9 +530,9 @@ fun CommunityScreen(
                                     fontSize = 10.sp,
                                     modifier = Modifier.weight(1f)
                                 )
-                                if (msg.contains("تنبيه") || msg.contains("فشل") || msg.contains("صلاحيات")) {
+                                if (msg.contains("تنبيه") || msg.contains("فشل") || msg.contains("Error") || msg.contains("Permission")) {
                                     Text(
-                                        text = "عرض الحل 🛠️",
+                                        text = if (isArabic) "عرض الحل 🛠️" else "View Fix 🛠️",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = AmberGold,
                                         fontWeight = FontWeight.Bold,
@@ -420,19 +567,21 @@ fun CommunityScreen(
                             )
                             Spacer(modifier = Modifier.height(10.dp))
                             Text(
-                                text = if (searchQuery.isBlank() && selectedCategory == "الكل")
-                                    "لم تظهر تطبيقات بعد من السيرفر السحابي"
-                                else
-                                    "لا توجد نتائج مطابقة للبحث",
+                                text = s.noAppsFound,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = if (searchQuery.isBlank() && selectedCategory == "الكل")
-                                    "إذا أضاف مطورون آخرون تطبيقاتهم ولم تظهر، اضغط على «فاحص السحابة» للتأكد من صلاحيات Firebase أو استخدم «إضافة بالرابط» المباشر!"
-                                else
-                                    "جرب تغيير كلمات البحث أو اختيار تصنيف آخر",
+                                text = if (searchQuery.isBlank() && selectedCategory == "الكل") {
+                                    if (isArabic) {
+                                        "إذا أضاف مطورون آخرون تطبيقاتهم ولم تظهر، اضغط على «فاحص السحابة» للتأكد من صلاحيات Firebase أو استخدم «إضافة بالرابط» المباشر!"
+                                    } else {
+                                        "If other developers added apps and they don't show, tap 'Cloud Diagnostics' to verify Firebase sync or use direct 'Import by Link'!"
+                                    }
+                                } else {
+                                    if (isArabic) "جرب تغيير كلمات البحث أو اختيار تصنيف آخر" else "Try changing search terms or selecting a different category"
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -449,7 +598,7 @@ fun CommunityScreen(
                                 ) {
                                     Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("مزامنة السيرفر 🔄", fontSize = 12.sp)
+                                    Text(if (isArabic) "مزامنة السيرفر 🔄" else "Sync Server 🔄", fontSize = 12.sp)
                                 }
                                 Button(
                                     onClick = {
@@ -461,7 +610,7 @@ fun CommunityScreen(
                                 ) {
                                     Icon(imageVector = Icons.Default.CloudSync, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("فاحص السحابة 🌐", color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Text(if (isArabic) "فاحص السحابة 🌐" else "Cloud Inspector 🌐", color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                 }
                                 OutlinedButton(
                                     onClick = { showImportAppDialog = true },
@@ -469,7 +618,7 @@ fun CommunityScreen(
                                 ) {
                                     Icon(imageVector = Icons.Default.AddLink, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("إضافة بالرابط 🔗", fontSize = 12.sp)
+                                    Text(if (isArabic) "إضافة بالرابط 🔗" else "Import Link 🔗", fontSize = 12.sp)
                                 }
                             }
                         }
@@ -502,9 +651,9 @@ fun CommunityScreen(
                 modifier = Modifier.padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Add, contentDescription = "أضف تطبيقك")
+                Icon(Icons.Default.Add, contentDescription = if (isArabic) "أضف تطبيقك" else "Add Your App")
                 Spacer(modifier = Modifier.size(6.dp))
-                Text("أضف تطبيقك", fontWeight = FontWeight.Bold)
+                Text(if (isArabic) "أضف تطبيقك" else "Add App", fontWeight = FontWeight.Bold)
             }
         }
     }

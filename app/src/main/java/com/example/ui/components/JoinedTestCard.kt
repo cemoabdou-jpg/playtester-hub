@@ -28,8 +28,6 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.LockClock
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Button
@@ -60,6 +58,9 @@ import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
 import com.example.ui.theme.SuccessGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.L
+import com.example.ui.util.LocalAppLanguage
 import coil.compose.AsyncImage
 import java.io.File
 import java.text.SimpleDateFormat
@@ -77,6 +78,9 @@ fun JoinedTestCard(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val language = LocalAppLanguage.current
+    val isArabic = language == AppLanguage.AR
+    val s = L.strings()
     val todayStr = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
     val isCheckedToday = test.lastCheckInDate == todayStr
     val checkedDaysList = remember(test.checkedDaysCsv) {
@@ -125,7 +129,7 @@ fun JoinedTestCard(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = if (test.isCompleted) "اكتمل الاختبار (14 يوماً)" else "جاري الاختبار المغلق",
+                            text = if (test.isCompleted) s.testingCompletedCount else s.testingActiveCount,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = if (test.isCompleted) SuccessGreen else CyanAccent
@@ -141,7 +145,7 @@ fun JoinedTestCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "حذف الاختبار",
+                        contentDescription = s.deleteJoinedTest,
                         tint = DangerRed.copy(alpha = 0.7f),
                         modifier = Modifier.size(18.dp)
                     )
@@ -167,6 +171,7 @@ fun JoinedTestCard(
                                 packageName = test.packageName,
                                 fallbackUrl = test.androidOptInUrl,
                                 appName = test.appName,
+                                isArabic = isArabic,
                                 onRecordOpened = onRecordOpened
                             )
                         }
@@ -176,7 +181,7 @@ fun JoinedTestCard(
                     if (test.iconUrl.isNotBlank()) {
                         AsyncImage(
                             model = if (test.iconUrl.startsWith("/")) File(test.iconUrl) else test.iconUrl,
-                            contentDescription = "أيقونة ${test.appName}",
+                            contentDescription = if (isArabic) "أيقونة ${test.appName}" else "Icon of ${test.appName}",
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp)),
@@ -200,7 +205,7 @@ fun JoinedTestCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "فتح",
+                            contentDescription = if (isArabic) "فتح" else "Launch",
                             tint = Color.White,
                             modifier = Modifier.size(10.dp).padding(1.dp)
                         )
@@ -220,7 +225,7 @@ fun JoinedTestCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "⚡ اضغط على الأيقونة لفتح التطبيق وتوثيق اليوم",
+                        text = if (isArabic) "⚡ اضغط على الأيقونة لفتح التطبيق وتوثيق اليوم" else "⚡ Tap icon to launch app & track testing",
                         style = MaterialTheme.typography.labelSmall,
                         color = PlayGreen,
                         fontSize = 10.sp,
@@ -238,13 +243,13 @@ fun JoinedTestCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "سجل الأيام الـ 14 المطلوبة:",
+                    text = if (isArabic) "سجل الأيام الـ 14 المطلوبة:" else "14-Day Testing Progress:",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "اليوم ${test.daysCompleted} / 14 (${(progress * 100).toInt()}%)",
+                    text = s.daysCompletedFmt(test.daysCompleted),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = if (test.isCompleted) PlayGreen else MaterialTheme.colorScheme.primary
@@ -299,7 +304,7 @@ fun JoinedTestCard(
                         if (isChecked) {
                             Icon(
                                 imageVector = Icons.Default.Check,
-                                contentDescription = "يوم $day مكتمل",
+                                contentDescription = if (isArabic) "يوم $day مكتمل" else "Day $day completed",
                                 tint = Color.White,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -335,26 +340,26 @@ fun JoinedTestCard(
                     if (isCheckedToday) {
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "تم تأكيد تجربة اليوم",
+                            contentDescription = s.checkInDoneToday,
                             tint = PlayGreen,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "تم توثيق وتأكيد تجربة اليوم بنجاح ✓",
+                            text = s.checkInDoneToday,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Medium
                         )
                     } else {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.FactCheck,
-                            contentDescription = "تأكيد التجربة اليومية",
+                            contentDescription = s.dailyCheckIn,
                             modifier = Modifier.size(20.dp),
                             tint = Color.Black
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "تأكيد التجربة اليومية (+25 نقطة)",
+                            text = s.dailyCheckIn,
                             fontWeight = FontWeight.Bold,
                             color = Color.Black
                         )
@@ -377,6 +382,7 @@ fun JoinedTestCard(
                             packageName = test.packageName,
                             fallbackUrl = test.androidOptInUrl,
                             appName = test.appName,
+                            isArabic = isArabic,
                             onRecordOpened = onRecordOpened
                         )
                     },
@@ -387,11 +393,11 @@ fun JoinedTestCard(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                        contentDescription = "فتح التطبيق",
+                        contentDescription = s.openAppBtn,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("فتح التطبيق", maxLines = 1)
+                    Text(s.openAppBtn, maxLines = 1)
                 }
 
                 // Send feedback button
@@ -404,13 +410,13 @@ fun JoinedTestCard(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Chat,
-                        contentDescription = "تقديم ملاحظات",
+                        contentDescription = s.sendFeedbackBtn,
                         tint = if (test.feedbackSent) SuccessGreen else MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = if (test.feedbackSent) "تم التقييم ✓" else "تقييم وملاحظة",
+                        text = if (test.feedbackSent) (if (isArabic) "تم التقييم ✓" else "Rated ✓") else s.sendFeedbackBtn,
                         maxLines = 1
                     )
                 }
@@ -424,6 +430,7 @@ fun launchOrOpenApp(
     packageName: String,
     fallbackUrl: String,
     appName: String = "",
+    isArabic: Boolean = true,
     onRecordOpened: (String, String) -> Unit = { _, _ -> }
 ): Boolean {
     val pm = context.packageManager
@@ -431,14 +438,14 @@ fun launchOrOpenApp(
     return if (launchIntent != null) {
         launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(launchIntent)
-        Toast.makeText(context, "جاري فتح التطبيق وتسجيل مشاركتك...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, if (isArabic) "جاري فتح التطبيق وتسجيل مشاركتك..." else "Launching app and logging test activity...", Toast.LENGTH_SHORT).show()
         onRecordOpened(packageName, appName.ifBlank { packageName })
         true
     } else {
         // Not installed, open Play Store test link
         val url = if (fallbackUrl.isNotBlank()) fallbackUrl else "https://play.google.com/store/apps/details?id=$packageName"
         openUrl(context, url)
-        Toast.makeText(context, "جاري فتح صفحة التثبيت والاختبار...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, if (isArabic) "جاري فتح صفحة التثبيت والاختبار..." else "Opening Play Store testing page...", Toast.LENGTH_SHORT).show()
         onRecordOpened(packageName, appName.ifBlank { packageName })
         false
     }

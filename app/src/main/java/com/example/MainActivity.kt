@@ -32,6 +32,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -40,14 +41,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.model.BadgeCalculator
 import com.example.data.model.InvitedTester
 import com.example.data.model.JoinedTest
 import com.example.data.model.UserApp
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.L
+import com.example.ui.util.LocalAppLanguage
 import com.example.ui.components.AddAppDialog
 import com.example.ui.components.AppHeader
 import com.example.ui.components.BadgesDialog
@@ -118,6 +124,7 @@ fun PlayTesterApp(
     var testerForTip by remember { mutableStateOf<InvitedTester?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
+    val language by viewModel.language.collectAsStateWithLifecycle()
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     val isOnboardingCompleted by viewModel.isOnboardingCompleted.collectAsStateWithLifecycle()
     val allArtifacts by viewModel.allArtifacts.collectAsStateWithLifecycle()
@@ -146,6 +153,7 @@ fun PlayTesterApp(
     val officialGoogleGroupUrl by viewModel.officialGoogleGroupUrl.collectAsStateWithLifecycle()
     val officialGoogleGroupEmail by viewModel.officialGoogleGroupEmail.collectAsStateWithLifecycle()
     val appUpdateStatus by viewModel.appUpdateStatus.collectAsStateWithLifecycle()
+    val showUpdateDialog by viewModel.showUpdateDialog.collectAsStateWithLifecycle()
     val isSyncingApps by viewModel.isSyncingApps.collectAsStateWithLifecycle()
     val syncStatusMessage by viewModel.syncStatusMessage.collectAsStateWithLifecycle()
     val cloudDiagnostic by viewModel.cloudDiagnostic.collectAsStateWithLifecycle()
@@ -189,137 +197,148 @@ fun PlayTesterApp(
         }
     }
 
-    // If no user is logged in, present the secure Authentication screen
-    if (currentUser == null) {
-        AuthScreen(
-            onLogin = { email, pass -> viewModel.login(email, pass) },
-            onRegister = { name, email, pass -> viewModel.register(name, email, pass) },
-            onGoogleSignIn = { email, name -> viewModel.loginWithGoogle(email, name) },
-            onResetPassword = { email, newPass, onResult ->
-                viewModel.resetPassword(email, newPass, onResult)
-            }
-        )
-        return
-    }
+    val layoutDirection = if (language == AppLanguage.AR) LayoutDirection.Rtl else LayoutDirection.Ltr
+    CompositionLocalProvider(
+        LocalLayoutDirection provides layoutDirection,
+        LocalAppLanguage provides language
+    ) {
+        val s = L.strings()
 
-    // If onboarding is not completed or user explicitly reopened it, show OnboardingScreen
-    if (!isOnboardingCompleted || showOnboardingExplicitly) {
-        OnboardingScreen(
-            onFinishOnboarding = {
-                viewModel.setOnboardingCompleted(true)
-                showOnboardingExplicitly = false
-            }
-        )
-        return
-    }
-
-    Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .imePadding(),
-        topBar = {
-            AppHeader(
-                wallet = wallet,
-                currentUser = currentUser,
-                unreadNotificationsCount = unreadNotificationsCount,
-                isSimplifiedMode = isSimplifiedMode,
-                isDarkTheme = isDarkTheme,
-                onToggleTheme = { viewModel.toggleDarkLightMode(isDarkTheme) },
-                onNotificationsClick = { showNotificationsDialog = true },
-                onBadgesClick = { showBadgesDialog = true },
-                onProfileClick = { currentTab = 4 },
-                onOpenOnboarding = { showOnboardingExplicitly = true },
-                onToggleSimplifiedMode = { viewModel.toggleSimplifiedMode() },
-                onLogout = { viewModel.logout() }
+        // If no user is logged in, present the secure Authentication screen
+        if (currentUser == null) {
+            AuthScreen(
+                language = language,
+                onToggleLanguage = { viewModel.toggleLanguage() },
+                onLogin = { email, pass -> viewModel.login(email, pass) },
+                onRegister = { name, email, pass -> viewModel.register(name, email, pass) },
+                onGoogleSignIn = { email, name -> viewModel.loginWithGoogle(email, name) },
+                onResetPassword = { email, newPass, onResult ->
+                    viewModel.resetPassword(email, newPass, onResult)
+                }
             )
-        },
-        bottomBar = {
-            NavigationBar(
-                modifier = Modifier.testTag("bottom_navigation")
-            ) {
-                NavigationBarItem(
-                    selected = currentTab == 0,
-                    onClick = { currentTab = 0 },
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Default.SwapHoriz,
-                            contentDescription = "التبادل"
-                        )
-                    },
-                    label = { Text("التبادل") },
-                    modifier = Modifier.testTag("tab_community")
-                )
+            return@CompositionLocalProvider
+        }
 
-                NavigationBarItem(
-                    selected = currentTab == 1,
-                    onClick = { currentTab = 1 },
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "اختباراتي"
-                        )
-                    },
-                    label = { Text("اختباراتي") },
-                    modifier = Modifier.testTag("tab_my_testing")
-                )
+        // If onboarding is not completed or user explicitly reopened it, show OnboardingScreen
+        if (!isOnboardingCompleted || showOnboardingExplicitly) {
+            OnboardingScreen(
+                onFinishOnboarding = {
+                    viewModel.setOnboardingCompleted(true)
+                    showOnboardingExplicitly = false
+                }
+            )
+            return@CompositionLocalProvider
+        }
 
-                NavigationBarItem(
-                    selected = currentTab == 2,
-                    onClick = { currentTab = 2 },
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Default.RocketLaunch,
-                            contentDescription = "تطبيقاتي"
-                        )
-                    },
-                    label = { Text("تطبيقاتي") },
-                    modifier = Modifier.testTag("tab_my_apps")
+        Scaffold(
+            modifier = Modifier
+                .fillMaxSize()
+                .imePadding(),
+            topBar = {
+                AppHeader(
+                    wallet = wallet,
+                    currentUser = currentUser,
+                    unreadNotificationsCount = unreadNotificationsCount,
+                    isSimplifiedMode = isSimplifiedMode,
+                    isDarkTheme = isDarkTheme,
+                    language = language,
+                    onToggleLanguage = { viewModel.toggleLanguage() },
+                    onToggleTheme = { viewModel.toggleDarkLightMode(isDarkTheme) },
+                    onNotificationsClick = { showNotificationsDialog = true },
+                    onBadgesClick = { showBadgesDialog = true },
+                    onProfileClick = { currentTab = 4 },
+                    onOpenOnboarding = { showOnboardingExplicitly = true },
+                    onToggleSimplifiedMode = { viewModel.toggleSimplifiedMode() },
+                    onLogout = { viewModel.logout() }
                 )
-
-                NavigationBarItem(
-                    selected = currentTab == 3,
-                    onClick = { currentTab = 3 },
-                    icon = {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.MenuBook,
-                            contentDescription = "الدليل"
-                        )
-                    },
-                    label = { Text("الدليل") },
-                    modifier = Modifier.testTag("tab_guide")
-                )
-
-                NavigationBarItem(
-                    selected = currentTab == 4,
-                    onClick = { currentTab = 4 },
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "حسابي"
-                        )
-                    },
-                    label = { Text("حسابي") },
-                    modifier = Modifier.testTag("tab_settings")
-                )
-
-                if (currentUser?.role == "ADMIN") {
+            },
+            bottomBar = {
+                NavigationBar(
+                    modifier = Modifier.testTag("bottom_navigation")
+                ) {
                     NavigationBarItem(
-                        selected = currentTab == 5,
-                        onClick = { currentTab = 5 },
+                        selected = currentTab == 0,
+                        onClick = { currentTab = 0 },
                         icon = {
                             Icon(
-                                imageVector = Icons.Default.Security,
-                                contentDescription = "المالك"
+                                imageVector = Icons.Default.SwapHoriz,
+                                contentDescription = s.tabCommunity
                             )
                         },
-                        label = { Text("المالك") },
-                        modifier = Modifier.testTag("tab_admin_owner")
+                        label = { Text(s.tabCommunity) },
+                        modifier = Modifier.testTag("tab_community")
                     )
+
+                    NavigationBarItem(
+                        selected = currentTab == 1,
+                        onClick = { currentTab = 1 },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = s.tabMyTesting
+                            )
+                        },
+                        label = { Text(s.tabMyTesting) },
+                        modifier = Modifier.testTag("tab_my_testing")
+                    )
+
+                    NavigationBarItem(
+                        selected = currentTab == 2,
+                        onClick = { currentTab = 2 },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.RocketLaunch,
+                                contentDescription = s.tabMyApps
+                            )
+                        },
+                        label = { Text(s.tabMyApps) },
+                        modifier = Modifier.testTag("tab_my_apps")
+                    )
+
+                    NavigationBarItem(
+                        selected = currentTab == 3,
+                        onClick = { currentTab = 3 },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                                contentDescription = s.tabGuide
+                            )
+                        },
+                        label = { Text(s.tabGuide) },
+                        modifier = Modifier.testTag("tab_guide")
+                    )
+
+                    NavigationBarItem(
+                        selected = currentTab == 4,
+                        onClick = { currentTab = 4 },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = s.tabSettings
+                            )
+                        },
+                        label = { Text(s.tabSettings) },
+                        modifier = Modifier.testTag("tab_settings")
+                    )
+
+                    if (currentUser?.role == "ADMIN") {
+                        NavigationBarItem(
+                            selected = currentTab == 5,
+                            onClick = { currentTab = 5 },
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Default.Security,
+                                    contentDescription = s.tabAdmin
+                                )
+                            },
+                            label = { Text(s.tabAdmin) },
+                            modifier = Modifier.testTag("tab_admin_owner")
+                        )
+                    }
                 }
-            }
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { innerPadding ->
+            },
+            snackbarHost = { SnackbarHost(snackbarHostState) }
+        ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -351,6 +370,10 @@ fun PlayTesterApp(
                         searchQuery = searchQuery,
                         selectedCategory = selectedCategory,
                         currentUser = currentUser,
+                        appUpdateStatus = appUpdateStatus,
+                        onUpdateClick = {
+                            viewModel.promptUpdateDialog()
+                        },
                         isSyncing = isSyncingApps,
                         syncStatusMessage = syncStatusMessage,
                         diagnosticResult = cloudDiagnostic,
@@ -429,6 +452,8 @@ fun PlayTesterApp(
                         hapticEnabled = hapticEnabled,
                         isSimplifiedMode = isSimplifiedMode,
                         themeMode = themeMode,
+                        language = language,
+                        onLanguageChange = { viewModel.setLanguage(it) },
                         onThemeModeChange = { viewModel.setThemeMode(it) },
                         onUpdateProfile = { viewModel.updateProfile(it) },
                         onChangePassword = { oldPass, newPass ->
@@ -591,12 +616,13 @@ fun PlayTesterApp(
     }
 
     appUpdateStatus?.let { status ->
-        if (status.isUpdateAvailable) {
+        if (status.isUpdateAvailable && showUpdateDialog) {
             InAppUpdateDialog(
                 updateStatus = status,
                 onDismiss = { viewModel.dismissAppUpdatePrompt() }
             )
         }
+    }
     }
 }
 

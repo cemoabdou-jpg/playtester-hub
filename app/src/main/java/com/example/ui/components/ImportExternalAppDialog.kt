@@ -41,25 +41,33 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
 import com.example.ui.theme.SuccessGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.LocalAppLanguage
 
 @Composable
 fun ImportExternalAppDialog(
     onImport: (input: String, appName: String, devName: String, category: String, onComplete: (Boolean, String) -> Unit) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val language = LocalAppLanguage.current
+    val isArabic = language == AppLanguage.AR
+
     var packageOrUrlInput by remember { mutableStateOf("") }
     var customAppName by remember { mutableStateOf("") }
     var developerName by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf("أدوات") }
+    var selectedCategory by remember { mutableStateOf(if (isArabic) "أدوات" else "Tools") }
 
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    val categories = listOf("أدوات", "إنتاجية", "مالية", "ألعاب", "تعليم", "نمط حياة")
+    val categories = if (isArabic) {
+        listOf("أدوات", "إنتاجية", "مالية", "ألعاب", "تعليم", "نمط حياة")
+    } else {
+        listOf("Tools", "Productivity", "Finance", "Games", "Education", "Lifestyle")
+    }
 
     fun extractPackageName(text: String): String {
         val trimmed = text.trim()
@@ -88,12 +96,12 @@ fun ImportExternalAppDialog(
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
-                        text = "إضافة تطبيق مطور آخر بالرابط",
+                        text = if (isArabic) "إضافة تطبيق مطور آخر بالرابط" else "Import Peer App by Link/Package",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "إضافة أي تطبيق بالرابط أو اسم الحزمة ليظهر في قائمة الاختبار فوراً",
+                        text = if (isArabic) "إضافة أي تطبيق بالرابط أو اسم الحزمة ليظهر في قائمة الاختبار فوراً" else "Import via Play Store test URL or package name",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -118,7 +126,10 @@ fun ImportExternalAppDialog(
                         Icon(Icons.Default.Info, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "💡 إذا أرسل لك مطور صديق رابط تطبيقه التجريبي أو اسم الحزمة ولم يظهر تلقائياً بالسحابة، يمكنك لصقه هنا ليُضاف فوراً لقائمتك وتبدأ اختباره وحساب الـ 14 يوماً له!",
+                            text = if (isArabic)
+                                "💡 إذا أرسل لك مطور صديق رابط تطبيقه التجريبي أو اسم الحزمة ولم يظهر تلقائياً بالسحابة، يمكنك لصقه هنا ليُضاف فوراً لقائمتك وتبدأ اختباره وحساب الـ 14 يوماً له!"
+                            else
+                                "💡 Paste any peer developer's opt-in link or package name to manually add it to your testing list and start counting 14-day testing days!",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -138,8 +149,8 @@ fun ImportExternalAppDialog(
                             }
                         }
                     },
-                    label = { Text("رابط Google Play أو اسم الحزمة (Package Name)") },
-                    placeholder = { Text("com.developer.app أو https://play.google.com/...") },
+                    label = { Text(if (isArabic) "رابط Google Play أو اسم الحزمة (Package Name)" else "Play Store Link or Package Name") },
+                    placeholder = { Text("com.developer.app or https://play.google.com/...") },
                     modifier = Modifier.fillMaxWidth().testTag("input_import_package_url"),
                     singleLine = true
                 )
@@ -156,7 +167,7 @@ fun ImportExternalAppDialog(
                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "تم التعرف على الحزمة: $extractedPkg",
+                                text = if (isArabic) "تم التعرف على الحزمة: $extractedPkg" else "Package Identified: $extractedPkg",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = SuccessGreen,
                                 fontWeight = FontWeight.Bold
@@ -168,8 +179,8 @@ fun ImportExternalAppDialog(
                 OutlinedTextField(
                     value = customAppName,
                     onValueChange = { customAppName = it; errorMessage = null },
-                    label = { Text("اسم التطبيق") },
-                    placeholder = { Text("مثال: تطبيق الملاحظات السريعة") },
+                    label = { Text(if (isArabic) "اسم التطبيق" else "App Name") },
+                    placeholder = { Text(if (isArabic) "مثال: تطبيق الملاحظات السريعة" else "e.g. Quick Notes Pro") },
                     modifier = Modifier.fillMaxWidth().testTag("input_import_app_name"),
                     singleLine = true
                 )
@@ -177,14 +188,14 @@ fun ImportExternalAppDialog(
                 OutlinedTextField(
                     value = developerName,
                     onValueChange = { developerName = it },
-                    label = { Text("اسم المطور (اختياري)") },
-                    placeholder = { Text("مثال: م. عمر خالد") },
+                    label = { Text(if (isArabic) "اسم المطور (اختياري)" else "Developer Name (Optional)") },
+                    placeholder = { Text(if (isArabic) "مثال: م. عمر خالد" else "e.g. John Doe") },
                     modifier = Modifier.fillMaxWidth().testTag("input_import_dev_name"),
                     singleLine = true
                 )
 
                 Text(
-                    text = "التصنيف:",
+                    text = if (isArabic) "التصنيف:" else "Category:",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -220,17 +231,20 @@ fun ImportExternalAppDialog(
         },
         dismissButton = {
             OutlinedButton(onClick = onDismiss) {
-                Text("إلغاء")
+                Text(if (isArabic) "إلغاء" else "Cancel")
             }
         },
         confirmButton = {
             Button(
                 onClick = {
                     if (extractedPkg.isBlank()) {
-                        errorMessage = "يرجى إدخال اسم حزمة صالح (مثل com.example.app) أو رابط اختبار Play Store"
+                        errorMessage = if (isArabic)
+                            "يرجى إدخال اسم حزمة صالح (مثل com.example.app) أو رابط اختبار Play Store"
+                        else
+                            "Please enter a valid package name (e.g. com.example.app) or Play Store test link"
                         return@Button
                     }
-                    val finalAppName = if (customAppName.isNotBlank()) customAppName.trim() else "تطبيق $extractedPkg"
+                    val finalAppName = if (customAppName.isNotBlank()) customAppName.trim() else (if (isArabic) "تطبيق $extractedPkg" else "App $extractedPkg")
                     isLoading = true
                     errorMessage = null
                     onImport(packageOrUrlInput, finalAppName, developerName, selectedCategory) { success, msg ->
@@ -250,7 +264,7 @@ fun ImportExternalAppDialog(
                     CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
                     Spacer(modifier = Modifier.width(6.dp))
                 }
-                Text("إضافة وبدء الاختبار")
+                Text(if (isArabic) "إضافة وبدء الاختبار" else "Import & Start Test")
             }
         }
     )

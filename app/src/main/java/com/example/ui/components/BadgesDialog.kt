@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
@@ -22,13 +23,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -50,22 +48,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.model.BadgeCategory
 import com.example.data.model.BadgeCalculator
+import com.example.data.model.BadgeCategory
 import com.example.data.model.UserBadge
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.PlayGreen
-import com.example.ui.theme.SuccessGreen
-import android.content.Intent
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.LocalAppLanguage
 
 @Composable
 fun BadgesDialog(
@@ -73,12 +69,31 @@ fun BadgesDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    val language = LocalAppLanguage.current
+    val isArabic = language == AppLanguage.AR
+
     var selectedCategory by remember { mutableStateOf(BadgeCategory.ALL) }
 
     val unlockedCount = badges.count { it.isUnlocked }
     val totalCount = badges.size
-    val (rankTitle, rankDesc) = remember(unlockedCount) {
+    val (rankTitleAr, rankDescAr) = remember(unlockedCount) {
         BadgeCalculator.getUserRankTitle(unlockedCount)
+    }
+
+    val rankTitle = if (isArabic) rankTitleAr else when {
+        unlockedCount >= 10 -> "Master Google Play Pioneer 👑"
+        unlockedCount >= 7 -> "Professional Play Tester ⭐"
+        unlockedCount >= 4 -> "Active Developer 🚀"
+        unlockedCount >= 2 -> "Promising Tester 🛠️"
+        else -> "New Tester 🌱"
+    }
+
+    val rankDesc = if (isArabic) rankDescAr else when {
+        unlockedCount >= 10 -> "Top trusted developer in the community"
+        unlockedCount >= 7 -> "Strong ongoing testing contributions"
+        unlockedCount >= 4 -> "Consistent daily tester & reviewer"
+        unlockedCount >= 2 -> "Good progress on 14-day tests"
+        else -> "Just getting started on your testing journey"
     }
 
     val filteredBadges = remember(selectedCategory, badges) {
@@ -115,12 +130,12 @@ fun BadgesDialog(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "نظام الرتب والشارات 🏅",
+                            text = if (isArabic) "نظام الرتب والشارات 🏅" else "Badges & Ranks System 🏅",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "$unlockedCount من $totalCount شارات مفتوحة",
+                            text = if (isArabic) "$unlockedCount من $totalCount شارات مفتوحة" else "$unlockedCount of $totalCount badges unlocked",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -128,7 +143,7 @@ fun BadgesDialog(
                 }
 
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "إغلاق")
+                    Icon(Icons.Default.Close, contentDescription = if (isArabic) "إغلاق" else "Close")
                 }
             }
         },
@@ -155,7 +170,7 @@ fun BadgesDialog(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "رتبتك الحالية:",
+                                    text = if (isArabic) "رتبتك الحالية:" else "Current Rank:",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -212,10 +227,17 @@ fun BadgesDialog(
                     contentPadding = PaddingValues(horizontal = 2.dp)
                 ) {
                     items(BadgeCategory.values()) { category ->
+                        val catTitle = if (isArabic) category.title else when (category) {
+                            BadgeCategory.ALL -> "All"
+                            BadgeCategory.TESTING -> "Testing"
+                            BadgeCategory.DEVELOPER -> "Developer"
+                            BadgeCategory.QUALITY -> "Quality"
+                            BadgeCategory.STREAK -> "Streak"
+                        }
                         FilterChip(
                             selected = selectedCategory == category,
                             onClick = { selectedCategory = category },
-                            label = { Text(category.title, fontSize = 12.sp) }
+                            label = { Text(catTitle, fontSize = 12.sp) }
                         )
                     }
                 }
@@ -230,7 +252,7 @@ fun BadgesDialog(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(filteredBadges, key = { it.id }) { badge ->
-                        BadgeItemCard(badge = badge)
+                        BadgeItemCard(badge = badge, isArabic = isArabic)
                     }
                 }
             }
@@ -238,16 +260,23 @@ fun BadgesDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val shareText = "🏆 إنجازاتي في منصة PlayTester Hub:\n" +
-                            "رتبتي: $rankTitle\n" +
-                            "حققت $unlockedCount شارة تقديرية لاختبار تطبيقات أندرويد لمدة 14 يوماً بنجاح!\n" +
-                            "انضم الآن لتبادل المختبرين والحصول على 20 مختبراً لتطبيقك."
+                    val shareText = if (isArabic) {
+                        "🏆 إنجازاتي في منصة PlayTester Hub:\n" +
+                                "رتبتي: $rankTitle\n" +
+                                "حققت $unlockedCount شارة تقديرية لاختبار تطبيقات أندرويد لمدة 14 يوماً بنجاح!\n" +
+                                "انضم الآن لتبادل المختبرين والحصول على 20 مختبراً لتطبيقك."
+                    } else {
+                        "🏆 My Achievements on PlayTester Hub:\n" +
+                                "Rank: $rankTitle\n" +
+                                "Unlocked $unlockedCount badges testing Android apps for 14 continuous days!\n" +
+                                "Join the developer network to get 20 active testers for your app."
+                    }
                     val sendIntent = Intent().apply {
                         action = Intent.ACTION_SEND
                         putExtra(Intent.EXTRA_TEXT, shareText)
                         type = "text/plain"
                     }
-                    context.startActivity(Intent.createChooser(sendIntent, "مشاركة إنجازاتك"))
+                    context.startActivity(Intent.createChooser(sendIntent, if (isArabic) "مشاركة إنجازاتك" else "Share Achievements"))
                 },
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
@@ -255,7 +284,7 @@ fun BadgesDialog(
             ) {
                 Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("مشاركة إنجازاتي")
+                Text(if (isArabic) "مشاركة إنجازاتي" else "Share Achievements")
             }
         },
         dismissButton = {
@@ -263,21 +292,21 @@ fun BadgesDialog(
                 onClick = onDismiss,
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text("إغلاق")
+                Text(if (isArabic) "إغلاق" else "Close")
             }
         }
     )
 }
 
 @Composable
-fun BadgeItemCard(badge: UserBadge) {
+fun BadgeItemCard(badge: UserBadge, isArabic: Boolean = true) {
     val rarityColor = Color(badge.rarity.colorHex)
     val progressRatio = if (badge.maxProgress > 0) badge.currentProgress.toFloat() / badge.maxProgress else 0f
 
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = if (badge.isUnlocked) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
         border = BorderStroke(
             1.dp,
             if (badge.isUnlocked) rarityColor.copy(alpha = 0.6f)
@@ -295,7 +324,7 @@ fun BadgeItemCard(badge: UserBadge) {
             Surface(
                 shape = CircleShape,
                 color = if (badge.isUnlocked) rarityColor.copy(alpha = 0.18f)
-                        else MaterialTheme.colorScheme.surfaceVariant,
+                else MaterialTheme.colorScheme.surfaceVariant,
                 border = BorderStroke(1.dp, if (badge.isUnlocked) rarityColor else Color.Transparent),
                 modifier = Modifier.size(46.dp)
             ) {
@@ -308,7 +337,7 @@ fun BadgeItemCard(badge: UserBadge) {
                     } else {
                         Icon(
                             imageVector = Icons.Default.Lock,
-                            contentDescription = "مقفل",
+                            contentDescription = if (isArabic) "مقفل" else "Locked",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             modifier = Modifier.size(20.dp)
                         )
@@ -329,7 +358,7 @@ fun BadgeItemCard(badge: UserBadge) {
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = if (badge.isUnlocked) MaterialTheme.colorScheme.onSurface
-                                else MaterialTheme.colorScheme.onSurfaceVariant
+                        else MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
                     Surface(
@@ -337,7 +366,7 @@ fun BadgeItemCard(badge: UserBadge) {
                         color = rarityColor.copy(alpha = 0.15f)
                     ) {
                         Text(
-                            text = badge.rarity.label,
+                            text = if (isArabic) badge.rarity.label else badge.rarity.name.lowercase().capitalize(),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = rarityColor,
@@ -373,7 +402,7 @@ fun BadgeItemCard(badge: UserBadge) {
                     Spacer(modifier = Modifier.width(8.dp))
 
                     Text(
-                        text = if (badge.isUnlocked) "مكتمل ✓" else "${badge.currentProgress}/${badge.maxProgress}",
+                        text = if (badge.isUnlocked) (if (isArabic) "مكتمل ✓" else "Unlocked ✓") else "${badge.currentProgress}/${badge.maxProgress}",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = if (badge.isUnlocked) PlayGreen else MaterialTheme.colorScheme.onSurfaceVariant

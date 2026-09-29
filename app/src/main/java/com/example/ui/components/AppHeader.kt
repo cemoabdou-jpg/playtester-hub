@@ -52,6 +52,8 @@ import com.example.data.model.UserWallet
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.PlayGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.L
 
 @Composable
 fun AppHeader(
@@ -60,6 +62,8 @@ fun AppHeader(
     unreadNotificationsCount: Int = 0,
     isSimplifiedMode: Boolean = false,
     isDarkTheme: Boolean = false,
+    language: AppLanguage = AppLanguage.AR,
+    onToggleLanguage: (() -> Unit)? = null,
     onToggleTheme: (() -> Unit)? = null,
     onNotificationsClick: (() -> Unit)? = null,
     onBadgesClick: (() -> Unit)? = null,
@@ -69,6 +73,9 @@ fun AppHeader(
     onLogout: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val s = L.strings()
+    val isArabic = language == AppLanguage.AR
+
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -103,7 +110,7 @@ fun AppHeader(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Shield,
-                        contentDescription = "شعار التطبيق",
+                        contentDescription = if (isArabic) "شعار التطبيق" else "App Logo",
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
@@ -124,7 +131,7 @@ fun AppHeader(
                                 color = AmberGold
                             ) {
                                 Text(
-                                    text = "👑 مالك",
+                                    text = if (isArabic) "👑 مالك" else "👑 Owner",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.Black,
@@ -135,7 +142,7 @@ fun AppHeader(
                         }
                     }
                     Text(
-                        text = currentUser?.displayName ?: "تبادل المختبرين",
+                        text = currentUser?.displayName ?: if (isArabic) "تبادل المختبرين" else "Tester Exchange",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 11.sp
@@ -161,7 +168,7 @@ fun AppHeader(
                     ) {
                         Icon(
                             imageVector = Icons.Default.MonetizationOn,
-                            contentDescription = "النقاط",
+                            contentDescription = if (isArabic) "النقاط" else "Points",
                             tint = AmberGold,
                             modifier = Modifier.size(14.dp)
                         )
@@ -188,7 +195,7 @@ fun AppHeader(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Bolt,
-                            contentDescription = "أيام الاستمرار",
+                            contentDescription = if (isArabic) "أيام الاستمرار" else "Daily Streak",
                             tint = PlayGreen,
                             modifier = Modifier.size(14.dp)
                         )
@@ -202,6 +209,31 @@ fun AppHeader(
                     }
                 }
 
+                // Language Switcher Quick Pill Button
+                if (onToggleLanguage != null) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier
+                            .clickable { onToggleLanguage.invoke() }
+                            .testTag("btn_language_toggle")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (language == AppLanguage.AR) "EN" else "عربي",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+                }
+
                 // Dark / Light Theme Quick Toggle
                 if (onToggleTheme != null) {
                     IconButton(
@@ -212,7 +244,11 @@ fun AppHeader(
                     ) {
                         Icon(
                             imageVector = if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
-                            contentDescription = if (isDarkTheme) "التبديل إلى الوضع الفاتح" else "التبديل إلى الوضع الداكن",
+                            contentDescription = if (isDarkTheme) {
+                                if (isArabic) "التبديل إلى الوضع الفاتح" else "Switch to Light Mode"
+                            } else {
+                                if (isArabic) "التبديل إلى الوضع الداكن" else "Switch to Dark Mode"
+                            },
                             tint = if (isDarkTheme) AmberGold else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(19.dp)
                         )
@@ -245,7 +281,7 @@ fun AppHeader(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Notifications,
-                                contentDescription = "الإشعارات",
+                                contentDescription = if (isArabic) "الإشعارات" else "Notifications",
                                 tint = if (unreadNotificationsCount > 0) CyanAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(19.dp)
                             )

@@ -2,7 +2,6 @@ package com.example.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,12 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.FactCheck
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Spellcheck
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -38,7 +32,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -48,12 +41,17 @@ import com.example.ui.theme.AmberGold
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
 import com.example.ui.theme.SuccessGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.LocalAppLanguage
 
 @Composable
 fun PlayPolicyLinterDialog(
     app: UserApp?,
     onDismiss: () -> Unit
 ) {
+    val language = LocalAppLanguage.current
+    val isArabic = language == AppLanguage.AR
+
     var titleInput by remember { mutableStateOf(app?.name ?: "") }
     var shortDescInput by remember { mutableStateOf("") }
     var fullDescInput by remember { mutableStateOf(app?.instructions ?: "") }
@@ -69,22 +67,22 @@ fun PlayPolicyLinterDialog(
     val emojiRegex = "[\\p{So}\\p{Cn}]".toRegex()
 
     // Title validation
-    val titleViolations by remember {
+    val titleViolations by remember(isArabic) {
         derivedStateOf {
             val list = mutableListOf<String>()
             val trimmed = titleInput.trim()
             if (trimmed.length > 30) {
-                list.add("تجاوز الحد الأقصى: اسم التطبيق ${trimmed.length}/30 حرفاً (Google Play ترفض أكثر من 30 حرفاً).")
+                list.add(if (isArabic) "تجاوز الحد الأقصى: اسم التطبيق ${trimmed.length}/30 حرفاً (Google Play ترفض أكثر من 30 حرفاً)." else "Max character limit exceeded: Title is ${trimmed.length}/30 characters (Google Play maximum is 30).")
             }
             if (trimmed.isNotBlank() && trimmed.all { it.isUpperCase() || !it.isLetter() } && trimmed.any { it.isLetter() }) {
-                list.add("استخدام الحروف الكبيرة بالكامل (ALL CAPS) ممنوع في عنوان التطبيق.")
+                list.add(if (isArabic) "استخدام الحروف الكبيرة بالكامل (ALL CAPS) ممنوع في عنوان التطبيق." else "ALL CAPS titles are strictly prohibited by Play Store policies.")
             }
             if (emojiRegex.containsMatchIn(trimmed)) {
-                list.add("تحظر Google Play استخدام الرموز التعبيرية (Emojis) في عنوان التطبيق نهائياً.")
+                list.add(if (isArabic) "تحظر Google Play استخدام الرموز التعبيرية (Emojis) في عنوان التطبيق نهائياً." else "Emojis in app titles are disallowed on Google Play.")
             }
             prohibitedPromoWords.forEach { word ->
                 if (trimmed.contains(word, ignoreCase = true)) {
-                    list.add("كلمة ترويجية محظورة: \"$word\" ممنوعة صراحة في العنوان بموجب سياسات المتجر.")
+                    list.add(if (isArabic) "كلمة ترويجية محظورة: \"$word\" ممنوعة صراحة في العنوان بموجب سياسات المتجر." else "Prohibited promotional keyword: \"$word\" in app title.")
                 }
             }
             list
@@ -92,16 +90,16 @@ fun PlayPolicyLinterDialog(
     }
 
     // Short description validation
-    val shortDescViolations by remember {
+    val shortDescViolations by remember(isArabic) {
         derivedStateOf {
             val list = mutableListOf<String>()
             val trimmed = shortDescInput.trim()
             if (trimmed.length > 80) {
-                list.add("تجاوز الحد الأقصى: الوصف القصير ${trimmed.length}/80 حرفاً.")
+                list.add(if (isArabic) "تجاوز الحد الأقصى: الوصف القصير ${trimmed.length}/80 حرفاً." else "Max length exceeded: Short description is ${trimmed.length}/80 characters.")
             }
             prohibitedPromoWords.forEach { word ->
                 if (trimmed.contains(word, ignoreCase = true)) {
-                    list.add("كلمة تسويقية مضللة: \"$word\" قد تتسبب في تعليق فحص التطبيق.")
+                    list.add(if (isArabic) "كلمة تسويقية مضللة: \"$word\" قد تتسبب في تعليق فحص التطبيق." else "Misleading promotional keyword: \"$word\" can delay review.")
                 }
             }
             list
@@ -109,18 +107,18 @@ fun PlayPolicyLinterDialog(
     }
 
     // Full description validation
-    val fullDescViolations by remember {
+    val fullDescViolations by remember(isArabic) {
         derivedStateOf {
             val list = mutableListOf<String>()
             val trimmed = fullDescInput.trim()
             if (trimmed.length > 4000) {
-                list.add("تجاوز الحد الأقصى: الوصف الكامل ${trimmed.length}/4000 حرفاً.")
+                list.add(if (isArabic) "تجاوز الحد الأقصى: الوصف الكامل ${trimmed.length}/4000 حرفاً." else "Max limit exceeded: Full description is ${trimmed.length}/4000 characters.")
             }
             if (trimmed.isNotBlank() && trimmed.length < 80) {
-                list.add("الوصف الكامل قصير جداً (${trimmed.length} حرفاً) - يفضل كتابة شرح مفصل لمزايا التطبيق.")
+                list.add(if (isArabic) "الوصف الكامل قصير جداً (${trimmed.length} حرفاً) - يفضل كتابة شرح مفصل لمزايا التطبيق." else "Full description is too brief (${trimmed.length} chars) - provide detailed features description.")
             }
             if (trimmed.isNotBlank() && !trimmed.contains("@")) {
-                list.add("يُنصح بإضافة بريد إلكتروني للدعم الفني والتواصل داخل الوصف.")
+                list.add(if (isArabic) "يُنصح بإضافة بريد إلكتروني للدعم الفني والتواصل داخل الوصف." else "Recommended to include a contact support email inside description.")
             }
             list
         }
@@ -150,12 +148,12 @@ fun PlayPolicyLinterDialog(
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
-                        text = "مدقق نصوص المتجر وسياسات Google Play",
+                        text = if (isArabic) "مدقق نصوص المتجر وسياسات Google Play" else "Store Listing Policy Linter",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "فحص الكلمات المحظورة وحدود الحروف لمنع رفض المراجعة",
+                        text = if (isArabic) "فحص الكلمات المحظورة وحدود الحروف لمنع رفض المراجعة" else "Audit metadata for prohibited keywords & character limits",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -186,7 +184,7 @@ fun PlayPolicyLinterDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "معدل الامتثال لسياسات المتجر:",
+                                text = if (isArabic) "معدل الامتثال لسياسات المتجر:" else "Policy Compliance Score:",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
@@ -206,11 +204,11 @@ fun PlayPolicyLinterDialog(
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = if (complianceScore == 100)
-                                "✅ نصوص متوافقة تماماً وجاهزة للنشر بـ Google Play Console دون أي مخالفة."
+                                (if (isArabic) "✅ نصوص متوافقة تماماً وجاهزة للنشر بـ Google Play Console دون أي مخالفة." else "✅ Fully compliant with Google Play metadata guidelines.")
                             else if (complianceScore >= 80)
-                                "⚠️ هناك ملاحظات طفيفة يُفضل تعديلها لتسريع قبول المراجعة."
+                                (if (isArabic) "⚠️ هناك ملاحظات طفيفة يُفضل تعديلها لتسريع قبول المراجعة." else "⚠️ Minor suggestions to streamline review approval.")
                             else
-                                "❌ تحذير: توجد كلمات أو أطوال تخالف سياسات Google Play الصريحة وستؤدي للرفض.",
+                                (if (isArabic) "❌ تحذير: توجد كلمات أو أطوال تخالف سياسات Google Play الصريحة وستؤدي للرفض." else "❌ Warning: Policy violations detected that will trigger review rejections."),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -224,7 +222,7 @@ fun PlayPolicyLinterDialog(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "عنوان التطبيق (App Title):",
+                            text = if (isArabic) "عنوان التطبيق (App Title):" else "App Title:",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -239,7 +237,7 @@ fun PlayPolicyLinterDialog(
                     OutlinedTextField(
                         value = titleInput,
                         onValueChange = { titleInput = it },
-                        placeholder = { Text("مثال: PlayTester Hub") },
+                        placeholder = { Text(if (isArabic) "مثال: PlayTester Hub" else "e.g. PlayTester Hub") },
                         modifier = Modifier.fillMaxWidth().testTag("linter_title_input"),
                         singleLine = true,
                         isError = titleViolations.isNotEmpty()
@@ -261,7 +259,7 @@ fun PlayPolicyLinterDialog(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "الوصف المختصر (Short Description):",
+                            text = if (isArabic) "الوصف المختصر (Short Description):" else "Short Description:",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -276,7 +274,7 @@ fun PlayPolicyLinterDialog(
                     OutlinedTextField(
                         value = shortDescInput,
                         onValueChange = { shortDescInput = it },
-                        placeholder = { Text("مثال: منصة متكاملة لاختبار تطبيقات أندرويد مع 20 مختبراً موثوقاً.") },
+                        placeholder = { Text(if (isArabic) "مثال: منصة متكاملة لاختبار تطبيقات أندرويد مع 20 مختبراً موثوقاً." else "e.g. Community platform for Android closed testing with verified testers.") },
                         modifier = Modifier.fillMaxWidth().testTag("linter_short_desc_input"),
                         singleLine = true,
                         isError = shortDescViolations.isNotEmpty()
@@ -298,7 +296,7 @@ fun PlayPolicyLinterDialog(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "الوصف الكامل (Full Description):",
+                            text = if (isArabic) "الوصف الكامل (Full Description):" else "Full Description:",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -313,7 +311,7 @@ fun PlayPolicyLinterDialog(
                     OutlinedTextField(
                         value = fullDescInput,
                         onValueChange = { fullDescInput = it },
-                        placeholder = { Text("اكتب وصفاً مفصلاً يوضح مزايا التطبيق وميزاته للمستخدمين...") },
+                        placeholder = { Text(if (isArabic) "اكتب وصفاً مفصلاً يوضح مزايا التطبيق وميزاته للمستخدمين..." else "Detail your application features, workflows, and benefits...") },
                         modifier = Modifier.fillMaxWidth().testTag("linter_full_desc_input"),
                         minLines = 3,
                         maxLines = 6,
@@ -336,7 +334,7 @@ fun PlayPolicyLinterDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
                 modifier = Modifier.testTag("btn_close_linter_dialog")
             ) {
-                Text("إغلاق")
+                Text(if (isArabic) "إغلاق" else "Close")
             }
         }
     )

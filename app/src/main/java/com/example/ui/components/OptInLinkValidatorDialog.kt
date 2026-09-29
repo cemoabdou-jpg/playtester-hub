@@ -15,22 +15,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,39 +43,40 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.UserApp
-import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.LocalAppLanguage
 
 object OptInValidatorUtil {
-    fun validateGroupUrl(url: String): Pair<Boolean, String> {
+    fun validateGroupUrl(url: String, isArabic: Boolean = true): Pair<Boolean, String> {
         val trimmed = url.trim()
         return when {
-            trimmed.isBlank() -> false to "رابط مجموعة جوجل إلزامي لاستقبال المختبرين"
-            !trimmed.startsWith("https://") -> false to "يجب أن يبدأ الرابط بـ https://"
-            !trimmed.contains("groups.google.com") -> false to "الرابط يجب أن يكون تابعاً لـ groups.google.com"
-            else -> true to "رابط المجموعة صحيح ومطابق لشروط جوجل بلاي ✅"
+            trimmed.isBlank() -> false to if (isArabic) "رابط مجموعة جوجل إلزامي لاستقبال المختبرين" else "Google Group link is required for testers"
+            !trimmed.startsWith("https://") -> false to if (isArabic) "يجب أن يبدأ الرابط بـ https://" else "Link must start with https://"
+            !trimmed.contains("groups.google.com") -> false to if (isArabic) "الرابط يجب أن يكون تابعاً لـ groups.google.com" else "Link must belong to groups.google.com"
+            else -> true to if (isArabic) "رابط المجموعة صحيح ومطابق لشروط جوجل بلاي ✅" else "Group link is valid and compliant ✅"
         }
     }
 
-    fun validateWebOptInUrl(url: String): Pair<Boolean, String> {
+    fun validateWebOptInUrl(url: String, isArabic: Boolean = true): Pair<Boolean, String> {
         val trimmed = url.trim()
         return when {
-            trimmed.isBlank() -> false to "رابط الاشتراك عبر الويب إلزامي"
-            !trimmed.startsWith("https://") -> false to "يجب أن يبدأ الرابط بـ https://"
-            !trimmed.contains("play.google.com/apps/testing/") -> false to "الرابط يجب أن يتضمن play.google.com/apps/testing/"
-            else -> true to "رابط الاشتراك على الويب صحيح ومكتمل ✅"
+            trimmed.isBlank() -> false to if (isArabic) "رابط الاشتراك عبر الويب إلزامي" else "Web opt-in link is required"
+            !trimmed.startsWith("https://") -> false to if (isArabic) "يجب أن يبدأ الرابط بـ https://" else "Link must start with https://"
+            !trimmed.contains("play.google.com/apps/testing/") -> false to if (isArabic) "الرابط يجب أن يتضمن play.google.com/apps/testing/" else "Link must include play.google.com/apps/testing/"
+            else -> true to if (isArabic) "رابط الاشتراك على الويب صحيح ومكتمل ✅" else "Web opt-in link is complete and valid ✅"
         }
     }
 
-    fun validateAndroidOptInUrl(url: String): Pair<Boolean, String> {
+    fun validateAndroidOptInUrl(url: String, isArabic: Boolean = true): Pair<Boolean, String> {
         val trimmed = url.trim()
         return when {
-            trimmed.isBlank() -> false to "رابط التنزيل على الهاتف إلزامي"
-            !trimmed.startsWith("https://") -> false to "يجب أن يبدأ الرابط بـ https://"
-            !trimmed.contains("play.google.com/store/apps/details") -> false to "الرابط يجب أن يتضمن play.google.com/store/apps/details"
-            else -> true to "رابط التنزيل المباشر صحيح وجاهز ✅"
+            trimmed.isBlank() -> false to if (isArabic) "رابط التنزيل على الهاتف إلزامي" else "Android Play Store link is required"
+            !trimmed.startsWith("https://") -> false to if (isArabic) "يجب أن يبدأ الرابط بـ https://" else "Link must start with https://"
+            !trimmed.contains("play.google.com/store/apps/details") -> false to if (isArabic) "الرابط يجب أن يتضمن play.google.com/store/apps/details" else "Link must include play.google.com/store/apps/details"
+            else -> true to if (isArabic) "رابط التنزيل المباشر صحيح وجاهز ✅" else "Direct Play Store link is valid and ready ✅"
         }
     }
 }
@@ -90,10 +87,12 @@ fun OptInLinkValidatorDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    val language = LocalAppLanguage.current
+    val isArabic = language == AppLanguage.AR
 
-    val (groupOk, groupMsg) = remember(app.googleGroupUrl) { OptInValidatorUtil.validateGroupUrl(app.googleGroupUrl) }
-    val (webOk, webMsg) = remember(app.webOptInUrl) { OptInValidatorUtil.validateWebOptInUrl(app.webOptInUrl) }
-    val (androidOk, androidMsg) = remember(app.androidOptInUrl) { OptInValidatorUtil.validateAndroidOptInUrl(app.androidOptInUrl) }
+    val (groupOk, groupMsg) = remember(app.googleGroupUrl, isArabic) { OptInValidatorUtil.validateGroupUrl(app.googleGroupUrl, isArabic) }
+    val (webOk, webMsg) = remember(app.webOptInUrl, isArabic) { OptInValidatorUtil.validateWebOptInUrl(app.webOptInUrl, isArabic) }
+    val (androidOk, androidMsg) = remember(app.androidOptInUrl, isArabic) { OptInValidatorUtil.validateAndroidOptInUrl(app.androidOptInUrl, isArabic) }
 
     val allValid = groupOk && webOk && androidOk
 
@@ -140,7 +139,7 @@ fun OptInLinkValidatorDialog(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "فاحص روابط الاشتراك ورمز QR 🔍",
+                                text = if (isArabic) "فاحص روابط الاشتراك ورمز QR 🔍" else "Opt-in Links & QR Validator 🔍",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -153,7 +152,7 @@ fun OptInLinkValidatorDialog(
                     }
 
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "إغلاق")
+                        Icon(Icons.Default.Close, contentDescription = if (isArabic) "إغلاق" else "Close")
                     }
                 }
 
@@ -180,13 +179,19 @@ fun OptInLinkValidatorDialog(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = if (allValid) "جميع الروابط متوافقة ومجربة مع شروط جوجل!" else "يوجد خطأ في صحة أو صيغة أحد الروابط",
+                                text = if (allValid)
+                                    (if (isArabic) "جميع الروابط متوافقة ومجربة مع شروط جوجل!" else "All links are valid and meet Google requirements!")
+                                else
+                                    (if (isArabic) "يوجد خطأ في صحة أو صيغة أحد الروابط" else "One or more links have formatting or domain errors"),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = if (allValid) PlayGreen else DangerRed
                             )
                             Text(
-                                text = if (allValid) "تطبيقتك جاهز لاستقبال الـ 20 مختبراً بكل سلاسة بدون عوائق." else "تأكد من تعديل الروابط حتى لا يتعذر على المختبرين الانضمام.",
+                                text = if (allValid)
+                                    (if (isArabic) "تطبيقك جاهز لاستقبال الـ 20 مختبراً بكل سلاسة بدون عوائق." else "Your app is fully ready for 20 testers to opt in smoothly.")
+                                else
+                                    (if (isArabic) "تأكد من تعديل الروابط حتى لا يتعذر على المختبرين الانضمام." else "Please update the invalid links to prevent opt-in blockers for testers."),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -197,43 +202,40 @@ fun OptInLinkValidatorDialog(
                 // Detailed Link Checks
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     LinkCheckRow(
-                        title = "رابط مجموعة جوجل (Google Group)",
-                        url = app.googleGroupUrl,
+                        title = if (isArabic) "رابط مجموعة جوجل (Google Group)" else "Google Group Link",
                         isValid = groupOk,
                         message = groupMsg,
                         onOpen = {
                             try {
                                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(app.googleGroupUrl)))
                             } catch (_: Exception) {
-                                Toast.makeText(context, "الرابط غير صالح للفتح", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, if (isArabic) "الرابط غير صالح للفتح" else "Invalid URL", Toast.LENGTH_SHORT).show()
                             }
                         }
                     )
 
                     LinkCheckRow(
-                        title = "رابط الاشتراك على الويب (Web Opt-In)",
-                        url = app.webOptInUrl,
+                        title = if (isArabic) "رابط الاشتراك على الويب (Web Opt-In)" else "Web Opt-In Link",
                         isValid = webOk,
                         message = webMsg,
                         onOpen = {
                             try {
                                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(app.webOptInUrl)))
                             } catch (_: Exception) {
-                                Toast.makeText(context, "الرابط غير صالح للفتح", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, if (isArabic) "الرابط غير صالح للفتح" else "Invalid URL", Toast.LENGTH_SHORT).show()
                             }
                         }
                     )
 
                     LinkCheckRow(
-                        title = "رابط تنزيل التطبيق (Android Opt-In)",
-                        url = app.androidOptInUrl,
+                        title = if (isArabic) "رابط تنزيل التطبيق (Android Opt-In)" else "Android Play Store Link",
                         isValid = androidOk,
                         message = androidMsg,
                         onOpen = {
                             try {
                                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(app.androidOptInUrl)))
                             } catch (_: Exception) {
-                                Toast.makeText(context, "الرابط غير صالح للفتح", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, if (isArabic) "الرابط غير صالح للفتح" else "Invalid URL", Toast.LENGTH_SHORT).show()
                             }
                         }
                     )
@@ -250,13 +252,12 @@ fun OptInLinkValidatorDialog(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "رمز QR للانضمام المباشر للهاتف 📱",
+                            text = if (isArabic) "رمز QR للانضمام المباشر للهاتف 📱" else "Direct Mobile QR Opt-In Code 📱",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // Visual QR Matrix Graphic Simulation
                         Box(
                             modifier = Modifier
                                 .size(110.dp)
@@ -276,7 +277,7 @@ fun OptInLinkValidatorDialog(
                         Spacer(modifier = Modifier.height(6.dp))
 
                         Text(
-                            text = "امسح الكود بكاميرا الجوال للانتقال لصفحة الاختبار فوراً",
+                            text = if (isArabic) "امسح الكود بكاميرا الجوال للانتقال لصفحة الاختبار فوراً" else "Scan with phone camera to jump directly to opt-in page",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 10.sp
@@ -293,7 +294,7 @@ fun OptInLinkValidatorDialog(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PlayGreen)
                 ) {
-                    Text("تم الفحص والتحقق", fontWeight = FontWeight.Bold)
+                    Text(if (isArabic) "تم الفحص والتحقق" else "Done & Verified", fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -303,7 +304,6 @@ fun OptInLinkValidatorDialog(
 @Composable
 private fun LinkCheckRow(
     title: String,
-    url: String,
     isValid: Boolean,
     message: String,
     onOpen: () -> Unit
@@ -351,8 +351,8 @@ private fun LinkCheckRow(
                 modifier = Modifier.size(32.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.OpenInNew,
-                    contentDescription = "تجربة الرابط",
+                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                    contentDescription = "Test link",
                     tint = CyanAccent,
                     modifier = Modifier.size(16.dp)
                 )

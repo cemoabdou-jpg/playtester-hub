@@ -59,6 +59,8 @@ import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
 import com.example.ui.theme.SuccessGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.LocalAppLanguage
 
 @Composable
 fun TesterInvitationDialog(
@@ -70,6 +72,9 @@ fun TesterInvitationDialog(
     onTipTester: ((InvitedTester) -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
+    val language = LocalAppLanguage.current
+    val isArabic = language == AppLanguage.AR
+
     var emailInput by remember { mutableStateOf("") }
     var notesInput by remember { mutableStateOf("") }
     var inputError by remember { mutableStateOf<String?>(null) }
@@ -120,7 +125,7 @@ fun TesterInvitationDialog(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "إدارة ودعوة مختبري التطبيق",
+                                text = if (isArabic) "إدارة ودعوة مختبري التطبيق" else "Manage & Invite App Testers",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -136,7 +141,7 @@ fun TesterInvitationDialog(
                         onClick = onDismiss,
                         modifier = Modifier.testTag("btn_close_tester_dialog")
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "إغلاق")
+                        Icon(Icons.Default.Close, contentDescription = if (isArabic) "إغلاق" else "Close")
                     }
                 }
 
@@ -162,7 +167,7 @@ fun TesterInvitationDialog(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "إجمالي المدعوين",
+                                text = if (isArabic) "إجمالي المدعوين" else "Total Invited",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -185,7 +190,7 @@ fun TesterInvitationDialog(
                                 color = SuccessGreen
                             )
                             Text(
-                                text = "مختبرين نشطين",
+                                text = if (isArabic) "مختبرين نشطين" else "Active Testers",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = SuccessGreen
                             )
@@ -208,7 +213,7 @@ fun TesterInvitationDialog(
                                 color = AmberGold
                             )
                             Text(
-                                text = "في انتظار القبول",
+                                text = if (isArabic) "في انتظار القبول" else "Pending Opt-in",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AmberGold
                             )
@@ -225,7 +230,7 @@ fun TesterInvitationDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "قائمة المختبرين المدعوين (${invitedTesters.size})",
+                        text = if (isArabic) "قائمة المختبرين المدعوين (${invitedTesters.size})" else "Invited Testers (${invitedTesters.size})",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -248,7 +253,13 @@ fun TesterInvitationDialog(
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text(if (showAddTesterSection) "إخفاء الحقول" else "دعوة مختبر جديد")
+                        Text(
+                            text = if (showAddTesterSection) {
+                                if (isArabic) "إخفاء الحقول" else "Hide Form"
+                            } else {
+                                if (isArabic) "دعوة مختبر جديد" else "Invite Tester"
+                            }
+                        )
                     }
                 }
 
@@ -266,7 +277,7 @@ fun TesterInvitationDialog(
                                 emailInput = it
                                 inputError = null
                             },
-                            label = { Text("البريد الإلكتروني لحساب Google للمختبر") },
+                            label = { Text(if (isArabic) "البريد الإلكتروني لحساب Google للمختبر" else "Tester's Google Account Email") },
                             leadingIcon = {
                                 Icon(Icons.Default.Email, contentDescription = null, tint = PlayGreen)
                             },
@@ -283,7 +294,7 @@ fun TesterInvitationDialog(
                         OutlinedTextField(
                             value = notesInput,
                             onValueChange = { notesInput = it },
-                            label = { Text("ملاحظة أو نوع الجهاز (اختياري: مثال: Samsung Galaxy S22)") },
+                            label = { Text(if (isArabic) "ملاحظة أو نوع الجهاز (اختياري: مثال: Samsung S22)" else "Notes / Device model (Optional: e.g. Pixel 8)") },
                             singleLine = true,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -306,7 +317,7 @@ fun TesterInvitationDialog(
                             onClick = {
                                 val email = emailInput.trim().lowercase()
                                 if (email.isBlank() || !email.contains("@")) {
-                                    inputError = "يرجى إدخال بريد إلكتروني صالح للمختبر"
+                                    inputError = if (isArabic) "يرجى إدخال بريد إلكتروني صالح للمختبر" else "Please enter a valid email address"
                                     return@Button
                                 }
                                 onInviteTester(email, notesInput.trim())
@@ -323,7 +334,7 @@ fun TesterInvitationDialog(
                         ) {
                             Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("إرسال دعوة الاختبار المغلق الآن", fontWeight = FontWeight.Bold)
+                            Text(if (isArabic) "إرسال دعوة الاختبار المغلق الآن" else "Send Closed Testing Invite Now", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -351,12 +362,16 @@ fun TesterInvitationDialog(
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "لم تقم بدعوة مختبرين بعد لهذا التطبيق",
+                                text = if (isArabic) "لم تقم بدعوة مختبرين بعد لهذا التطبيق" else "No testers invited yet for this app",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "اضغط على 'دعوة مختبر جديد' لإضافة إيميلات المختبرين ومتابعة قبولهم للاختبار.",
+                                text = if (isArabic) {
+                                    "اضغط على 'دعوة مختبر جديد' لإضافة إيميلات المختبرين ومتابعة قبولهم للاختبار."
+                                } else {
+                                    "Click 'Invite Tester' to add tester emails and track their opt-in progress."
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 4.dp)
@@ -374,6 +389,7 @@ fun TesterInvitationDialog(
                         items(invitedTesters, key = { it.id }) { tester ->
                             TesterItemCard(
                                 tester = tester,
+                                isArabic = isArabic,
                                 onUpdateStatus = { newStatus -> onUpdateStatus(tester.id, newStatus) },
                                 onRemove = { onRemoveTester(tester.id) },
                                 onTip = if (onTipTester != null) { { onTipTester(tester) } } else null
@@ -389,6 +405,7 @@ fun TesterInvitationDialog(
 @Composable
 fun TesterItemCard(
     tester: InvitedTester,
+    isArabic: Boolean = true,
     onUpdateStatus: (String) -> Unit,
     onRemove: () -> Unit,
     onTip: (() -> Unit)? = null
@@ -439,7 +456,12 @@ fun TesterItemCard(
                             ) {
                                 Icon(Icons.Default.CheckCircle, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(12.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("يختبر التطبيق بنشاط", color = SuccessGreen, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                Text(
+                                    text = if (isArabic) "يختبر التطبيق بنشاط" else "Actively Testing",
+                                    color = SuccessGreen,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
@@ -454,7 +476,12 @@ fun TesterItemCard(
                             ) {
                                 Icon(Icons.Default.CheckCircle, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(12.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("تم قبول الدعوة", color = PlayGreen, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                Text(
+                                    text = if (isArabic) "تم قبول الدعوة" else "Invite Accepted",
+                                    color = PlayGreen,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
@@ -469,14 +496,19 @@ fun TesterItemCard(
                             ) {
                                 Icon(Icons.Default.HourglassTop, contentDescription = null, tint = AmberGold, modifier = Modifier.size(12.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("تم الإرسال - بانتظار القبول", color = AmberGold, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                Text(
+                                    text = if (isArabic) "تم الإرسال - بانتظار القبول" else "Invited - Pending",
+                                    color = AmberGold,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
                 }
             }
 
-            // Actions (Quick status advance or delete)
+            // Actions
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (tester.status == "INVITED") {
                     OutlinedButton(
@@ -484,7 +516,7 @@ fun TesterItemCard(
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.testTag("btn_accept_tester_${tester.id}")
                     ) {
-                        Text("تأكيد القبول", fontSize = 11.sp)
+                        Text(if (isArabic) "تأكيد القبول" else "Confirm Accept", fontSize = 11.sp)
                     }
                     Spacer(modifier = Modifier.width(4.dp))
                 } else if (tester.status == "ACCEPTED") {
@@ -494,7 +526,7 @@ fun TesterItemCard(
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.testTag("btn_start_testing_${tester.id}")
                     ) {
-                        Text("بدء الاختبار", fontSize = 11.sp)
+                        Text(if (isArabic) "بدء الاختبار" else "Start Test", fontSize = 11.sp)
                     }
                     Spacer(modifier = Modifier.width(4.dp))
                 }
@@ -505,7 +537,7 @@ fun TesterItemCard(
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.testTag("btn_tip_tester_${tester.id}")
                     ) {
-                        Text("بقشيش 💎", fontSize = 11.sp, color = AmberGold, fontWeight = FontWeight.Bold)
+                        Text(if (isArabic) "بقشيش 💎" else "Tip 💎", fontSize = 11.sp, color = AmberGold, fontWeight = FontWeight.Bold)
                     }
                     Spacer(modifier = Modifier.width(4.dp))
                 }
@@ -516,7 +548,7 @@ fun TesterItemCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "حذف المختبر",
+                        contentDescription = if (isArabic) "حذف المختبر" else "Delete Tester",
                         tint = DangerRed.copy(alpha = 0.7f),
                         modifier = Modifier.size(16.dp)
                     )

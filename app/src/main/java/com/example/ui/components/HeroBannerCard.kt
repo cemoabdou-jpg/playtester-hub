@@ -27,7 +27,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -37,15 +36,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.R
-import com.example.ui.theme.AmberGold
-import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.PlayGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.LocalAppLanguage
 
 @Composable
 fun HeroBannerCard(
     onPublishClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val language = LocalAppLanguage.current
+    val isArabic = language == AppLanguage.AR
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -119,7 +121,7 @@ fun HeroBannerCard(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "اختبار مغلق 14 يوماً • 20 مختبراً",
+                                text = if (isArabic) "اختبار مغلق 14 يوماً • 20 مختبراً" else "Closed Testing • 14 Days • 20 Testers",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
@@ -129,14 +131,14 @@ fun HeroBannerCard(
                     }
 
                     Text(
-                        text = "اجتاز اختبار Play Console بضمان 100%",
+                        text = if (isArabic) "اجتاز اختبار Play Console بضمان 100%" else "Pass Google Play Testing with 100% Assurance",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
 
                     Text(
-                        text = "تبادل النقر والتقييم مع مجتمع المطورين بسهولة",
+                        text = if (isArabic) "تبادل النقر والتقييم مع مجتمع المطورين بسهولة" else "Reciprocal testing & review with verified developers",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White.copy(alpha = 0.85f),
                         fontSize = 11.sp,
@@ -157,7 +159,7 @@ fun HeroBannerCard(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("انشر تطبيقك", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text(if (isArabic) "انشر تطبيقك" else "Publish App", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             }
         }

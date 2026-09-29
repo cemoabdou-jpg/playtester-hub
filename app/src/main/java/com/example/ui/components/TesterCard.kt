@@ -53,6 +53,9 @@ import com.example.data.model.CommunityApp
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.PlayGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.L
+import com.example.ui.util.LocalAppLanguage
 import java.io.File
 
 @Composable
@@ -64,6 +67,9 @@ fun TesterCard(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val s = L.strings()
+    val language = LocalAppLanguage.current
+    val isArabic = language == AppLanguage.AR
     val progress = (app.testersCurrent.toFloat() / app.testersTarget.toFloat()).coerceIn(0f, 1f)
 
     Surface(
@@ -83,7 +89,7 @@ fun TesterCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Header Row: Featured badge, Priority score, Points Reward (Category removed)
+            // Header Row: Featured badge, Priority score, Points Reward
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -104,13 +110,13 @@ fun TesterCard(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Star,
-                                    contentDescription = "مميز",
+                                    contentDescription = if (isArabic) "مميز" else "Featured",
                                     tint = AmberGold,
                                     modifier = Modifier.size(12.dp)
                                 )
                                 Spacer(modifier = Modifier.width(3.dp))
                                 Text(
-                                    text = "مثبت في القمة",
+                                    text = if (isArabic) "مثبت في القمة" else "Pinned",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = AmberGold,
                                     fontWeight = FontWeight.Bold
@@ -129,7 +135,7 @@ fun TesterCard(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "⚡ أولوية #${app.priorityScore}",
+                                    text = "⚡ #${app.priorityScore}",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = PlayGreen,
                                     fontWeight = FontWeight.Bold
@@ -143,13 +149,13 @@ fun TesterCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.MonetizationOn,
-                        contentDescription = "نقاط",
+                        contentDescription = if (isArabic) "نقاط" else "Points",
                         tint = AmberGold,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "+${app.rewardPoints} نقطة",
+                        text = if (isArabic) "+${app.rewardPoints} نقطة" else "+${app.rewardPoints} pts",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = AmberGold
@@ -159,13 +165,13 @@ fun TesterCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Main App Info Row: Clickable App Icon (Opens app for testing) + Name & Details
+            // Main App Info Row: Clickable App Icon + Name & Details
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Clickable App Icon (Launches app & logs testing activity)
+                // Clickable App Icon
                 Box(
                     modifier = Modifier
                         .size(56.dp)
@@ -188,14 +194,13 @@ fun TesterCard(
                     if (app.iconUrl.isNotBlank()) {
                         AsyncImage(
                             model = if (app.iconUrl.startsWith("/")) File(app.iconUrl) else app.iconUrl,
-                            contentDescription = "أيقونة ${app.name}",
+                            contentDescription = "${app.name} icon",
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(14.dp)),
                             contentScale = ContentScale.Crop
                         )
                     } else {
-                        // Styled fallback with app's initial letter
                         Text(
                             text = app.name.take(2).uppercase(),
                             style = MaterialTheme.typography.titleMedium,
@@ -204,7 +209,7 @@ fun TesterCard(
                         )
                     }
 
-                    // Little overlay indicator that clicking opens the app
+                    // Little overlay indicator
                     Surface(
                         shape = CircleShape,
                         color = PlayGreen.copy(alpha = 0.85f),
@@ -214,14 +219,14 @@ fun TesterCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "فتح",
+                            contentDescription = "Open",
                             tint = Color.White,
                             modifier = Modifier.size(12.dp).padding(2.dp)
                         )
                     }
                 }
 
-                // App Title, Developer Name, and Package
+                // App Title, Developer Name
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = app.name,
@@ -230,14 +235,14 @@ fun TesterCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "بواسطة: ${app.developerName}",
+                        text = if (isArabic) "بواسطة: ${app.developerName}" else "By: ${app.developerName}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "⚡ اضغط على الأيقونة للفتح والاختبار اليومي",
+                        text = if (isArabic) "⚡ اضغط على الأيقونة للفتح والاختبار اليومي" else "⚡ Tap icon to launch & test daily",
                         style = MaterialTheme.typography.labelSmall,
                         color = PlayGreen,
                         fontSize = 10.sp,
@@ -269,12 +274,12 @@ fun TesterCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "المختبرين المنضمين:",
+                        text = if (isArabic) "المختبرين المنضمين:" else "Active Testers:",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "${app.testersCurrent} من ${app.testersTarget} مختبر",
+                        text = s.testersNeededFmt(app.testersCurrent, app.testersTarget),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = if (app.testersCurrent >= app.testersTarget) PlayGreen else CyanAccent
@@ -294,7 +299,7 @@ fun TesterCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Action Buttons (Streamlined to 2 clear, spacious actions)
+            // Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -309,15 +314,15 @@ fun TesterCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Group,
-                        contentDescription = "مجموعة الاختبار",
+                        contentDescription = s.groupLinkBtn,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("المجموعة", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(s.groupLinkBtn, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
 
                 if (!isAlreadyJoined) {
-                    // Join button (Primary action when not yet joined)
+                    // Join button
                     Button(
                         onClick = onJoinClick,
                         modifier = Modifier
@@ -332,10 +337,10 @@ fun TesterCard(
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("انضم للاختبار", fontWeight = FontWeight.Bold)
+                        Text(s.joinTestBtn, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 } else {
-                    // Launch & Test button (Primary action once joined)
+                    // Launch & Test button
                     Button(
                         onClick = {
                             launchAppOrTestLink(
@@ -356,11 +361,11 @@ fun TesterCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Android,
-                            contentDescription = "فتح واختبار",
+                            contentDescription = s.openAppBtn,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("فتح واختبار", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(s.openAppBtn, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
@@ -382,7 +387,7 @@ fun launchAppOrTestLink(
     if (launchIntent != null) {
         launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(launchIntent)
-        Toast.makeText(context, "جاري فتح تطبيق $appName وتسجيل مشاركتك...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "Opening $appName...", Toast.LENGTH_SHORT).show()
         onRecordOpened(packageName, appName)
     } else {
         val targetUrl = when {
@@ -392,14 +397,14 @@ fun launchAppOrTestLink(
             else -> "https://play.google.com/store/apps/details?id=$packageName"
         }
         openUrl(context, targetUrl)
-        Toast.makeText(context, "جاري فتح صفحة تثبيت واختبار $appName وتسجيل تجربتك...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "Opening Google Play opt-in for $appName...", Toast.LENGTH_SHORT).show()
         onRecordOpened(packageName, appName)
     }
 }
 
 fun openUrl(context: Context, url: String) {
     if (url.isBlank()) {
-        Toast.makeText(context, "الرابط غير متوفر حالياً", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "Link is currently unavailable", Toast.LENGTH_SHORT).show()
         return
     }
     try {
@@ -413,6 +418,6 @@ fun openUrl(context: Context, url: String) {
         }
         context.startActivity(intent)
     } catch (e: Exception) {
-        Toast.makeText(context, "تعذر فتح الرابط", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "Could not open link", Toast.LENGTH_SHORT).show()
     }
 }

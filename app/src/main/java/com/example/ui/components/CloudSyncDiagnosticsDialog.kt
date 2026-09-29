@@ -1,12 +1,9 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,14 +16,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -59,6 +54,8 @@ import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
 import com.example.ui.theme.SuccessGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.LocalAppLanguage
 
 @Composable
 fun CloudSyncDiagnosticsDialog(
@@ -71,6 +68,9 @@ fun CloudSyncDiagnosticsDialog(
     onDismiss: () -> Unit
 ) {
     val clipboardManager = LocalClipboardManager.current
+    val language = LocalAppLanguage.current
+    val isArabic = language == AppLanguage.AR
+
     var isRulesCopied by remember { mutableStateOf(false) }
     var uploadStatusMessage by remember { mutableStateOf<String?>(null) }
 
@@ -96,12 +96,12 @@ service cloud.firestore {
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text(
-                        text = "فاحص ومرشد المزامنة السحابية",
+                        text = if (isArabic) "فاحص ومرشد المزامنة السحابية" else "Cloud Sync Diagnostics & Health",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "تشخيص اتصال Firebase Firestore وحل مشكلة ظهور التطبيقات",
+                        text = if (isArabic) "تشخيص اتصال Firebase Firestore وحل مشكلة ظهور التطبيقات" else "Inspect Firebase connectivity and real-time app sync",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -129,7 +129,7 @@ service cloud.firestore {
                         ) {
                             CircularProgressIndicator(modifier = Modifier.size(24.dp), color = PlayGreen, strokeWidth = 2.dp)
                             Spacer(modifier = Modifier.width(12.dp))
-                            Text("جاري فحص الاتصال وقواعد الصلاحيات في Firebase...", style = MaterialTheme.typography.bodyMedium)
+                            Text(if (isArabic) "جاري فحص الاتصال وقواعد الصلاحيات في Firebase..." else "Checking Firebase connectivity & security rules...", style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 } else if (diagnosticResult != null) {
@@ -151,7 +151,10 @@ service cloud.firestore {
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = if (allGood) "السيرفر السحابي متصل ويعمل بكفاءة!" else "تم اكتشاف عائق في صلاحيات السحابة",
+                                    text = if (allGood)
+                                        (if (isArabic) "السيرفر السحابي متصل ويعمل بكفاءة!" else "Cloud database is connected and active!")
+                                    else
+                                        (if (isArabic) "تم اكتشاف عائق في صلاحيات السحابة" else "Cloud permissions issue detected"),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = if (allGood) SuccessGreen else DangerRed
@@ -162,21 +165,27 @@ service cloud.firestore {
 
                             // Diagnostic items
                             DiagnosticStatusRow(
-                                title = "تسجيل الدخول في Firebase",
+                                title = if (isArabic) "تسجيل الدخول في Firebase" else "Firebase Authentication",
                                 isOk = diagnosticResult.authStatus == "AUTHENTICATED",
                                 detail = diagnosticResult.authMessage
                             )
 
                             DiagnosticStatusRow(
-                                title = "صلاحيات قراءة التطبيقات (Read)",
+                                title = if (isArabic) "صلاحيات قراءة التطبيقات (Read)" else "Read Permissions (Read)",
                                 isOk = diagnosticResult.canRead,
-                                detail = if (diagnosticResult.canRead) "مسموحة - تم العثور على (${diagnosticResult.remoteAppsCount}) تطبيق في السيرفر" else "محظورة: ${diagnosticResult.readError ?: "Permission Denied"}"
+                                detail = if (diagnosticResult.canRead)
+                                    (if (isArabic) "مسموحة - تم العثور على (${diagnosticResult.remoteAppsCount}) تطبيق في السيرفر" else "Granted - Found (${diagnosticResult.remoteAppsCount}) apps in cloud")
+                                else
+                                    (if (isArabic) "محظورة: ${diagnosticResult.readError ?: "Permission Denied"}" else "Denied: ${diagnosticResult.readError ?: "Permission Denied"}")
                             )
 
                             DiagnosticStatusRow(
-                                title = "صلاحيات رفع التطبيقات (Write)",
+                                title = if (isArabic) "صلاحيات رفع التطبيقات (Write)" else "Write Permissions (Write)",
                                 isOk = diagnosticResult.canWrite,
-                                detail = if (diagnosticResult.canWrite) "مسموحة - يمكن للمطورين نشر تطبيقاتهم بنجاح" else "محظورة: ${diagnosticResult.writeError ?: "Permission Denied"}"
+                                detail = if (diagnosticResult.canWrite)
+                                    (if (isArabic) "مسموحة - يمكن للمطورين نشر تطبيقاتهم بنجاح" else "Granted - Developers can publish apps seamlessly")
+                                else
+                                    (if (isArabic) "محظورة: ${diagnosticResult.writeError ?: "Permission Denied"}" else "Denied: ${diagnosticResult.writeError ?: "Permission Denied"}")
                             )
                         }
                     }
@@ -193,7 +202,7 @@ service cloud.firestore {
                                     Icon(Icons.Default.HelpOutline, contentDescription = null, tint = AmberGold, modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "لماذا لم تظهر تطبيقات المطورين الآخرين؟",
+                                        text = if (isArabic) "لماذا لم تظهر تطبيقات المطورين الآخرين؟" else "Why aren't apps showing up?",
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -201,7 +210,10 @@ service cloud.firestore {
 
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = "1. عندما يضيف أي مطور تطبيقه، إذا كانت قواعد فايربيس (Firestore Rules) تمنع الكتابة أو لم يتم تفعيل تسجيل الدخول المجهول، يُحفظ التطبيق على هاتفه محلياً فقط ولا يرتفع للسحابة.\n2. لحل المشكلة نهائياً ولتظهر تطبيقات جميع المطورين فوراً، اتبع الخطوات السريعة بالأسفل (تستغرق دقيقة واحدة في Firebase Console).",
+                                    text = if (isArabic)
+                                        "1. عندما يضيف أي مطور تطبيقه، إذا كانت قواعد فايربيس (Firestore Rules) تمنع الكتابة أو لم يتم تفعيل تسجيل الدخول المجهول، يُحفظ التطبيق على هاتفه محلياً فقط ولا يرتفع للسحابة.\n2. لحل المشكلة نهائياً ولتظهر تطبيقات جميع المطورين فوراً، اتبع الخطوات السريعة بالأسفل (تستغرق دقيقة واحدة في Firebase Console)."
+                                    else
+                                        "1. If Firestore Rules restrict writes or Anonymous Auth is inactive, apps remain in local cache only.\n2. To resolve this and sync all apps globally, enable Anonymous Authentication and apply open Firestore rules in Firebase Console.",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -209,7 +221,7 @@ service cloud.firestore {
 
                                 Spacer(modifier = Modifier.height(10.dp))
                                 Text(
-                                    text = "🛠️ خطوات الإصلاح في Firebase Console (مشروع playtester-hub-61bd6):",
+                                    text = if (isArabic) "🛠️ خطوات الإصلاح في Firebase Console (مشروع playtester-hub-61bd6):" else "🛠️ Quick Fix in Firebase Console (playtester-hub-61bd6):",
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = PlayGreen
@@ -217,7 +229,10 @@ service cloud.firestore {
 
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "الخطوة 1: ادخل إلى Authentication ⬅️ تبويب Sign-in method ⬅️ فعّل خيار Anonymous (مجهول).\nالخطوة 2: ادخل إلى Firestore Database ⬅️ تبويب Rules ⬅️ الصق القواعد التالية واضغط Publish:",
+                                    text = if (isArabic)
+                                        "الخطوة 1: ادخل إلى Authentication ⬅️ تبويب Sign-in method ⬅️ فعّل خيار Anonymous (مجهول).\nالخطوة 2: ادخل إلى Firestore Database ⬅️ تبويب Rules ⬅️ الصق القواعد التالية واضغط Publish:"
+                                    else
+                                        "Step 1: Go to Authentication ➔ Sign-in method ➔ Enable 'Anonymous'.\nStep 2: Go to Firestore Database ➔ Rules ➔ Paste the rules snippet below and hit Publish:",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontSize = 11.sp
                                 )
@@ -235,7 +250,7 @@ service cloud.firestore {
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text("قواعد Firestore المفتوحة:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                            Text(if (isArabic) "قواعد Firestore المفتوحة:" else "Open Firestore Rules:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                             IconButton(
                                                 onClick = {
                                                     clipboardManager.setText(AnnotatedString(firestoreRulesSnippet))
@@ -245,7 +260,7 @@ service cloud.firestore {
                                             ) {
                                                 Icon(
                                                     imageVector = if (isRulesCopied) Icons.Default.CheckCircle else Icons.Default.ContentCopy,
-                                                    contentDescription = "نسخ القواعد",
+                                                    contentDescription = if (isArabic) "نسخ القواعد" else "Copy Rules",
                                                     tint = if (isRulesCopied) SuccessGreen else PlayGreen,
                                                     modifier = Modifier.size(16.dp)
                                                 )
@@ -277,14 +292,17 @@ service cloud.firestore {
                             Icon(Icons.Default.CloudUpload, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "مزامنة ورفع تطبيقاتي المحفوظة محلياً 🚀",
+                                text = if (isArabic) "مزامنة ورفع تطبيقاتي المحفوظة محلياً 🚀" else "Sync Local Apps to Cloud 🚀",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "إذا كنت قد أضفت تطبيقاتك سابقاً ولم تكن السحابة متصلة، اضغط هنا لرفع كل تطبيقاتك دفعة واحدة لتظهر فوراً للمطورين الآخرين!",
+                            text = if (isArabic)
+                                "إذا كنت قد أضفت تطبيقاتك سابقاً ولم تكن السحابة متصلة، اضغط هنا لرفع كل تطبيقاتك دفعة واحدة لتظهر فوراً للمطورين الآخرين!"
+                            else
+                                "If you published apps previously while offline, tap below to re-upload all local apps directly to the cloud market!",
                             style = MaterialTheme.typography.bodySmall,
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -305,11 +323,11 @@ service cloud.firestore {
                             if (isUploadingLocalApps) {
                                 CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.Black, strokeWidth = 2.dp)
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("جاري الرفع للسيرفر السحابي...", color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text(if (isArabic) "جاري الرفع للسيرفر السحابي..." else "Uploading to cloud database...", color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             } else {
                                 Icon(Icons.Default.CloudUpload, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("رفع تطبيقاتي المحلية إلى السحابة الآن", color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text(if (isArabic) "رفع تطبيقاتي المحلية إلى السحابة الآن" else "Upload Local Apps to Cloud Now", color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
 
@@ -318,7 +336,7 @@ service cloud.firestore {
                             Text(
                                 text = msg,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (msg.contains("نجاح")) SuccessGreen else DangerRed,
+                                color = if (msg.contains("نجاح") || msg.contains("success", ignoreCase = true)) SuccessGreen else DangerRed,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -337,7 +355,7 @@ service cloud.firestore {
                 ) {
                     Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("إعادة الفحص الآن 🔄", fontSize = 12.sp)
+                    Text(if (isArabic) "إعادة الفحص الآن 🔄" else "Re-check Now 🔄", fontSize = 12.sp)
                 }
 
                 Button(
@@ -346,13 +364,13 @@ service cloud.firestore {
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.testTag("btn_dialog_sync_apps")
                 ) {
-                    Text("مزامنة ☁️", color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(if (isArabic) "مزامنة ☁️" else "Sync ☁️", color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
         },
         dismissButton = {
             OutlinedButton(onClick = onDismiss) {
-                Text("إغلاق")
+                Text(if (isArabic) "إغلاق" else "Close")
             }
         }
     )

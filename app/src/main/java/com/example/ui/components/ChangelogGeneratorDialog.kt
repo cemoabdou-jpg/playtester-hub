@@ -17,11 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.TabletAndroid
 import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -48,9 +44,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.UserApp
-import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.PlayGreen
 import com.example.ui.theme.SuccessGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.LocalAppLanguage
 
 @Composable
 fun ChangelogGeneratorDialog(
@@ -58,6 +55,8 @@ fun ChangelogGeneratorDialog(
     onDismiss: () -> Unit
 ) {
     val clipboardManager = LocalClipboardManager.current
+    val language = LocalAppLanguage.current
+    val isArabic = language == AppLanguage.AR
 
     var fixCrashes by remember { mutableStateOf(true) }
     var speedBoost by remember { mutableStateOf(true) }
@@ -67,7 +66,7 @@ fun ChangelogGeneratorDialog(
     var tabletSupport by remember { mutableStateOf(false) }
     var customNote by remember { mutableStateOf("") }
 
-    var selectedLang by remember { mutableStateOf(0) } // 0 = Arabic, 1 = English, 2 = Bilingual
+    var selectedLang by remember { mutableStateOf(if (isArabic) 0 else 1) } // 0 = Arabic, 1 = English, 2 = Bilingual
     var isCopied by remember { mutableStateOf(false) }
 
     fun buildArabicNotes(): String {
@@ -119,12 +118,12 @@ fun ChangelogGeneratorDialog(
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
-                        text = "منشئ سجل التحديثات (Release Notes)",
+                        text = if (isArabic) "منشئ سجل التحديثات (Release Notes)" else "Release Notes & Changelog Generator",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "إثبات تفاعل وتحديث دوري لـ Google Play Console",
+                        text = if (isArabic) "إثبات تفاعل وتحديث دوري لـ Google Play Console" else "Demonstrate active development to Google reviewers",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -149,7 +148,10 @@ fun ChangelogGeneratorDialog(
                         Icon(Icons.Default.Info, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "💡 توصي Google بإطلاق تحديث واحد على الأقل أثناء الـ 14 يوماً. يساعد هذا النص المقنع لجان المراجعة في التحقق من أنك قمت بحل مشاكل المختبرين فعلياً.",
+                            text = if (isArabic)
+                                "💡 توصي Google بإطلاق تحديث واحد على الأقل أثناء الـ 14 يوماً. يساعد هذا النص المقنع لجان المراجعة في التحقق من أنك قمت بحل مشاكل المختبرين فعلياً."
+                            else
+                                "💡 Google recommends deploying at least 1 update during the 14-day track. Clear changelogs prove active remediation of tester feedback.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -157,7 +159,7 @@ fun ChangelogGeneratorDialog(
                 }
 
                 Text(
-                    text = "حدد التحسينات التي قمت بها في هذا الإصدار:",
+                    text = if (isArabic) "حدد التحسينات التي قمت بها في هذا الإصدار:" else "Select improvements included in this release:",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -165,44 +167,44 @@ fun ChangelogGeneratorDialog(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = fixCrashes, onCheckedChange = { fixCrashes = it; isCopied = false })
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("إصلاح الأعطال والإغلاقات (Bug Fixes)", fontSize = 12.sp)
+                    Text(if (isArabic) "إصلاح الأعطال والإغلاقات (Bug Fixes)" else "Bug fixes and crash resolutions", fontSize = 12.sp)
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = speedBoost, onCheckedChange = { speedBoost = it; isCopied = false })
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("تحسين السرعة واستهلاك البطارية (Performance)", fontSize = 12.sp)
+                    Text(if (isArabic) "تحسين السرعة واستهلاك البطارية (Performance)" else "Performance & battery optimizations", fontSize = 12.sp)
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = uiPolish, onCheckedChange = { uiPolish = it; isCopied = false })
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("تحسينات الواجهة والتصميم (UI & Accessibility)", fontSize = 12.sp)
+                    Text(if (isArabic) "تحسينات الواجهة والتصميم (UI & Accessibility)" else "UI polish and accessibility enhancements", fontSize = 12.sp)
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = darkModeSupport, onCheckedChange = { darkModeSupport = it; isCopied = false })
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("دعم الوضع الليلي الداكن (Dark Mode)", fontSize = 12.sp)
+                    Text(if (isArabic) "دعم الوضع الليلي الداكن (Dark Mode)" else "Dark Mode support and theme polish", fontSize = 12.sp)
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = localizationPolish, onCheckedChange = { localizationPolish = it; isCopied = false })
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("تحسين النصوص ودعم اللغة العربية (Localization)", fontSize = 12.sp)
+                    Text(if (isArabic) "تحسين النصوص ودعم اللغة العربية (Localization)" else "Bilingual localization and translations", fontSize = 12.sp)
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = tabletSupport, onCheckedChange = { tabletSupport = it; isCopied = false })
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("دعم الأجهزة اللوحية (Tablets & Foldables)", fontSize = 12.sp)
+                    Text(if (isArabic) "دعم الأجهزة اللوحية (Tablets & Foldables)" else "Tablet and foldable responsiveness", fontSize = 12.sp)
                 }
 
                 OutlinedTextField(
                     value = customNote,
                     onValueChange = { customNote = it; isCopied = false },
-                    label = { Text("إضافة ملاحظة إضافية مخصصة (اختياري)") },
-                    placeholder = { Text("مثال: إضافة ميزة تصدير البيانات إلى ملف PDF...") },
+                    label = { Text(if (isArabic) "إضافة ملاحظة إضافية مخصصة (اختياري)" else "Custom note / feature (Optional)") },
+                    placeholder = { Text(if (isArabic) "مثال: إضافة ميزة تصدير البيانات إلى ملف PDF..." else "e.g. Added PDF export feature...") },
                     modifier = Modifier.fillMaxWidth().testTag("input_custom_changelog"),
                     singleLine = true
                 )
@@ -225,7 +227,7 @@ fun ChangelogGeneratorDialog(
                     FilterChip(
                         selected = selectedLang == 2,
                         onClick = { selectedLang = 2; isCopied = false },
-                        label = { Text("ثنائي اللغة (Bilingual)") }
+                        label = { Text(if (isArabic) "ثنائي اللغة (Bilingual)" else "Bilingual") }
                     )
                 }
 
@@ -243,7 +245,7 @@ fun ChangelogGeneratorDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "النص المولد لـ Google Play Console:",
+                                text = if (isArabic) "النص المولد لـ Google Play Console:" else "Generated Text for Play Console:",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
@@ -265,7 +267,7 @@ fun ChangelogGeneratorDialog(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = if (isCopied) "تم النسخ!" else "نسخ",
+                                    text = if (isCopied) (if (isArabic) "تم النسخ!" else "Copied!") else (if (isArabic) "نسخ" else "Copy"),
                                     fontSize = 11.sp
                                 )
                             }
@@ -288,7 +290,7 @@ fun ChangelogGeneratorDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
                 modifier = Modifier.testTag("btn_close_changelog_dialog")
             ) {
-                Text("إغلاق")
+                Text(if (isArabic) "إغلاق" else "Close")
             }
         }
     )

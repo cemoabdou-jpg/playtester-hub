@@ -76,6 +76,9 @@ import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.L
+import com.example.ui.util.LocalAppLanguage
 import java.io.File
 
 @Composable
@@ -96,6 +99,10 @@ fun AddAppDialog(
     ) -> Unit
 ) {
     val context = LocalContext.current
+    val currentLang = LocalAppLanguage.current
+    val isArabic = (currentLang == AppLanguage.AR)
+    val s = L.strings()
+
     var name by remember { mutableStateOf("") }
     var packageName by remember { mutableStateOf("") }
     var iconUrl by remember { mutableStateOf("") }
@@ -153,7 +160,7 @@ fun AddAppDialog(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "إضافة تطبيقك للاختبار المغلق",
+                    text = if (isArabic) "إضافة تطبيقك للاختبار المغلق" else "Publish App for Closed Testing",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -227,7 +234,7 @@ fun AddAppDialog(
                                 if (iconUrl.isNotBlank()) {
                                     AsyncImage(
                                         model = if (iconUrl.startsWith("/")) File(iconUrl) else iconUrl,
-                                        contentDescription = "أيقونة التطبيق",
+                                        contentDescription = if (isArabic) "أيقونة التطبيق" else "App Icon",
                                         modifier = Modifier
                                             .size(48.dp)
                                             .clip(RoundedCornerShape(10.dp)),
@@ -236,7 +243,7 @@ fun AddAppDialog(
                                 } else {
                                     Icon(
                                         imageVector = Icons.Default.AddPhotoAlternate,
-                                        contentDescription = "تصفح المعرض",
+                                        contentDescription = if (isArabic) "تصفح المعرض" else "Pick photo",
                                         tint = PlayGreen,
                                         modifier = Modifier.size(24.dp)
                                     )
@@ -247,13 +254,13 @@ fun AddAppDialog(
 
                             Column {
                                 Text(
-                                    text = if (iconUrl.isNotBlank()) "تم تحديد أيقونة التطبيق ✓" else "أيقونة التطبيق (اضغط لاختيار صورة)",
+                                    text = if (iconUrl.isNotBlank()) (if (isArabic) "تم تحديد أيقونة التطبيق ✓" else "App Icon Selected ✓") else (if (isArabic) "أيقونة التطبيق (اضغط لاختيار صورة)" else "App Icon (Tap to select)"),
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = if (iconUrl.isNotBlank()) PlayGreen else MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = if (iconUrl.isNotBlank()) "انقر لتغيير الصورة من المعرض" else "تصفح صور ومعرض الجهاز",
+                                    text = if (iconUrl.isNotBlank()) (if (isArabic) "انقر لتغيير الصورة من المعرض" else "Tap to change photo") else (if (isArabic) "تصفح صور ومعرض الجهاز" else "Choose from device gallery"),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontSize = 10.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -270,14 +277,14 @@ fun AddAppDialog(
                                     onClick = { iconUrl = "" },
                                     modifier = Modifier.size(32.dp)
                                 ) {
-                                    Icon(Icons.Default.Close, contentDescription = "حذف الصورة", tint = DangerRed, modifier = Modifier.size(16.dp))
+                                    Icon(Icons.Default.Close, contentDescription = if (isArabic) "حذف الصورة" else "Remove image", tint = DangerRed, modifier = Modifier.size(16.dp))
                                 }
                             }
                             IconButton(
                                 onClick = { showUrlIconInput = !showUrlIconInput },
                                 modifier = Modifier.size(32.dp)
                             ) {
-                                Icon(Icons.Default.Language, contentDescription = "إدخال رابط صورة", tint = CyanAccent, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Language, contentDescription = if (isArabic) "إدخال رابط صورة" else "Icon URL", tint = CyanAccent, modifier = Modifier.size(18.dp))
                             }
                         }
                     }
@@ -287,7 +294,7 @@ fun AddAppDialog(
                     OutlinedTextField(
                         value = iconUrl,
                         onValueChange = { iconUrl = it.trim() },
-                        label = { Text("رابط صورة الأيقونة (URL)") },
+                        label = { Text(if (isArabic) "رابط صورة الأيقونة (URL)" else "Icon URL") },
                         placeholder = { Text("https://example.com/icon.png") },
                         singleLine = true,
                         shape = fieldShape,
@@ -300,8 +307,8 @@ fun AddAppDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it; errorMessage = null },
-                    label = { Text("اسم التطبيق *") },
-                    placeholder = { Text("مثال: حاسبة المصاريف الذكية") },
+                    label = { Text(if (isArabic) "اسم التطبيق *" else "App Name *") },
+                    placeholder = { Text(if (isArabic) "مثال: حاسبة المصاريف الذكية" else "e.g. Smart Expense Tracker") },
                     leadingIcon = {
                         Icon(Icons.Default.Apps, contentDescription = null, tint = PlayGreen)
                     },
@@ -317,8 +324,8 @@ fun AddAppDialog(
                 OutlinedTextField(
                     value = packageName,
                     onValueChange = { packageName = it.trim(); errorMessage = null },
-                    label = { Text("اسم الحزمة (Package Name) *") },
-                    placeholder = { Text("مثال: com.developer.budgetapp") },
+                    label = { Text(if (isArabic) "اسم الحزمة (Package Name) *" else "Package Name *") },
+                    placeholder = { Text("com.developer.myapp") },
                     leadingIcon = {
                         Icon(Icons.Default.Android, contentDescription = null, tint = PlayGreen)
                     },
@@ -348,7 +355,7 @@ fun AddAppDialog(
                         Icon(Icons.Default.Link, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "⚡ إنشاء روابط اختبار Google Play من اسم الحزمة",
+                            text = if (isArabic) "⚡ إنشاء روابط اختبار Google Play من اسم الحزمة" else "⚡ Auto-generate Play links from package name",
                             style = MaterialTheme.typography.labelMedium,
                             color = PlayGreen
                         )
@@ -367,14 +374,14 @@ fun AddAppDialog(
                             Icon(Icons.Default.Group, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "مجموعة اختبار Google Group الخاصة بك:",
+                                text = if (isArabic) "مجموعة اختبار Google Group الخاصة بك:" else "Your Testing Google Group URL:",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "أدخل رابط مجموعتك التي أنشأتها، أو اضغط زر «المجموعة المشتركة» لاستخدام المجموعة الجاهزة للمنصة:",
+                            text = if (isArabic) "أدخل رابط مجموعتك التي أنشأتها، أو اضغط زر «المجموعة المشتركة» لاستخدام المجموعة الجاهزة للمنصة:" else "Enter your custom Google Group URL or tap 'Use Shared Group' to use the hub's community group:",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -383,7 +390,7 @@ fun AddAppDialog(
                         OutlinedTextField(
                             value = googleGroupUrl,
                             onValueChange = { googleGroupUrl = it.trim(); errorMessage = null },
-                            label = { Text("رابط مجموعة Google Group الخاصة بك *") },
+                            label = { Text(if (isArabic) "رابط مجموعة Google Group الخاصة بك *" else "Google Group URL *") },
                             placeholder = { Text("https://groups.google.com/g/your-testers-group") },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -408,7 +415,7 @@ fun AddAppDialog(
                             ) {
                                 Icon(Icons.Default.Group, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("استخدام المجموعة المشتركة الجاهزة", fontSize = 11.sp, color = PlayGreen)
+                                Text(if (isArabic) "استخدام المجموعة المشتركة الجاهزة" else "Use Shared Group", fontSize = 11.sp, color = PlayGreen)
                             }
 
                             if (googleGroupUrl == officialGoogleGroupUrl) {
@@ -427,7 +434,7 @@ fun AddAppDialog(
                                         modifier = Modifier.size(12.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text(if (isGroupEmailCopied) "تم نسخ بريد المجموعة" else "نسخ بريد المجموعة", fontSize = 11.sp)
+                                    Text(if (isGroupEmailCopied) (if (isArabic) "تم نسخ بريد المجموعة" else "Copied!") else (if (isArabic) "نسخ بريد المجموعة" else "Copy Email"), fontSize = 11.sp)
                                 }
                             }
                         }
@@ -447,7 +454,7 @@ fun AddAppDialog(
                             }
                         }
                     },
-                    label = { Text("رابط اشتراك الويب (Web Opt-in Link)") },
+                    label = { Text(if (isArabic) "رابط اشتراك الويب (Web Opt-in Link)" else "Web Opt-in Link") },
                     placeholder = { Text("https://play.google.com/apps/testing/...") },
                     leadingIcon = {
                         Icon(Icons.Default.Language, contentDescription = null, tint = CyanAccent)
@@ -473,7 +480,7 @@ fun AddAppDialog(
                             }
                         }
                     },
-                    label = { Text("رابط التطبيق على متجر Play (Android link)") },
+                    label = { Text(if (isArabic) "رابط التطبيق على متجر Play (Android link)" else "Google Play Store Link") },
                     placeholder = { Text("https://play.google.com/store/apps/details?id=...") },
                     leadingIcon = {
                         Icon(Icons.Default.Shop, contentDescription = null, tint = PlayGreen)
@@ -490,8 +497,8 @@ fun AddAppDialog(
                 OutlinedTextField(
                     value = instructions,
                     onValueChange = { instructions = it },
-                    label = { Text("تعليمات للمختبرين (اختياري)") },
-                    placeholder = { Text("مثال: يرجى فتح التطبيق يومياً وتجربة الميزات") },
+                    label = { Text(if (isArabic) "تعليمات للمختبرين (اختياري)" else "Instructions for Testers (Optional)") },
+                    placeholder = { Text(if (isArabic) "مثال: يرجى فتح التطبيق يومياً وتجربة الميزات" else "e.g. Please test login and core features daily") },
                     leadingIcon = {
                         Icon(Icons.Default.Description, contentDescription = null, tint = AmberGold)
                     },
@@ -524,13 +531,13 @@ fun AddAppDialog(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "تثبيت في أعلى القائمة (مميز)",
+                                    text = if (isArabic) "تثبيت في أعلى القائمة (مميز)" else "Pin as Featured App",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
                             Text(
-                                text = "يمنح تطبيقك أولوية الظهور للمختبرين (متاح مجاناً للجميع)",
+                                text = if (isArabic) "يمنح تطبيقك أولوية الظهور للمختبرين (متاح مجاناً للجميع)" else "Gives your app higher visibility in the community market",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -548,15 +555,15 @@ fun AddAppDialog(
             Button(
                 onClick = {
                     if (name.isBlank()) {
-                        errorMessage = "يرجى إدخال اسم التطبيق"
+                        errorMessage = if (isArabic) "يرجى إدخال اسم التطبيق" else "Please enter app name"
                         return@Button
                     }
                     if (packageName.isBlank() || !packageName.contains(".")) {
-                        errorMessage = "يرجى إدخال اسم حزمة صحيح (مثال: com.example.app)"
+                        errorMessage = if (isArabic) "يرجى إدخال اسم حزمة صحيح (مثال: com.example.app)" else "Please enter a valid package name (e.g. com.example.app)"
                         return@Button
                     }
                     if (googleGroupUrl.isBlank() && webOptInUrl.isBlank() && androidOptInUrl.isBlank()) {
-                        errorMessage = "يرجى إدخال رابط واحد على الأقل (رابط المجموعة، رابط الويب، أو رابط متجر Google Play)"
+                        errorMessage = if (isArabic) "يرجى إدخال رابط واحد على الأقل (رابط المجموعة، رابط الويب، أو رابط متجر Google Play)" else "Please provide at least one link (Group, Web Opt-in, or Store link)"
                         return@Button
                     }
 
@@ -580,7 +587,7 @@ fun AddAppDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
                 modifier = Modifier.testTag("confirm_publish_app")
             ) {
-                Text("نشر وإضافة التطبيق")
+                Text(if (isArabic) "نشر وإضافة التطبيق" else "Publish App")
             }
         },
         dismissButton = {
@@ -588,7 +595,7 @@ fun AddAppDialog(
                 onClick = onDismiss,
                 modifier = Modifier.testTag("cancel_publish_app")
             ) {
-                Text("إلغاء")
+                Text(if (isArabic) "إلغاء" else "Cancel")
             }
         }
     )

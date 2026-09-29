@@ -86,6 +86,8 @@ import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
 import com.example.ui.theme.SuccessGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.LocalAppLanguage
 
 private fun openUrl(context: Context, url: String) {
     try {
@@ -119,6 +121,9 @@ fun AdminControlScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val language = LocalAppLanguage.current
+    val isArabic = language == AppLanguage.AR
+
     var selectedTab by remember { mutableIntStateOf(0) } // 0: Apps, 1: Notifications, 2: Analytics, 3: Google Group Settings
     var showBroadcastDialog by remember { mutableStateOf(false) }
     var appToDelete by remember { mutableStateOf<CommunityApp?>(null) }
@@ -166,13 +171,17 @@ fun AdminControlScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "لوحة تحكم صاحب التطبيق",
+                                text = if (isArabic) "لوحة تحكم صاحب التطبيق" else "Admin Control Dashboard",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "إدارة أولوية الظهور، التطبيقات، وبث الإشعارات لجميع المطورين",
+                                text = if (isArabic) {
+                                    "إدارة أولوية الظهور، التطبيقات، وبث الإشعارات لجميع المطورين"
+                                } else {
+                                    "Manage app priority, featured listing, and broadcast notifications"
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -195,7 +204,7 @@ fun AdminControlScreen(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "صلاحيات المالك 👑",
+                                text = if (isArabic) "صلاحيات المالك 👑" else "Owner Access 👑",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = AmberGold
@@ -218,7 +227,7 @@ fun AdminControlScreen(
                         onClick = { selectedTab = 0 },
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("التحكم بالتطبيقات والأولوية", fontWeight = FontWeight.Bold)
+                                Text(if (isArabic) "التحكم بالتطبيقات والأولوية" else "App Priority Control", fontWeight = FontWeight.Bold)
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Surface(
                                     shape = CircleShape,
@@ -241,7 +250,7 @@ fun AdminControlScreen(
                         onClick = { selectedTab = 1 },
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("بث الإشعارات والرسائل", fontWeight = FontWeight.Bold)
+                                Text(if (isArabic) "بث الإشعارات والرسائل" else "Broadcast Alerts", fontWeight = FontWeight.Bold)
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Surface(
                                     shape = CircleShape,
@@ -264,14 +273,14 @@ fun AdminControlScreen(
                         onClick = { selectedTab = 2 },
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("التحليلات 📊", fontWeight = FontWeight.Bold)
+                                Text(if (isArabic) "التحليلات 📊" else "Analytics 📊", fontWeight = FontWeight.Bold)
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Surface(
                                     shape = CircleShape,
                                     color = AmberGold.copy(alpha = 0.2f)
                                 ) {
                                     Text(
-                                        text = "جديد",
+                                        text = if (isArabic) "جديد" else "New",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = AmberGold,
@@ -295,7 +304,7 @@ fun AdminControlScreen(
                                     tint = PlayGreen
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("مجموعة Google 👥", fontWeight = FontWeight.Bold)
+                                Text(if (isArabic) "مجموعة Google 👥" else "Google Group 👥", fontWeight = FontWeight.Bold)
                             }
                         },
                         modifier = Modifier.testTag("admin_tab_google_group")
@@ -332,10 +341,17 @@ fun AdminControlScreen(
                                 )
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Text(
-                                    text = if (isAdmin)
-                                        "التطبيقات الأعلى أولوية تظهر في مقدمة سوق التبادل أولاً لجميع المطورين والمختبرين. يمكنك رفع أولوية أي تطبيق، تثبيته في الصدارة، أو إخفائه/حذفه."
-                                    else
-                                        "هنا تظهر لوحة ترتيب وأولويات ظهور التطبيقات في المنصة بكل شفافية. التطبيقات الأعلى أولوية والمثبتة بنجمة تظهر أولاً لجميع المطورين والمختبرين.",
+                                    text = if (isArabic) {
+                                        if (isAdmin)
+                                            "التطبيقات الأعلى أولوية تظهر في مقدمة سوق التبادل أولاً لجميع المطورين والمختبرين. يمكنك رفع أولوية أي تطبيق، تثبيته في الصدارة، أو إخفائه/حذفه."
+                                        else
+                                            "هنا تظهر لوحة ترتيب وأولويات ظهور التطبيقات في المنصة بكل شفافية. التطبيقات الأعلى أولوية والمثبتة بنجمة تظهر أولاً لجميع المطورين والمختبرين."
+                                    } else {
+                                        if (isAdmin)
+                                            "Higher priority apps appear first in the community market for all developers. You can adjust priority, feature/pin, hide, or remove apps."
+                                        else
+                                            "Transparent marketplace ranking overview. Highest priority and pinned apps appear at the top for all developers."
+                                    },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -347,6 +363,7 @@ fun AdminControlScreen(
                         AdminAppItemCard(
                             app = app,
                             isAdmin = isAdmin,
+                            isArabic = isArabic,
                             onEditPriority = { if (isAdmin) appToEditPriority = app },
                             onIncreasePriority = { if (isAdmin) onUpdatePriority(app.id, app.priorityScore + 10) },
                             onDecreasePriority = { if (isAdmin) onUpdatePriority(app.id, (app.priorityScore - 10).coerceAtLeast(0)) },
@@ -385,7 +402,7 @@ fun AdminControlScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "📢 إرسال إشعار فوري عام لجميع المطورين والمختبرين",
+                                    text = if (isArabic) "📢 إرسال إشعار فوري عام لجميع المطورين والمختبرين" else "📢 Broadcast Instant Notification to All Users",
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White
                                 )
@@ -410,7 +427,11 @@ fun AdminControlScreen(
                                     )
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Text(
-                                        text = "هنا جميع التنبيهات والإعلانات العامة المرسلة من إدارة المنصة وصاحب التطبيق لجميع المستخدمين.",
+                                        text = if (isArabic) {
+                                            "هنا جميع التنبيهات والإعلانات العامة المرسلة من إدارة المنصة وصاحب التطبيق لجميع المستخدمين."
+                                        } else {
+                                            "Official system announcements broadcasted to all community developers."
+                                        },
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -421,7 +442,7 @@ fun AdminControlScreen(
 
                     item {
                         Text(
-                            text = "سجل الإشعارات والتنبيهات الموجهة (${notifications.size})",
+                            text = if (isArabic) "سجل الإشعارات والتنبيهات الموجهة (${notifications.size})" else "Broadcast Logs (${notifications.size})",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(top = 8.dp)
@@ -449,7 +470,7 @@ fun AdminControlScreen(
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        text = "لا توجد إشعارات مسجلة حالياً",
+                                        text = if (isArabic) "لا توجد إشعارات مسجلة حالياً" else "No broadcast notifications yet",
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                 }
@@ -511,7 +532,7 @@ fun AdminControlScreen(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Delete,
-                                            contentDescription = "حذف الإشعار",
+                                            contentDescription = if (isArabic) "حذف الإشعار" else "Delete Notification",
                                             tint = DangerRed,
                                             modifier = Modifier.size(18.dp)
                                         )
@@ -539,6 +560,7 @@ fun AdminControlScreen(
                     currentUrl = officialGoogleGroupUrl,
                     currentEmail = officialGoogleGroupEmail,
                     isAdmin = isAdmin,
+                    isArabic = isArabic,
                     onSave = onUpdateGoogleGroup,
                     onReset = onResetGoogleGroup
                 )
@@ -555,27 +577,31 @@ fun AdminControlScreen(
             onDismissRequest = { appToEditPriority = null },
             title = {
                 Text(
-                    text = "تعديل أولوية ظهور التطبيق",
+                    text = if (isArabic) "تعديل أولوية ظهور التطبيق" else "Edit App Display Priority",
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
                 Column {
                     Text(
-                        text = "التطبيق: ${target.name}",
+                        text = if (isArabic) "التطبيق: ${target.name}" else "App: ${target.name}",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "قيمة الأولوية (كلما كانت أعلى، ظهر التطبيق أولاً للمستخدمين):",
+                        text = if (isArabic) {
+                            "قيمة الأولوية (كلما كانت أعلى، ظهر التطبيق أولاً للمستخدمين):"
+                        } else {
+                            "Priority Score (higher values rank the app higher on the marketplace):"
+                        },
                         style = MaterialTheme.typography.bodySmall
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = newScoreText,
                         onValueChange = { newScoreText = it },
-                        label = { Text("درجة الأولوية (مثال: 50 أو 100)") },
+                        label = { Text(if (isArabic) "درجة الأولوية (مثال: 50 أو 100)" else "Priority Score (e.g. 50 or 100)") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -590,12 +616,12 @@ fun AdminControlScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = PlayGreen)
                 ) {
-                    Text("حفظ الأولوية")
+                    Text(if (isArabic) "حفظ الأولوية" else "Save Priority")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { appToEditPriority = null }) {
-                    Text("إلغاء")
+                    Text(if (isArabic) "إلغاء" else "Cancel")
                 }
             }
         )
@@ -608,14 +634,18 @@ fun AdminControlScreen(
             onDismissRequest = { appToDelete = null },
             title = {
                 Text(
-                    text = "حذف التطبيق من المنصة نهائياً",
+                    text = if (isArabic) "حذف التطبيق من المنصة نهائياً" else "Delete App from Platform",
                     fontWeight = FontWeight.Bold,
                     color = DangerRed
                 )
             },
             text = {
                 Text(
-                    text = "هل أنت متأكد من رغبتك في حذف تطبيق '${target.name}' من سوق التبادل؟ هذا الإجراء فوري وخاص بإدارة التطبيق."
+                    text = if (isArabic) {
+                        "هل أنت متأكد من رغبتك في حذف تطبيق '${target.name}' من سوق التبادل؟ هذا الإجراء فوري وخاص بإدارة التطبيق."
+                    } else {
+                        "Are you sure you want to permanently delete '${target.name}' from the community marketplace?"
+                    }
                 )
             },
             confirmButton = {
@@ -626,12 +656,12 @@ fun AdminControlScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = DangerRed)
                 ) {
-                    Text("نعم، احذف التطبيق")
+                    Text(if (isArabic) "نعم، احذف التطبيق" else "Yes, Delete App")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { appToDelete = null }) {
-                    Text("تراجع")
+                    Text(if (isArabic) "تراجع" else "Cancel")
                 }
             }
         )
@@ -639,7 +669,7 @@ fun AdminControlScreen(
 
     // Broadcast Notification Dialog
     if (showBroadcastDialog) {
-        var broadcastTitle by remember { mutableStateOf("تحديث عاجل من إدارة PlayTester Hub") }
+        var broadcastTitle by remember { mutableStateOf(if (isArabic) "تحديث عاجل من إدارة PlayTester Hub" else "Official Update from PlayTester Hub") }
         var broadcastMessage by remember { mutableStateOf("") }
         var error by remember { mutableStateOf<String?>(null) }
 
@@ -654,7 +684,7 @@ fun AdminControlScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "بث إشعار عام للمطورين",
+                        text = if (isArabic) "بث إشعار عام للمطورين" else "Broadcast Notification",
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -662,7 +692,11 @@ fun AdminControlScreen(
             text = {
                 Column {
                     Text(
-                        text = "سيصل هذا الإشعار لكافة المطورين في مركز الإشعارات كرسالة رسمية من إدارة المنصة:",
+                        text = if (isArabic) {
+                            "سيصل هذا الإشعار لكافة المطورين في مركز الإشعارات كرسالة رسمية من إدارة المنصة:"
+                        } else {
+                            "This alert will be delivered to all developers in their notification center:"
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -670,7 +704,7 @@ fun AdminControlScreen(
                     OutlinedTextField(
                         value = broadcastTitle,
                         onValueChange = { broadcastTitle = it },
-                        label = { Text("عنوان الإشعار") },
+                        label = { Text(if (isArabic) "عنوان الإشعار" else "Notification Title") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -681,8 +715,8 @@ fun AdminControlScreen(
                             broadcastMessage = it
                             error = null
                         },
-                        label = { Text("نص الرسالة / التنبيه") },
-                        placeholder = { Text("مثال: فرصة ذهبية لتبادل الاختبار والحصول على 20 مختبراً هذا الأسبوع...") },
+                        label = { Text(if (isArabic) "نص الرسالة / التنبيه" else "Message / Body") },
+                        placeholder = { Text(if (isArabic) "مثال: فرصة ذهبية لتبادل الاختبار والحصول على 20 مختبراً..." else "e.g. Great opportunity to exchange tests this week...") },
                         maxLines = 4,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -700,7 +734,7 @@ fun AdminControlScreen(
                 Button(
                     onClick = {
                         if (broadcastTitle.isBlank() || broadcastMessage.isBlank()) {
-                            error = "يرجى كتابة العنوان والرسالة"
+                            error = if (isArabic) "يرجى كتابة العنوان والرسالة" else "Please enter title and message"
                             return@Button
                         }
                         onBroadcastNotification(broadcastTitle.trim(), broadcastMessage.trim(), context)
@@ -708,12 +742,12 @@ fun AdminControlScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = PlayGreen)
                 ) {
-                    Text("إرسال الإشعار الآن")
+                    Text(if (isArabic) "إرسال الإشعار الآن" else "Send Broadcast Now")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showBroadcastDialog = false }) {
-                    Text("إلغاء")
+                    Text(if (isArabic) "إلغاء" else "Cancel")
                 }
             }
         )
@@ -724,6 +758,7 @@ fun AdminControlScreen(
 private fun AdminAppItemCard(
     app: CommunityApp,
     isAdmin: Boolean,
+    isArabic: Boolean,
     onEditPriority: () -> Unit,
     onIncreasePriority: () -> Unit,
     onDecreasePriority: () -> Unit,
@@ -774,7 +809,7 @@ private fun AdminAppItemCard(
                             color = AmberGold.copy(alpha = 0.2f)
                         ) {
                             Text(
-                                text = "⭐ مثبت بالصدارة",
+                                text = if (isArabic) "⭐ مثبت بالصدارة" else "⭐ Pinned",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AmberGold,
                                 fontWeight = FontWeight.Bold,
@@ -789,7 +824,7 @@ private fun AdminAppItemCard(
                             color = DangerRed.copy(alpha = 0.15f)
                         ) {
                             Text(
-                                text = "مخفي عن المستخدمين",
+                                text = if (isArabic) "مخفي عن المستخدمين" else "Hidden",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = DangerRed,
                                 fontWeight = FontWeight.Bold,
@@ -810,7 +845,7 @@ private fun AdminAppItemCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "الأولوية: ${app.priorityScore}",
+                            text = if (isArabic) "الأولوية: ${app.priorityScore}" else "Priority: ${app.priorityScore}",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = if (app.priorityScore > 0) PlayGreen else MaterialTheme.colorScheme.onSurfaceVariant
@@ -830,7 +865,7 @@ private fun AdminAppItemCard(
             )
 
             Text(
-                text = "المطور: ${app.developerName} • الحزمة: ${app.packageName}",
+                text = if (isArabic) "المطور: ${app.developerName} • الحزمة: ${app.packageName}" else "Dev: ${app.developerName} • Package: ${app.packageName}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -838,7 +873,7 @@ private fun AdminAppItemCard(
             )
 
             Text(
-                text = "المختبرين: ${app.testersCurrent}/${app.testersTarget} • النقاط: ${app.rewardPoints}",
+                text = if (isArabic) "المختبرين: ${app.testersCurrent}/${app.testersTarget} • النقاط: ${app.rewardPoints}" else "Testers: ${app.testersCurrent}/${app.testersTarget} • Points: ${app.rewardPoints}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 2.dp)
@@ -865,12 +900,12 @@ private fun AdminAppItemCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.KeyboardArrowUp,
-                                contentDescription = "زيادة الأولوية",
+                                contentDescription = if (isArabic) "زيادة الأولوية" else "Increase Priority",
                                 tint = PlayGreen,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(2.dp))
-                            Text("+10 أولوية", fontSize = 11.sp, color = PlayGreen)
+                            Text(if (isArabic) "+10 أولوية" else "+10 Priority", fontSize = 11.sp, color = PlayGreen)
                         }
 
                         OutlinedButton(
@@ -880,7 +915,7 @@ private fun AdminAppItemCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.KeyboardArrowDown,
-                                contentDescription = "تقليل الأولوية",
+                                contentDescription = if (isArabic) "تقليل الأولوية" else "Decrease Priority",
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(2.dp))
@@ -899,7 +934,7 @@ private fun AdminAppItemCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Star,
-                                contentDescription = "تثبيت بالصدارة",
+                                contentDescription = if (isArabic) "تثبيت بالصدارة" else "Pin/Feature",
                                 tint = if (app.isFeatured) AmberGold else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                                 modifier = Modifier.size(20.dp)
                             )
@@ -911,7 +946,7 @@ private fun AdminAppItemCard(
                         ) {
                             Icon(
                                 imageVector = if (app.isHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = "إخفاء/إظهار",
+                                contentDescription = if (isArabic) "إخفاء/إظهار" else "Toggle Visibility",
                                 tint = if (app.isHidden) DangerRed else PlayGreen,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -923,7 +958,7 @@ private fun AdminAppItemCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
-                                contentDescription = "حذف التطبيق",
+                                contentDescription = if (isArabic) "حذف التطبيق" else "Delete App",
                                 tint = DangerRed,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -951,14 +986,14 @@ private fun AdminAppItemCard(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "تعديل الأولوية والتحكم حصري لصاحب التطبيق",
+                                text = if (isArabic) "تعديل الأولوية والتحكم حصري لصاحب التطبيق" else "Priority editing is exclusive to the Platform Admin",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         if (app.isFeatured) {
                             Text(
-                                text = "⭐ مثبت بالصدارة",
+                                text = if (isArabic) "⭐ مثبت بالصدارة" else "⭐ Pinned",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AmberGold,
                                 fontWeight = FontWeight.Bold
@@ -976,6 +1011,7 @@ fun AdminGoogleGroupManagerView(
     currentUrl: String,
     currentEmail: String,
     isAdmin: Boolean,
+    isArabic: Boolean = true,
     onSave: (url: String, email: String) -> Unit,
     onReset: () -> Unit,
     modifier: Modifier = Modifier
@@ -1023,13 +1059,13 @@ fun AdminGoogleGroupManagerView(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "إدارة مجموعة Google Groups الموحدة",
+                                text = if (isArabic) "إدارة مجموعة Google Groups الموحدة" else "Central Google Group Management",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "الرابط والبريد المركزي لجميع مختبري وتطبيقات المنصة",
+                                text = if (isArabic) "الرابط والبريد المركزي لجميع مختبري وتطبيقات المنصة" else "Central link and email for all platform testers",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -1037,7 +1073,11 @@ fun AdminGoogleGroupManagerView(
                     }
 
                     Text(
-                        text = "📌 بموجب سياسة Google Play للاختبار المغلق، يجب أن ينضم المختبر أولاً لمجموعة Google هذه حتى يفتح له رابط التحميل بالمتجر. يمكنك بصفتك صاحب المنصة تعديل الرابط والبريد في أي وقت ليتم تعميمه فوراً على كافة شاشات وأزرار المنصة.",
+                        text = if (isArabic) {
+                            "📌 بموجب سياسة Google Play للاختبار المغلق، يجب أن ينضم المختبر أولاً لمجموعة Google هذه حتى يفتح له رابط التحميل بالمتجر. يمكنك بصفتك صاحب المنصة تعديل الرابط والبريد في أي وقت ليتم تعميمه فوراً على كافة شاشات وأزرار المنصة."
+                        } else {
+                            "📌 According to Google Play Closed Testing policy, testers must first join this Google Group to unlock opt-in store links. As platform owner, changes made here apply instantly across all buttons and screens."
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = 18.sp
@@ -1059,7 +1099,7 @@ fun AdminGoogleGroupManagerView(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Text(
-                        text = "البيانات المفعلة حالياً بالمنصة:",
+                        text = if (isArabic) "البيانات المفعلة حالياً بالمنصة:" else "Currently Active Platform Configuration:",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -1080,7 +1120,7 @@ fun AdminGoogleGroupManagerView(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("بريد المجموعة الرسمي", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(if (isArabic) "بريد المجموعة الرسمي" else "Official Google Group Email", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(currentEmail, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
@@ -1101,7 +1141,7 @@ fun AdminGoogleGroupManagerView(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("رابط انضمام الويب", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(if (isArabic) "رابط انضمام الويب" else "Web Opt-in Group URL", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(currentUrl, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
@@ -1114,7 +1154,7 @@ fun AdminGoogleGroupManagerView(
                     ) {
                         Icon(imageVector = Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("تجربة فتح رابط المجموعة الحالي في المتصفح")
+                        Text(if (isArabic) "تجربة فتح رابط المجموعة الحالي في المتصفح" else "Test Open Current Group URL in Browser")
                     }
                 }
             }
@@ -1137,7 +1177,7 @@ fun AdminGoogleGroupManagerView(
                             Icon(imageVector = Icons.Default.Edit, contentDescription = null, tint = AmberGold, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "تعديل رابط وبريد المجموعة (صلاحية الأدمن)",
+                                text = if (isArabic) "تعديل رابط وبريد المجموعة (صلاحية الأدمن)" else "Edit Group URL & Email (Admin Only)",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
@@ -1177,7 +1217,7 @@ fun AdminGoogleGroupManagerView(
                         OutlinedTextField(
                             value = emailText,
                             onValueChange = { emailText = it.trim(); errorMessage = null; saveSuccessMessage = null },
-                            label = { Text("بريد المجموعة الإلكتروني (Google Group Email)") },
+                            label = { Text(if (isArabic) "بريد المجموعة الإلكتروني (Google Group Email)" else "Google Group Email") },
                             placeholder = { Text("player-test-hup@googlegroups.com") },
                             leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = CyanAccent) },
                             modifier = Modifier
@@ -1190,7 +1230,7 @@ fun AdminGoogleGroupManagerView(
                         OutlinedTextField(
                             value = urlText,
                             onValueChange = { urlText = it.trim(); errorMessage = null; saveSuccessMessage = null },
-                            label = { Text("رابط الانضمام عبر الويب (Web Group URL)") },
+                            label = { Text(if (isArabic) "رابط الانضمام عبر الويب (Web Group URL)" else "Web Group URL") },
                             placeholder = { Text("https://groups.google.com/g/player-test-hup") },
                             leadingIcon = { Icon(Icons.Default.Link, contentDescription = null, tint = PlayGreen) },
                             modifier = Modifier
@@ -1207,15 +1247,15 @@ fun AdminGoogleGroupManagerView(
                             Button(
                                 onClick = {
                                     if (emailText.isBlank() || !emailText.contains("@")) {
-                                        errorMessage = "يرجى إدخال بريد إلكتروني صالح للمجموعة"
+                                        errorMessage = if (isArabic) "يرجى إدخال بريد إلكتروني صالح للمجموعة" else "Please enter a valid group email address"
                                         return@Button
                                     }
                                     if (urlText.isBlank()) {
-                                        errorMessage = "يرجى إدخال رابط صالح للمجموعة"
+                                        errorMessage = if (isArabic) "يرجى إدخال رابط صالح للمجموعة" else "Please enter a valid group URL"
                                         return@Button
                                     }
                                     onSave(urlText, emailText)
-                                    saveSuccessMessage = "تم حفظ الرابط والبريد بنجاح وتحديث النظام بالكامل!"
+                                    saveSuccessMessage = if (isArabic) "تم حفظ الرابط والبريد بنجاح وتحديث النظام بالكامل!" else "Group details saved and updated across platform!"
                                     errorMessage = null
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
@@ -1226,7 +1266,7 @@ fun AdminGoogleGroupManagerView(
                             ) {
                                 Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("حفظ وتعميم التعديلات")
+                                Text(if (isArabic) "حفظ وتعميم التعديلات" else "Save & Broadcast")
                             }
 
                             OutlinedButton(
@@ -1234,13 +1274,13 @@ fun AdminGoogleGroupManagerView(
                                     onReset()
                                     urlText = "https://groups.google.com/g/player-test-hup"
                                     emailText = "player-test-hup@googlegroups.com"
-                                    saveSuccessMessage = "تمت استعادة الرابط الافتراضي بنجاح"
+                                    saveSuccessMessage = if (isArabic) "تمت استعادة الرابط الافتراضي بنجاح" else "Default group settings restored"
                                     errorMessage = null
                                 },
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier.testTag("admin_reset_group_btn")
                             ) {
-                                Text("استعادة الافتراضي")
+                                Text(if (isArabic) "استعادة الافتراضي" else "Reset Default")
                             }
                         }
                     }
@@ -1249,4 +1289,3 @@ fun AdminGoogleGroupManagerView(
         }
     }
 }
-

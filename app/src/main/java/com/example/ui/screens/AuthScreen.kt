@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.VpnKey
@@ -78,11 +79,13 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.PlayGreen
+import com.example.ui.util.AppLanguage
 import com.example.util.EmailHelper
-import com.example.util.SecurityUtils
 
 @Composable
 fun AuthScreen(
+    language: AppLanguage = AppLanguage.AR,
+    onToggleLanguage: (() -> Unit)? = null,
     onLogin: (email: String, pass: String) -> Unit,
     onRegister: (name: String, email: String, pass: String) -> Unit,
     onGoogleSignIn: (email: String, name: String) -> Unit,
@@ -91,6 +94,7 @@ fun AuthScreen(
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
+    val isArabic = language == AppLanguage.AR
 
     // 0: Register (حساب جديد - أولاً), 1: Login (تسجيل الدخول)
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -132,6 +136,42 @@ fun AuthScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            // Quick Language Switcher
+            if (onToggleLanguage != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier
+                            .clickable { onToggleLanguage() }
+                            .testTag("btn_auth_language_toggle")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Translate,
+                                contentDescription = null,
+                                tint = PlayGreen,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (isArabic) "English 🇬🇧" else "العربية 🇸🇦",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
             // App Branding Icon
             Box(
                 modifier = Modifier
@@ -146,7 +186,7 @@ fun AuthScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.Security,
-                    contentDescription = "شعار الأمان",
+                    contentDescription = if (isArabic) "شعار الأمان" else "Security Logo",
                     tint = Color.White,
                     modifier = Modifier.size(40.dp)
                 )
@@ -162,7 +202,10 @@ fun AuthScreen(
             )
 
             Text(
-                text = "بوابة المطورين الآمنة لتبادل الاختبار المغلق 14 يوماً",
+                text = if (isArabic)
+                    "بوابة المطورين الآمنة لتبادل الاختبار المغلق 14 يوماً"
+                else
+                    "Secure developer portal for 14-day closed testing exchange",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)
@@ -191,13 +234,13 @@ fun AuthScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "نظام الحساب الإلزامي والمحمي للمطورين",
+                            text = if (isArabic) "نظام الحساب الإلزامي والمحمي للمطورين" else "Protected Developer Account System",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = "التسجيل فوري ومحفوظ محلياً ودائماً، ويمكنك استعادة كلمة مرورك في أي وقت.",
+                            text = if (isArabic) "التسجيل فوري ومحفوظ محلياً ودائماً، ويمكنك استعادة كلمة مرورك في أي وقت." else "Registration is instant & saved securely. You can recover your password anytime.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                         )
@@ -238,7 +281,7 @@ fun AuthScreen(
                             },
                             text = {
                                 Text(
-                                    "1. إنشاء حساب مطور",
+                                    if (isArabic) "1. إنشاء حساب مطور" else "1. Register Account",
                                     fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal
                                 )
                             },
@@ -253,7 +296,7 @@ fun AuthScreen(
                             },
                             text = {
                                 Text(
-                                    "2. تسجيل الدخول",
+                                    if (isArabic) "2. تسجيل الدخول" else "2. Sign In",
                                     fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
                                 )
                             },
@@ -270,8 +313,8 @@ fun AuthScreen(
                                     displayName = it
                                     errorMessage = null
                                 },
-                                label = { Text("اسم المطور أو اسم الاستوديو") },
-                                placeholder = { Text("مثال: ستوديو الأندرويد العربي") },
+                                label = { Text(if (isArabic) "اسم المطور أو اسم الاستوديو" else "Developer / Studio Name") },
+                                placeholder = { Text(if (isArabic) "مثال: ستوديو الأندرويد العربي" else "e.g. NextGen Apps Studio") },
                                 leadingIcon = {
                                     Icon(Icons.Default.Person, contentDescription = null, tint = PlayGreen)
                                 },
@@ -292,7 +335,7 @@ fun AuthScreen(
                             email = it
                             errorMessage = null
                         },
-                        label = { Text("البريد الإلكتروني المعتمد") },
+                        label = { Text(if (isArabic) "البريد الإلكتروني المعتمد" else "Registered Email") },
                         placeholder = { Text("developer@example.com") },
                         leadingIcon = {
                             Icon(Icons.Default.Email, contentDescription = null, tint = PlayGreen)
@@ -313,8 +356,8 @@ fun AuthScreen(
                             password = it
                             errorMessage = null
                         },
-                        label = { Text("كلمة المرور") },
-                        placeholder = { Text("6 أحرف أو أكثر") },
+                        label = { Text(if (isArabic) "كلمة المرور" else "Password") },
+                        placeholder = { Text(if (isArabic) "6 أحرف أو أكثر" else "6+ characters") },
                         leadingIcon = {
                             Icon(Icons.Default.Lock, contentDescription = null, tint = PlayGreen)
                         },
@@ -322,7 +365,7 @@ fun AuthScreen(
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(
                                     imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = if (passwordVisible) "إخفاء كلمة المرور" else "إظهار كلمة المرور"
+                                    contentDescription = if (passwordVisible) (if (isArabic) "إخفاء كلمة المرور" else "Hide Password") else (if (isArabic) "إظهار كلمة المرور" else "Show Password")
                                 )
                             }
                         },
@@ -357,7 +400,7 @@ fun AuthScreen(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "حول رسائل البريد",
+                                    text = if (isArabic) "حول رسائل البريد" else "About Email System",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -384,7 +427,7 @@ fun AuthScreen(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "نسيت كلمة المرور؟",
+                                    text = if (isArabic) "نسيت كلمة المرور؟" else "Forgot Password?",
                                     color = CyanAccent,
                                     fontWeight = FontWeight.Bold,
                                     style = MaterialTheme.typography.bodySmall
@@ -402,7 +445,7 @@ fun AuthScreen(
                                     confirmPassword = it
                                     errorMessage = null
                                 },
-                                label = { Text("تأكيد كلمة المرور") },
+                                label = { Text(if (isArabic) "تأكيد كلمة المرور" else "Confirm Password") },
                                 leadingIcon = {
                                     Icon(Icons.Default.Lock, contentDescription = null, tint = PlayGreen)
                                 },
@@ -441,7 +484,7 @@ fun AuthScreen(
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
-                                            text = "التفعيل فوري ولا يحتاج انتظار إيميل تفعيل.",
+                                            text = if (isArabic) "التفعيل فوري ولا يحتاج انتظار إيميل تفعيل." else "Instant activation without waiting for email link.",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -453,7 +496,7 @@ fun AuthScreen(
                                         }
                                     ) {
                                         Text(
-                                            text = "تجربة إرسال بريد",
+                                            text = if (isArabic) "تجربة إرسال بريد" else "Test Email",
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
                                             color = PlayGreen
@@ -515,21 +558,21 @@ fun AuthScreen(
                     Button(
                         onClick = {
                             if (email.isBlank() || !email.contains("@")) {
-                                errorMessage = "يرجى إدخال بريد إلكتروني صحيح وصالح"
+                                errorMessage = if (isArabic) "يرجى إدخال بريد إلكتروني صحيح وصالح" else "Please enter a valid email address"
                                 return@Button
                             }
                             if (password.length < 6) {
-                                errorMessage = "كلمة المرور يجب أن لا تقل عن 6 أحرف لحماية حسابك"
+                                errorMessage = if (isArabic) "كلمة المرور يجب أن لا تقل عن 6 أحرف لحماية حسابك" else "Password must be at least 6 characters"
                                 return@Button
                             }
                             if (selectedTab == 0) {
                                 // Registration flow
                                 if (displayName.isBlank()) {
-                                    errorMessage = "يرجى إدخال اسم المطور أو الاستوديو"
+                                    errorMessage = if (isArabic) "يرجى إدخال اسم المطور أو الاستوديو" else "Please enter developer or studio name"
                                     return@Button
                                 }
                                 if (password != confirmPassword) {
-                                    errorMessage = "كلمتا المرور غير متطابقتين، يرجى التحقق"
+                                    errorMessage = if (isArabic) "كلمتا المرور غير متطابقتين، يرجى التحقق" else "Passwords do not match"
                                     return@Button
                                 }
                                 onRegister(displayName.trim(), email.trim(), password)
@@ -553,7 +596,7 @@ fun AuthScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (selectedTab == 0) "إنشاء وحفظ حساب المطور" else "تسجيل الدخول والمتابعة",
+                            text = if (selectedTab == 0) (if (isArabic) "إنشاء وحفظ حساب المطور" else "Create Developer Account") else (if (isArabic) "تسجيل الدخول والمتابعة" else "Sign In & Continue"),
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
@@ -568,7 +611,7 @@ fun AuthScreen(
                     ) {
                         HorizontalDivider(modifier = Modifier.weight(1f))
                         Text(
-                            text = "أو باستخدام مزامنة Google",
+                            text = if (isArabic) "أو باستخدام مزامنة Google" else "Or continue with Google",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 10.dp)
@@ -582,7 +625,7 @@ fun AuthScreen(
                     OutlinedButton(
                         onClick = {
                             val googleEmail = if (email.isNotBlank() && email.contains("@")) email.trim() else "developer@playtesterhub.com"
-                            val googleName = if (displayName.isNotBlank()) displayName else "المطور المعتمد"
+                            val googleName = if (displayName.isNotBlank()) displayName else (if (isArabic) "المطور المعتمد" else "Verified Developer")
                             onGoogleSignIn(googleEmail, googleName)
                         },
                         modifier = Modifier
@@ -602,7 +645,7 @@ fun AuthScreen(
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "ربط وتأكيد الحساب عبر Google",
+                            text = if (isArabic) "ربط وتأكيد الحساب عبر Google" else "Sign in with Google",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -625,7 +668,7 @@ fun AuthScreen(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "جميع بيانات المطورين وحزم التطبيقات مشفرة ومحفوظة محلياً ودائماً",
+                    text = if (isArabic) "جميع بيانات المطورين وحزم التطبيقات مشفرة ومحفوظة محلياً ودائماً" else "All developer & package data encrypted and saved locally",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -647,7 +690,7 @@ fun AuthScreen(
             },
             title = {
                 Text(
-                    text = "استعادة كلمة المرور",
+                    text = if (isArabic) "استعادة كلمة المرور" else "Password Recovery",
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )
@@ -659,7 +702,7 @@ fun AuthScreen(
                         .verticalScroll(rememberScrollState())
                 ) {
                     Text(
-                        text = "أدخل بريدك الإلكتروني المسجل، وسنقوم بتوليد رمز استعادة آمن لتعيين كلمة مرور جديدة لحسابك فوراً.",
+                        text = if (isArabic) "أدخل بريدك الإلكتروني المسجل، وسنقوم بتوليد رمز استعادة آمن لتعيين كلمة مرور جديدة لحسابك فوراً." else "Enter your registered email to generate a secure verification code and set a new password instantly.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 12.dp)
@@ -672,7 +715,7 @@ fun AuthScreen(
                             forgotEmail = it
                             forgotError = null
                         },
-                        label = { Text("البريد الإلكتروني المسجل") },
+                        label = { Text(if (isArabic) "البريد الإلكتروني المسجل" else "Registered Email") },
                         leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = CyanAccent) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         singleLine = true,
@@ -693,14 +736,14 @@ fun AuthScreen(
                         Button(
                             onClick = {
                                 if (forgotEmail.isBlank() || !forgotEmail.contains("@")) {
-                                    forgotError = "يرجى كتابة بريد إلكتروني صالح أولاً"
+                                    forgotError = if (isArabic) "يرجى كتابة بريد إلكتروني صالح أولاً" else "Please enter a valid email first"
                                     return@Button
                                 }
                                 val code = (100000..999999).random().toString()
                                 generatedOtpCode = code
                                 enteredOtpCode = code
                                 forgotError = null
-                                forgotSuccess = "تم توليد رمز الاستعادة بنجاح: $code"
+                                forgotSuccess = if (isArabic) "تم توليد رمز الاستعادة بنجاح: $code" else "Verification code generated: $code"
                             },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(10.dp),
@@ -708,13 +751,13 @@ fun AuthScreen(
                         ) {
                             Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("توليد الرمز", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(if (isArabic) "توليد الرمز" else "Generate Code", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
 
                         OutlinedButton(
                             onClick = {
                                 if (forgotEmail.isBlank() || !forgotEmail.contains("@")) {
-                                    forgotError = "يرجى كتابة بريد إلكتروني صالح أولاً"
+                                    forgotError = if (isArabic) "يرجى كتابة بريد إلكتروني صالح أولاً" else "Please enter a valid email first"
                                     return@OutlinedButton
                                 }
                                 val code = generatedOtpCode ?: (100000..999999).random().toString()
@@ -727,7 +770,7 @@ fun AuthScreen(
                         ) {
                             Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("إرسال للبريد", fontSize = 12.sp)
+                            Text(if (isArabic) "إرسال للبريد" else "Email Code", fontSize = 12.sp)
                         }
                     }
 
@@ -747,7 +790,7 @@ fun AuthScreen(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "رمز الاستعادة السري:",
+                                        text = if (isArabic) "رمز الاستعادة السري:" else "Recovery Code:",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
@@ -761,9 +804,9 @@ fun AuthScreen(
                                 }
                                 IconButton(onClick = {
                                     clipboardManager.setText(AnnotatedString(code))
-                                    Toast.makeText(context, "تم نسخ الرمز إلى الحافظة", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, if (isArabic) "تم نسخ الرمز إلى الحافظة" else "Code copied to clipboard", Toast.LENGTH_SHORT).show()
                                 }) {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = "نسخ الرمز", tint = MaterialTheme.colorScheme.primary)
+                                    Icon(Icons.Default.ContentCopy, contentDescription = if (isArabic) "نسخ الرمز" else "Copy Code", tint = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }
@@ -772,7 +815,7 @@ fun AuthScreen(
                         OutlinedTextField(
                             value = enteredOtpCode,
                             onValueChange = { enteredOtpCode = it },
-                            label = { Text("رمز التحقق (6 أرقام)") },
+                            label = { Text(if (isArabic) "رمز التحقق (6 أرقام)" else "Verification Code (6 digits)") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
                             modifier = Modifier
@@ -785,8 +828,8 @@ fun AuthScreen(
                         OutlinedTextField(
                             value = newPassword,
                             onValueChange = { newPassword = it },
-                            label = { Text("كلمة المرور الجديدة") },
-                            placeholder = { Text("6 أحرف أو أكثر") },
+                            label = { Text(if (isArabic) "كلمة المرور الجديدة" else "New Password") },
+                            placeholder = { Text(if (isArabic) "6 أحرف أو أكثر" else "6+ characters") },
                             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                             trailingIcon = {
                                 IconButton(onClick = { resetPasswordVisible = !resetPasswordVisible }) {
@@ -809,7 +852,7 @@ fun AuthScreen(
                         OutlinedTextField(
                             value = confirmNewPassword,
                             onValueChange = { confirmNewPassword = it },
-                            label = { Text("تأكيد كلمة المرور الجديدة") },
+                            label = { Text(if (isArabic) "تأكيد كلمة المرور الجديدة" else "Confirm New Password") },
                             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                             visualTransformation = if (resetPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -846,23 +889,23 @@ fun AuthScreen(
                 Button(
                     onClick = {
                         if (forgotEmail.isBlank() || !forgotEmail.contains("@")) {
-                            forgotError = "يرجى كتابة بريد إلكتروني صحيح"
+                            forgotError = if (isArabic) "يرجى كتابة بريد إلكتروني صحيح" else "Please enter a valid email"
                             return@Button
                         }
                         if (generatedOtpCode == null) {
-                            forgotError = "اضغط على 'توليد الرمز' أولاً للحصول على كود التحقق"
+                            forgotError = if (isArabic) "اضغط على 'توليد الرمز' أولاً للحصول على كود التحقق" else "Generate code first"
                             return@Button
                         }
                         if (enteredOtpCode.trim() != generatedOtpCode) {
-                            forgotError = "رمز التحقق غير صحيح، يرجى كتابة الرمز الظاهر أعلاه"
+                            forgotError = if (isArabic) "رمز التحقق غير صحيح، يرجى كتابة الرمز الظاهر أعلاه" else "Invalid verification code"
                             return@Button
                         }
                         if (newPassword.length < 6) {
-                            forgotError = "كلمة المرور الجديدة يجب ألا تقل عن 6 أحرف"
+                            forgotError = if (isArabic) "كلمة المرور الجديدة يجب ألا تقل عن 6 أحرف" else "Password must be at least 6 characters"
                             return@Button
                         }
                         if (newPassword != confirmNewPassword) {
-                            forgotError = "كلمتا المرور الجديدتان غير متطابقتين"
+                            forgotError = if (isArabic) "كلمتا المرور الجديدتان غير متطابقتين" else "Passwords do not match"
                             return@Button
                         }
 
@@ -882,12 +925,12 @@ fun AuthScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("حفظ وتحديث كلمة المرور", fontWeight = FontWeight.Bold)
+                    Text(if (isArabic) "حفظ وتحديث كلمة المرور" else "Save New Password", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showForgotPasswordDialog = false }) {
-                    Text("إلغاء")
+                    Text(if (isArabic) "إلغاء" else "Cancel")
                 }
             }
         )
@@ -907,7 +950,7 @@ fun AuthScreen(
             },
             title = {
                 Text(
-                    text = "رسائل البريد الإلكتروني وتفعيل الحساب",
+                    text = if (isArabic) "رسائل البريد الإلكتروني وتفعيل الحساب" else "Email System & Account Activation",
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )
@@ -919,7 +962,7 @@ fun AuthScreen(
                         .verticalScroll(rememberScrollState())
                 ) {
                     Text(
-                        text = "إليك كيفية عمل نظام البريد والتسجيل في PlayTester Hub:",
+                        text = if (isArabic) "إليك كيفية عمل نظام البريد والتسجيل في PlayTester Hub:" else "How the email & testing system works in PlayTester Hub:",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -935,13 +978,13 @@ fun AuthScreen(
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Text(
-                                text = "1. التفعيل الفوري لحسابك:",
+                                text = if (isArabic) "1. التفعيل الفوري لحسابك:" else "1. Instant Account Activation:",
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = PlayGreen
                             )
                             Text(
-                                text = "يتم حفظ وتفعيل حسابك محلياً على جهازك ومزامنته سحابياً فوراً دون الحاجة لانتظار رسالة بريد إلكتروني تفعيلية قد تتأخر أو تصل للمهملات (Spam).",
+                                text = if (isArabic) "يتم حفظ وتفعيل حسابك محلياً على جهازك ومزامنته سحابياً فوراً دون الحاجة لانتظار رسالة بريد إلكتروني تفعيلية قد تتأخر أو تصل للمهملات (Spam)." else "Your account is activated instantly without waiting for confirmation emails that might land in spam.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -957,13 +1000,13 @@ fun AuthScreen(
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Text(
-                                text = "2. استعادة كلمة المرور بدون تعطل:",
+                                text = if (isArabic) "2. استعادة كلمة المرور بدون تعطل:" else "2. Instant Password Reset:",
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = CyanAccent
                             )
                             Text(
-                                text = "إذا نسيت كلمة المرور، يمكنك الضغط على 'نسيت كلمة المرور؟' والحصول على رمز استعادة فوري وتعيين كلمة مرورك الجديدة مباشرة دون الحاجة لانتظار إيميل خارجي.",
+                                text = if (isArabic) "إذا نسيت كلمة المرور، يمكنك الضغط على 'نسيت كلمة المرور؟' والحصول على رمز استعادة فوري وتعيين كلمة مرورك الجديدة مباشرة دون الحاجة لانتظار إيميل خارجي." else "If you forget your password, get an instant OTP code right here to reset your credentials without external delays.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -979,13 +1022,13 @@ fun AuthScreen(
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Text(
-                                text = "3. اعتماد الإيميل للاختبار المغلق:",
+                                text = if (isArabic) "3. اعتماد الإيميل للاختبار المغلق:" else "3. Email Used for Closed Testing:",
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = AmberGold
                             )
                             Text(
-                                text = "يقوم المطورون بإضافة إيميلك مباشرة في قائمة المختبرين بكونسول Google Play أو عبر مجموعة Google لتفعيل رابط الاختبار فوراً.",
+                                text = if (isArabic) "يقوم المطورون بإضافة إيميلك مباشرة في قائمة المختبرين بكونسول Google Play أو عبر مجموعة Google لتفعيل رابط الاختبار فوراً." else "Developers add your email in Google Play Console closed testing track or Google Group to activate test links.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -1004,12 +1047,12 @@ fun AuthScreen(
                 ) {
                     Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("تجربة إرسال رسالة إلى بريدي")
+                    Text(if (isArabic) "تجربة إرسال رسالة إلى بريدي" else "Send Test Email")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showEmailInfoDialog = false }) {
-                    Text("حسناً، فهمت")
+                    Text(if (isArabic) "حسناً، فهمت" else "Got It")
                 }
             }
         )

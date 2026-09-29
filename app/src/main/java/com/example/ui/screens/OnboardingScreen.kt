@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -68,6 +69,8 @@ import com.example.R
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.PlayGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.LocalAppLanguage
 import kotlinx.coroutines.launch
 
 data class OnboardingPageData(
@@ -87,68 +90,136 @@ fun OnboardingScreen(
     onFinishOnboarding: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val pages = listOf(
-        OnboardingPageData(
-            title = "شرط الـ 14 يوماً الإلزامي من Google Play",
-            subtitle = "متطلب أساسي وحاسم لنشر التطبيقات للمطورين الجدد",
-            badgeText = "شروط Google Play الرسمية 🎯",
-            badgeIcon = Icons.Default.Security,
-            badgeColor = PlayGreen,
-            imageResId = R.drawable.promo_step1_track_1789982321864,
-            mainDescription = "تفرض شركة Google على جميع حسابات المطورين الشخصية المنشأة بعد نوفمبر 2023 تجربة التطبيق مع 20 مختبراً نشطاً لمدة 14 يوماً متواصلة على الأقل قبل الموافقة على طرحه للعامة في متجر Play.",
-            keyPoints = listOf(
-                Icons.Default.Groups to "توفير 20 مختبراً حقيقياً مسجلين في قائمة الاختبار المغلق.",
-                Icons.AutoMirrored.Filled.FactCheck to "التزام المختبرين بفتح التطبيق وتجربته طوال الـ 14 يوماً دون انقطاع.",
-                Icons.Default.Star to "جمع تقارير أداء وملاحظات واقعية لتحسين التطبيق وتفادي الرفض."
+    val currentLang = LocalAppLanguage.current
+    val isArabic = (currentLang == AppLanguage.AR)
+
+    val pages = if (isArabic) {
+        listOf(
+            OnboardingPageData(
+                title = "شرط الـ 14 يوماً الإلزامي من Google Play",
+                subtitle = "متطلب أساسي وحاسم لنشر التطبيقات للمطورين الجدد",
+                badgeText = "شروط Google Play الرسمية 🎯",
+                badgeIcon = Icons.Default.Security,
+                badgeColor = PlayGreen,
+                imageResId = R.drawable.promo_step1_track_1789982321864,
+                mainDescription = "تفرض شركة Google على جميع حسابات المطورين الشخصية تجربة التطبيق مع 20 مختبراً نشطاً لمدة 14 يوماً متواصلة على الأقل قبل الموافقة على طرحه للعامة في متجر Play.",
+                keyPoints = listOf(
+                    Icons.Default.Groups to "توفير 20 مختبراً حقيقياً مسجلين في قائمة الاختبار المغلق.",
+                    Icons.AutoMirrored.Filled.FactCheck to "التزام المختبرين بفتح التطبيق وتجربته طوال الـ 14 يوماً دون انقطاع.",
+                    Icons.Default.Star to "جمع تقارير أداء وملاحظات واقعية لتحسين التطبيق وتفادي الرفض."
+                ),
+                highlightNote = "تطبيق PlayTester Hub صُمم خصيصاً ليحل هذه العقبة للمطورين بمجتمع متكامل."
             ),
-            highlightNote = "تطبيق PlayTester Hub صُمم خصيصاً ليحل هذه العقبة للمطورين العرب بمجتمع متكامل."
-        ),
-        OnboardingPageData(
-            title = "نظام التبادل التشاركي الذكي",
-            subtitle = "ساعد المطورين الآخرين واكسب مختبرين لتطبيقك مجاناً",
-            badgeText = "مجتمع المطورين التفاعلي 🤝",
-            badgeIcon = Icons.Default.Groups,
-            badgeColor = CyanAccent,
-            imageResId = R.drawable.promo_step2_testers_1789982333758,
-            mainDescription = "يقوم النظام على مبدأ التكافل والتبادل العادل: عندما تنضم لاختبار تطبيقات زملائك وتفحصها يومياً، تكسب نقاطاً وشارات تُمكّنك من نشر تطبيقاتك وجلب 20 مختبراً موثوقاً بسرعة فائقة.",
-            keyPoints = listOf(
-                Icons.Default.RocketLaunch to "أضف تطبيقك برابط Google Play أو ملف APK ورمز الانضمام.",
-                Icons.Default.EmojiEvents to "اكسب نقاطاً ومكافآت يومية عند فتح وتجربة تطبيقات المجتمع.",
-                Icons.Default.CheckCircle to "دعوة المختبرين بإيميلاتهم المباشرة أو عبر مجموعات Google Groups."
+            OnboardingPageData(
+                title = "نظام التبادل التشاركي الذكي",
+                subtitle = "ساعد المطورين الآخرين واكسب مختبرين لتطبيقك مجاناً",
+                badgeText = "مجتمع المطورين التفاعلي 🤝",
+                badgeIcon = Icons.Default.Groups,
+                badgeColor = CyanAccent,
+                imageResId = R.drawable.promo_step2_testers_1789982333758,
+                mainDescription = "يقوم النظام على مبدأ التكافل والتبادل العادل: عندما تنضم لاختبار تطبيقات زملائك وتفحصها يومياً، تكسب نقاطاً وشارات تُمكّنك من نشر تطبيقاتك وجلب 20 مختبراً موثوقاً بسرعة فائقة.",
+                keyPoints = listOf(
+                    Icons.Default.RocketLaunch to "أضف تطبيقك برابط Google Play أو رمز الانضمام.",
+                    Icons.Default.EmojiEvents to "اكسب نقاطاً ومكافآت يومية عند فتح وتجربة تطبيقات المجتمع.",
+                    Icons.Default.CheckCircle to "دعوة المختبرين بإيميلاتهم المباشرة أو عبر مجموعات Google Groups."
+                ),
+                highlightNote = "كلما كنت مختبراً نشطاً وموثوقاً، ارتفعت أولوية ظهور تطبيقك في مقدمة القائمة!"
             ),
-            highlightNote = "كلما كنت مختبراً نشطاً وموثوقاً، ارتفعت أولوية ظهور تطبيقك في مقدمة القائمة!"
-        ),
-        OnboardingPageData(
-            title = "الفحص اليومي، التذكيرات والملاحظات",
-            subtitle = "متابعة دقيقة تضمن عدم انقطاع عداد الـ 14 يوماً",
-            badgeText = "التزام ويقظة مستمرة ⏰⚡",
-            badgeIcon = Icons.Default.Alarm,
-            badgeColor = AmberGold,
-            imageResId = R.drawable.app_screen_checklist_1789985928642,
-            mainDescription = "نظام متكامل يتابع جلسات الفحص اليومية ويرسل لك إشعارات وتنبيهات في شريط الهاتف لتذكيرك بالأيام المتبقية وتأكيد فتح التطبيقات وإرسال الملاحظات للمطورين.",
-            keyPoints = listOf(
-                Icons.Default.Alarm to "إشعارات تذكير يومية في شريط الهاتف مع لوجو التطبيق.",
-                Icons.Default.RateReview to "تسجيل مدة الفحص وكتابة ملاحظات الجودة وتقييم الاستقرار.",
-                Icons.Default.EmojiEvents to "حفظ سلاسل الأيام المتتالية (Streaks) وفتح شارات الشرف."
+            OnboardingPageData(
+                title = "الفحص اليومي، التذكيرات والملاحظات",
+                subtitle = "متابعة دقيقة تضمن عدم انقطاع عداد الـ 14 يوماً",
+                badgeText = "التزام ويقظة مستمرة ⏰⚡",
+                badgeIcon = Icons.Default.Alarm,
+                badgeColor = AmberGold,
+                imageResId = R.drawable.app_screen_checklist_1789985928642,
+                mainDescription = "نظام متكامل يتابع جلسات الفحص اليومية ويرسل لك إشعارات وتنبيهات في شريط الهاتف لتذكيرك بالأيام المتبقية وتأكيد فتح التطبيقات وإرسال الملاحظات للمطورين.",
+                keyPoints = listOf(
+                    Icons.Default.Alarm to "إشعارات تذكير يومية في شريط الهاتف مع لوجو التطبيق.",
+                    Icons.Default.RateReview to "تسجيل مدة الفحص وكتابة ملاحظات الجودة وتقييم الاستقرار.",
+                    Icons.Default.EmojiEvents to "حفظ سلاسل الأيام المتتالية (Streaks) وفتح شارات الشرف."
+                ),
+                highlightNote = "تأكيدك اليومي يحمي المطور من إعادة فترة الـ 14 يوماً من الصفر!"
             ),
-            highlightNote = "تأكيدك اليومي يحمي المطور من إعادة فترة الـ 14 يوماً من الصفر!"
-        ),
-        OnboardingPageData(
-            title = "الجاهزية للنشر والإنتاج في Google Play",
-            subtitle = "أكمل رحلتك وحوّل فكرتك إلى تطبيق عالمي متاح للجميع",
-            badgeText = "الوصول للإنتاج الكامل 🚀",
-            badgeIcon = Icons.Default.RocketLaunch,
-            badgeColor = PlayGreen,
-            imageResId = R.drawable.promo_step3_publish_1789982347173,
-            mainDescription = "بمجرد إتمام فترة الاختبار، يوفر لك التطبيق تقريراً شاملاً بكافة إحصائيات المختبرين وتفاعلهم لتعبئة استبيان Google Play Console والإجابة على أسئلة الوصول للإنتاج بنجاح وقبول فوري.",
-            keyPoints = listOf(
-                Icons.Default.CheckCircle to "تصدير قائمة المختبرين والتقييمات بصيغة واضحة.",
-                Icons.Default.Security to "دليل إرشادي تفصيلي للإجابة على أسئلة الوصول للإنتاج بدون رفض.",
-                Icons.Default.RocketLaunch to "نشر تطبيقك على Google Play بثقة تامة واستقرار مضمون."
-            ),
-            highlightNote = "أنت الآن جاهز للانضمام لمجتمع المطورين والمختبرين الأقوى والأكثر فاعلية!"
+            OnboardingPageData(
+                title = "الجاهزية للنشر والإنتاج في Google Play",
+                subtitle = "أكمل رحلتك وحوّل فكرتك إلى تطبيق عالمي متاح للجميع",
+                badgeText = "الوصول للإنتاج الكامل 🚀",
+                badgeIcon = Icons.Default.RocketLaunch,
+                badgeColor = PlayGreen,
+                imageResId = R.drawable.promo_step3_publish_1789982347173,
+                mainDescription = "بمجرد إتمام فترة الاختبار، يوفر لك التطبيق تقريراً شاملاً بكافة إحصائيات المختبرين وتفاعلهم لتعبئة استبيان Google Play Console والإجابة على أسئلة الوصول للإنتاج بنجاح وقبول فوري.",
+                keyPoints = listOf(
+                    Icons.Default.CheckCircle to "تصدير قائمة المختبرين والتقييمات بصيغة واضحة.",
+                    Icons.Default.Security to "دليل إرشادي تفصيلي للإجابة على أسئلة الوصول للإنتاج بدون رفض.",
+                    Icons.Default.RocketLaunch to "نشر تطبيقك على Google Play بثقة تامة واستقرار مضمون."
+                ),
+                highlightNote = "أنت الآن جاهز للانضمام لمجتمع المطورين والمختبرين الأقوى والأكثر فاعلية!"
+            )
         )
-    )
+    } else {
+        listOf(
+            OnboardingPageData(
+                title = "Google Play 14-Day Mandatory Policy",
+                subtitle = "Essential requirement for all new personal developer accounts",
+                badgeText = "Official Play Policy 🎯",
+                badgeIcon = Icons.Default.Security,
+                badgeColor = PlayGreen,
+                imageResId = R.drawable.promo_step1_track_1789982321864,
+                mainDescription = "Google requires 20 active testers for at least 14 consecutive days on closed testing track before production release approval.",
+                keyPoints = listOf(
+                    Icons.Default.Groups to "Recruit 20 real opt-in testers on your closed testing track.",
+                    Icons.AutoMirrored.Filled.FactCheck to "Keep testers engaged daily for 14 continuous days.",
+                    Icons.Default.Star to "Collect quality feedback & crash reports to ensure policy approval."
+                ),
+                highlightNote = "PlayTester Hub solves this testing requirement via our collaborative community."
+            ),
+            OnboardingPageData(
+                title = "Reciprocal Exchange & Points",
+                subtitle = "Test peer apps daily and get 20 active testers for your apps for free",
+                badgeText = "Developer Community 🤝",
+                badgeIcon = Icons.Default.Groups,
+                badgeColor = CyanAccent,
+                imageResId = R.drawable.promo_step2_testers_1789982333758,
+                mainDescription = "A mutual-help ecosystem: Test apps from other developers to earn points and promote your own apps to 20 committed testers rapidly.",
+                keyPoints = listOf(
+                    Icons.Default.RocketLaunch to "Publish your app via Play Store link or Google Group.",
+                    Icons.Default.EmojiEvents to "Earn daily testing points and rank badges.",
+                    Icons.Default.CheckCircle to "Manage tester invitations and track progress in real-time."
+                ),
+                highlightNote = "Active testers gain priority placement on top of the community marketplace!"
+            ),
+            OnboardingPageData(
+                title = "Daily Check-ins & Reminders",
+                subtitle = "Continuous tracking to protect your 14-day streak",
+                badgeText = "Daily Consistency ⏰⚡",
+                badgeIcon = Icons.Default.Alarm,
+                badgeColor = AmberGold,
+                imageResId = R.drawable.app_screen_checklist_1789985928642,
+                mainDescription = "Automated daily notification reminders, testing timer, feedback logger, and streak keeper to guarantee your 14 days never reset.",
+                keyPoints = listOf(
+                    Icons.Default.Alarm to "System status bar reminders at your chosen daily time.",
+                    Icons.Default.RateReview to "Submit bug reports, suggestions, and ratings.",
+                    Icons.Default.EmojiEvents to "Maintain testing streaks and unlock achievement badges."
+                ),
+                highlightNote = "Daily check-ins ensure developers pass the 14-day mark smoothly."
+            ),
+            OnboardingPageData(
+                title = "Production Readiness & Approval",
+                subtitle = "Answers and guidelines to pass Google Play review",
+                badgeText = "Production Ready 🚀",
+                badgeIcon = Icons.Default.RocketLaunch,
+                badgeColor = PlayGreen,
+                imageResId = R.drawable.promo_step3_publish_1789982347173,
+                mainDescription = "Export complete tester logs, feedback reports, and use our Production Questionnaire Assistant to ace the Google Play review without rejections.",
+                keyPoints = listOf(
+                    Icons.Default.CheckCircle to "Generate verified readiness certificate & logs.",
+                    Icons.Default.Security to "Google Play Console questionnaire response templates.",
+                    Icons.Default.RocketLaunch to "Launch your app globally on Google Play with confidence."
+                ),
+                highlightNote = "You are ready to join the most productive developer testing hub!"
+            )
+        )
+    }
 
     val pagerState = rememberPagerState(pageCount = { pages.size })
     val coroutineScope = rememberCoroutineScope()
@@ -203,7 +274,7 @@ fun OnboardingScreen(
                         modifier = Modifier.testTag("btn_onboarding_skip")
                     ) {
                         Text(
-                            text = "تخطي ⏩",
+                            text = if (isArabic) "تخطي ⏩" else "Skip ⏩",
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -282,7 +353,7 @@ fun OnboardingScreen(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("السابق", fontWeight = FontWeight.Bold)
+                            Text(if (isArabic) "السابق" else "Back", fontWeight = FontWeight.Bold)
                         }
                     }
 
@@ -308,7 +379,7 @@ fun OnboardingScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = if (isLastPage) "ابدأ رحلة الاختبار الآن 🚀" else "التالي",
+                                text = if (isLastPage) (if (isArabic) "ابدأ رحلة الاختبار الآن 🚀" else "Get Started Now 🚀") else (if (isArabic) "التالي" else "Next"),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isLastPage) Color.Black else MaterialTheme.colorScheme.onPrimary
@@ -448,7 +519,7 @@ private fun OnboardingPageContent(
         Card(
             shape = RoundedCornerShape(14.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
@@ -496,7 +567,7 @@ private fun OnboardingPageContent(
         Surface(
             shape = RoundedCornerShape(12.dp),
             color = AmberGold.copy(alpha = 0.12f),
-            border = androidx.compose.foundation.BorderStroke(1.dp, AmberGold.copy(alpha = 0.3f)),
+            border = BorderStroke(1.dp, AmberGold.copy(alpha = 0.3f)),
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(

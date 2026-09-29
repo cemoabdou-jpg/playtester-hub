@@ -18,11 +18,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.FactCheck
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -43,9 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,10 +49,9 @@ import com.example.data.model.DailyTestLog
 import com.example.data.model.InvitedTester
 import com.example.data.model.TesterFeedback
 import com.example.data.model.UserApp
-import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CrimsonRed
-import com.example.ui.theme.CyanAccent
-import com.example.ui.theme.SuccessGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.LocalAppLanguage
 import java.util.Locale
 
 @Composable
@@ -68,7 +63,9 @@ fun PlayQuestionnaireAssistantDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    var languageTab by remember { mutableIntStateOf(0) } // 0 = Arabic, 1 = English
+    val currentLang = LocalAppLanguage.current
+    val isArabic = currentLang == AppLanguage.AR
+    var languageTab by remember { mutableIntStateOf(if (isArabic) 0 else 1) } // 0 = Arabic, 1 = English
 
     val activeTestersCount = if (app.testersCount > 0) app.testersCount else invitedTesters.size
     val daysCount = app.daysElapsed
@@ -93,7 +90,7 @@ fun PlayQuestionnaireAssistantDialog(
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText(title, text)
         clipboard.setPrimaryClip(clip)
-        Toast.makeText(context, "تم نسخ $title بنجاح! 📋", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, if (isArabic) "تم نسخ $title بنجاح! 📋" else "$title copied to clipboard! 📋", Toast.LENGTH_SHORT).show()
     }
 
     AlertDialog(
@@ -113,20 +110,24 @@ fun PlayQuestionnaireAssistantDialog(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "نماذج إجابات استبيان Google Play 📋",
+                        text = if (isArabic) "نماذج إجابات استبيان Google Play 📋" else "Google Play Questionnaire Answers 📋",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                 }
                 IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
-                    Icon(imageVector = Icons.Default.Close, contentDescription = "إغلاق")
+                    Icon(imageVector = Icons.Default.Close, contentDescription = if (isArabic) "إغلاق" else "Close")
                 }
             }
         },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "إجابات احترافية مجهزة لأسئلة استبيان التقديم على الإنتاج لمتجر Google Play Console:",
+                    text = if (isArabic) {
+                        "إجابات احترافية مجهزة لأسئلة استبيان التقديم على الإنتاج لمتجر Google Play Console:"
+                    } else {
+                        "Professional pre-formatted answers ready for Google Play Console production questionnaire:"
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -161,7 +162,7 @@ fun PlayQuestionnaireAssistantDialog(
                             qNum = 1,
                             title = if (languageTab == 0) "كيف قمت باستقطاب المختبرين؟ (How did you recruit testers?)" else "1. How did you recruit testers?",
                             answer = q1,
-                            onCopy = { copyToClipboard("السؤال الأول", q1) }
+                            onCopy = { copyToClipboard(if (isArabic) "السؤال الأول" else "Question 1", q1) }
                         )
                     }
 
@@ -170,7 +171,7 @@ fun PlayQuestionnaireAssistantDialog(
                             qNum = 2,
                             title = if (languageTab == 0) "ما الملاحظات التي تتلقاها وكيف عالجتها؟ (Feedback & Fixes)" else "2. What feedback did you receive & how did you fix it?",
                             answer = q2,
-                            onCopy = { copyToClipboard("السؤال الثاني", q2) }
+                            onCopy = { copyToClipboard(if (isArabic) "السؤال الثاني" else "Question 2", q2) }
                         )
                     }
 
@@ -179,7 +180,7 @@ fun PlayQuestionnaireAssistantDialog(
                             qNum = 3,
                             title = if (languageTab == 0) "كيف تأكدت من جاهزية التطبيق للنشر؟ (How did you determine readiness?)" else "3. How did you determine production readiness?",
                             answer = q3,
-                            onCopy = { copyToClipboard("السؤال الثالث", q3) }
+                            onCopy = { copyToClipboard(if (isArabic) "السؤال الثالث" else "Question 3", q3) }
                         )
                     }
                 }
@@ -193,14 +194,14 @@ fun PlayQuestionnaireAssistantDialog(
                     } else {
                         "Question 1:\n$enQ1\n\nQuestion 2:\n$enQ2\n\nQuestion 3:\n$enQ3"
                     }
-                    copyToClipboard("كافة الإجابات", fullText)
+                    copyToClipboard(if (isArabic) "كافة الإجابات" else "All Answers", fullText)
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = CrimsonRed),
                 shape = RoundedCornerShape(10.dp)
             ) {
                 Icon(imageVector = Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("نسخ كافة الإجابات 📋", fontWeight = FontWeight.Bold)
+                Text(if (isArabic) "نسخ كافة الإجابات 📋" else "Copy All Answers 📋", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
@@ -208,7 +209,7 @@ fun PlayQuestionnaireAssistantDialog(
                 onClick = onDismiss,
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text("إغلاق")
+                Text(if (isArabic) "إغلاق" else "Close")
             }
         },
         shape = RoundedCornerShape(18.dp)
@@ -248,7 +249,7 @@ private fun QuestionAnswerCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.ContentCopy,
-                        contentDescription = "نسخ",
+                        contentDescription = "Copy",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
                     )

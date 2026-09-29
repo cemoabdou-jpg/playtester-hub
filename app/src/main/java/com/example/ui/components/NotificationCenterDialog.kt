@@ -59,6 +59,8 @@ import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.LocalAppLanguage
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -73,6 +75,9 @@ fun NotificationCenterDialog(
     onSendTestNotification: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val language = LocalAppLanguage.current
+    val isArabic = language == AppLanguage.AR
+
     var selectedFilter by remember { mutableStateOf("ALL") } // "ALL" or "UNREAD"
 
     val unreadCount = notifications.count { !it.isRead }
@@ -123,12 +128,16 @@ fun NotificationCenterDialog(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "مركز التنبيهات والإشعارات",
+                                text = if (isArabic) "مركز التنبيهات والإشعارات" else "Notification Center",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = if (unreadCount > 0) "$unreadCount إشعارات غير مقروءة" else "جميع الإشعارات محدّثة",
+                                text = if (unreadCount > 0) {
+                                    if (isArabic) "$unreadCount إشعارات غير مقروءة" else "$unreadCount unread notifications"
+                                } else {
+                                    if (isArabic) "جميع الإشعارات محدّثة" else "All caught up"
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (unreadCount > 0) CyanAccent else MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -139,13 +148,13 @@ fun NotificationCenterDialog(
                         onClick = onDismiss,
                         modifier = Modifier.testTag("btn_close_notif_dialog")
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "إغلاق")
+                        Icon(Icons.Default.Close, contentDescription = if (isArabic) "إغلاق" else "Close")
                     }
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Action Bar (Mark All, Clear, Test Alert)
+                // Action Bar
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -154,7 +163,7 @@ fun NotificationCenterDialog(
                     FilterChip(
                         selected = selectedFilter == "ALL",
                         onClick = { selectedFilter = "ALL" },
-                        label = { Text("الكل (${notifications.size})", fontSize = 12.sp) },
+                        label = { Text(if (isArabic) "الكل (${notifications.size})" else "All (${notifications.size})", fontSize = 12.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = PlayGreen,
                             selectedLabelColor = Color.White
@@ -164,7 +173,7 @@ fun NotificationCenterDialog(
                     FilterChip(
                         selected = selectedFilter == "UNREAD",
                         onClick = { selectedFilter = "UNREAD" },
-                        label = { Text("غير المقروءة ($unreadCount)", fontSize = 12.sp) },
+                        label = { Text(if (isArabic) "غير المقروءة ($unreadCount)" else "Unread ($unreadCount)", fontSize = 12.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = CyanAccent,
                             selectedLabelColor = Color.Black
@@ -180,7 +189,7 @@ fun NotificationCenterDialog(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Check,
-                                contentDescription = "تحديد الكل كمقروء",
+                                contentDescription = if (isArabic) "تحديد الكل كمقروء" else "Mark all read",
                                 tint = PlayGreen,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -194,7 +203,7 @@ fun NotificationCenterDialog(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.DeleteSweep,
-                                contentDescription = "مسح الكل",
+                                contentDescription = if (isArabic) "مسح الكل" else "Clear all",
                                 tint = DangerRed.copy(alpha = 0.7f),
                                 modifier = Modifier.size(18.dp)
                             )
@@ -219,12 +228,12 @@ fun NotificationCenterDialog(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "تنبيهات النظام اللحظية",
+                                text = if (isArabic) "تنبيهات النظام اللحظية" else "Real-time Alerts",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "اختبر وصول الإشعارات في شريط أندرويد العلوي",
+                                text = if (isArabic) "اختبر وصول الإشعارات في شريط أندرويد العلوي" else "Test system notification in the status bar",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -241,7 +250,7 @@ fun NotificationCenterDialog(
                                 modifier = Modifier.size(14.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("إشعار تجريبي", fontSize = 11.sp)
+                            Text(if (isArabic) "إشعار تجريبي" else "Test Alert", fontSize = 11.sp)
                         }
                     }
                 }
@@ -269,12 +278,20 @@ fun NotificationCenterDialog(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = if (selectedFilter == "UNREAD") "لا توجد إشعارات غير مقروءة حالياً" else "صندوق الإشعارات فارغ",
+                                text = if (selectedFilter == "UNREAD") {
+                                    if (isArabic) "لا توجد إشعارات غير مقروءة حالياً" else "No unread notifications"
+                                } else {
+                                    if (isArabic) "صندوق الإشعارات فارغ" else "Notification inbox is empty"
+                                },
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "ستصلك هنا تنبيهات فورية عند قبول مختبرين لتطبيقك أو تذكير فحص الـ 14 يوماً.",
+                                text = if (isArabic) {
+                                    "ستصلك هنا تنبيهات فورية عند قبول مختبرين لتطبيقك أو تذكير فحص الـ 14 يوماً."
+                                } else {
+                                    "Instant alerts will appear here when testers join or for your 14-day test reminders."
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 4.dp)
@@ -292,6 +309,7 @@ fun NotificationCenterDialog(
                         items(filteredList, key = { it.id }) { item ->
                             NotificationItemCard(
                                 notification = item,
+                                isArabic = isArabic,
                                 onMarkAsRead = { onMarkAsRead(item.id) },
                                 onDelete = { onDeleteNotification(item.id) }
                             )
@@ -306,6 +324,7 @@ fun NotificationCenterDialog(
 @Composable
 fun NotificationItemCard(
     notification: AppNotification,
+    isArabic: Boolean = true,
     onMarkAsRead: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -410,7 +429,7 @@ fun NotificationItemCard(
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "حذف الإشعار",
+                    contentDescription = if (isArabic) "حذف الإشعار" else "Delete Notification",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     modifier = Modifier.size(16.dp)
                 )

@@ -8,11 +8,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -46,8 +44,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.InvitedTester
 import com.example.ui.theme.AmberGold
-import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.PlayGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.LocalAppLanguage
 
 @Composable
 fun TipTesterDialog(
@@ -56,8 +55,18 @@ fun TipTesterDialog(
     onSendTip: (testerId: Int, points: Int, note: String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val language = LocalAppLanguage.current
+    val isArabic = language == AppLanguage.AR
+
     var selectedTipPoints by remember { mutableIntStateOf(25) }
-    var tipNote by remember { mutableStateOf("شكراً لالتزامك بالتجربة اليومية الرائعة والملاحظات القيمة!") }
+    var tipNote by remember {
+        mutableStateOf(
+            if (isArabic)
+                "شكراً لالتزامك بالتجربة اليومية الرائعة والملاحظات القيمة!"
+            else
+                "Thank you for your consistent daily testing and valuable feedback!"
+        )
+    }
     var errorMsg by remember { mutableStateOf<String?>(null) }
 
     Dialog(
@@ -103,7 +112,7 @@ fun TipTesterDialog(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "إرسال مكافأة وبقشيش للمختبر 💎",
+                                text = if (isArabic) "إرسال مكافأة وبقشيش للمختبر 💎" else "Tip & Reward Tester 💎",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -116,7 +125,7 @@ fun TipTesterDialog(
                     }
 
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "إغلاق")
+                        Icon(Icons.Default.Close, contentDescription = if (isArabic) "إغلاق" else "Close")
                     }
                 }
 
@@ -134,7 +143,7 @@ fun TipTesterDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "رصيد نقاطك المتاح:",
+                            text = if (isArabic) "رصيد نقاطك المتاح:" else "Your Available XP Balance:",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -147,7 +156,7 @@ fun TipTesterDialog(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "$userPoints نقطة",
+                                text = if (isArabic) "$userPoints نقطة" else "$userPoints XP",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = AmberGold
@@ -158,7 +167,7 @@ fun TipTesterDialog(
 
                 // Preset Tip Amount Options
                 Text(
-                    text = "اختر قيمة المكافأة بالنقط:",
+                    text = if (isArabic) "اختر قيمة المكافأة بالنقط:" else "Select Tip Amount:",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -192,7 +201,7 @@ fun TipTesterDialog(
                                     color = if (isSel) Color.White else MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "نقطة",
+                                    text = if (isArabic) "نقطة" else "XP",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontSize = 10.sp,
                                     color = if (isSel) Color.White.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
@@ -206,7 +215,7 @@ fun TipTesterDialog(
                 OutlinedTextField(
                     value = tipNote,
                     onValueChange = { tipNote = it },
-                    label = { Text("رسالة شكر وتقدير للمختبر") },
+                    label = { Text(if (isArabic) "رسالة شكر وتقدير للمختبر" else "Thank-you note for tester") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     maxLines = 3
@@ -230,13 +239,16 @@ fun TipTesterDialog(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("إلغاء")
+                        Text(if (isArabic) "إلغاء" else "Cancel")
                     }
 
                     Button(
                         onClick = {
                             if (userPoints < selectedTipPoints) {
-                                errorMsg = "رصيدك غير كافٍ لهذا البقشيش ($userPoints نقطة متاح فقط)"
+                                errorMsg = if (isArabic)
+                                    "رصيدك غير كافٍ لهذا البقشيش ($userPoints نقطة متاح فقط)"
+                                else
+                                    "Insufficient balance for this tip ($userPoints XP available)"
                             } else {
                                 onSendTip(tester.id, selectedTipPoints, tipNote)
                                 onDismiss()
@@ -257,7 +269,7 @@ fun TipTesterDialog(
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("إرسال المكافأة الآن", fontWeight = FontWeight.Bold)
+                        Text(if (isArabic) "إرسال المكافأة الآن" else "Send Reward Now", fontWeight = FontWeight.Bold)
                     }
                 }
             }

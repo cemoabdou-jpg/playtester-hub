@@ -41,6 +41,8 @@ import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.LocalAppLanguage
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -52,6 +54,9 @@ fun TestingHeatmapCard(
     hasStreakShield: Boolean = true,
     modifier: Modifier = Modifier
 ) {
+    val language = LocalAppLanguage.current
+    val isArabic = language == AppLanguage.AR
+
     val checkedDaysList = remember(test.checkedDaysCsv) {
         if (test.checkedDaysCsv.isBlank()) emptyList()
         else test.checkedDaysCsv.split(",").mapNotNull { it.trim().toIntOrNull() }
@@ -99,12 +104,16 @@ fun TestingHeatmapCard(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "خريطة الـ 14 يوماً للإنتاج",
+                            text = if (isArabic) "خريطة الـ 14 يوماً للإنتاج" else "14-Day Production Heatmap",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${test.daysCompleted} من 14 يوماً مكتملة (${(test.daysCompleted * 100) / 14}%)",
+                            text = if (isArabic) {
+                                "${test.daysCompleted} من 14 يوماً مكتملة (${(test.daysCompleted * 100) / 14}%)"
+                            } else {
+                                "${test.daysCompleted} of 14 days completed (${(test.daysCompleted * 100) / 14}%)"
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -132,7 +141,11 @@ fun TestingHeatmapCard(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = if (hasStreakShield) "درع الستريك 🛡️" else "بدون درع",
+                            text = if (isArabic) {
+                                if (hasStreakShield) "درع الستريك 🛡️" else "بدون درع"
+                            } else {
+                                if (hasStreakShield) "Streak Shield 🛡️" else "No Shield"
+                            },
                             style = MaterialTheme.typography.labelSmall,
                             color = if (hasStreakShield) CyanAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Bold,
@@ -189,22 +202,26 @@ fun TestingHeatmapCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(PlayGreen))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("مكتمل", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
+                        Text(if (isArabic) "مكتمل" else "Done", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(AmberGold))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("يومك الحالي", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
+                        Text(if (isArabic) "يومك الحالي" else "Today", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(DangerRed))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("محمي بالدرع", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
+                        Text(if (isArabic) "محمي بالدرع" else "Protected", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
                     }
                 }
 
                 Text(
-                    text = if (isCheckedToday) "✅ تمت تجربة اليوم!" else "⏳ بانتظار التجربة",
+                    text = if (isArabic) {
+                        if (isCheckedToday) "✅ تمت تجربة اليوم!" else "⏳ بانتظار التجربة"
+                    } else {
+                        if (isCheckedToday) "✅ Tested Today!" else "⏳ Awaiting Test"
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     color = if (isCheckedToday) PlayGreen else AmberGold,
                     fontWeight = FontWeight.Bold

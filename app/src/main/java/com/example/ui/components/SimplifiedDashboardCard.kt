@@ -1,6 +1,5 @@
 package com.example.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,6 +43,8 @@ import com.example.data.model.UserApp
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.PlayGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.LocalAppLanguage
 
 @Composable
 fun SimplifiedDashboardCard(
@@ -56,6 +57,9 @@ fun SimplifiedDashboardCard(
     onSwitchTab: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val language = LocalAppLanguage.current
+    val isArabic = language == AppLanguage.AR
+
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -92,7 +96,7 @@ fun SimplifiedDashboardCard(
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "الواجهة السريعة والمبسطة",
+                        text = if (isArabic) "الواجهة السريعة والمبسطة" else "Quick Overview Dashboard",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -103,7 +107,7 @@ fun SimplifiedDashboardCard(
                     color = PlayGreen.copy(alpha = 0.15f)
                 ) {
                     Text(
-                        text = "سهل وسريع",
+                        text = if (isArabic) "سهل وسريع" else "Fast & Simple",
                         color = PlayGreen,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
@@ -133,11 +137,18 @@ fun SimplifiedDashboardCard(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.ElectricBolt, contentDescription = null, tint = AmberGold, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("مهمة اليوم: فحص التطبيق", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text(
+                                    text = if (isArabic) "مهمة اليوم: فحص التطبيق" else "Today's Task: Test App",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
+                                )
                             }
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "تطبيق: ${pendingCheckInTest.appName} (${pendingCheckInTest.daysCompleted}/14 يوماً)",
+                                text = if (isArabic)
+                                    "تطبيق: ${pendingCheckInTest.appName} (${pendingCheckInTest.daysCompleted}/14 يوماً)"
+                                else
+                                    "App: ${pendingCheckInTest.appName} (${pendingCheckInTest.daysCompleted}/14 days)",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -151,7 +162,7 @@ fun SimplifiedDashboardCard(
                         ) {
                             Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("تسجيل (+20)", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text(if (isArabic) "تسجيل (+20)" else "Check-in (+20)", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         }
                     }
                 }
@@ -173,12 +184,12 @@ fun SimplifiedDashboardCard(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "تطبيقك: ${primaryApp.name}",
+                                text = if (isArabic) "تطبيقك: ${primaryApp.name}" else "Your App: ${primaryApp.name}",
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Text(
-                                text = "${primaryApp.testersCount}/20 مختبراً",
+                                text = if (isArabic) "${primaryApp.testersCount}/20 مختبراً" else "${primaryApp.testersCount}/20 Testers",
                                 fontWeight = FontWeight.Bold,
                                 color = CyanAccent,
                                 style = MaterialTheme.typography.labelMedium
@@ -206,7 +217,10 @@ fun SimplifiedDashboardCard(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "مضى ${primaryApp.daysElapsed} من 14 يوماً للاختبار المغلق",
+                                text = if (isArabic)
+                                    "مضى ${primaryApp.daysElapsed} من 14 يوماً للاختبار المغلق"
+                                else
+                                    "Day ${primaryApp.daysElapsed} of 14 in Closed Testing",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -218,7 +232,7 @@ fun SimplifiedDashboardCard(
                             ) {
                                 Icon(Icons.Default.GroupAdd, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("دعوة مختبرين", fontSize = 11.sp)
+                                Text(if (isArabic) "دعوة مختبرين" else "Invite Testers", fontSize = 11.sp)
                             }
                         }
                     }
@@ -245,7 +259,7 @@ fun SimplifiedDashboardCard(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "تطبيق مقترح للاختبار",
+                                text = if (isArabic) "تطبيق مقترح للاختبار" else "Recommended App to Test",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = CyanAccent,
                                 fontWeight = FontWeight.Bold
@@ -256,7 +270,10 @@ fun SimplifiedDashboardCard(
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Text(
-                                text = "اربح +${suggestedApp.rewardPoints} نقطة لدعم مطور آخر",
+                                text = if (isArabic)
+                                    "اربح +${suggestedApp.rewardPoints} نقطة لدعم مطور آخر"
+                                else
+                                    "Earn +${suggestedApp.rewardPoints} XP by testing",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -270,7 +287,7 @@ fun SimplifiedDashboardCard(
                         ) {
                             Icon(Icons.Default.RocketLaunch, contentDescription = null, modifier = Modifier.size(15.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("انضمام", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text(if (isArabic) "انضمام" else "Join", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         }
                     }
                 }

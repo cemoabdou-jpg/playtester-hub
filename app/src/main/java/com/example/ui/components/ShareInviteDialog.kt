@@ -5,7 +5,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,6 +38,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.model.UserApp
 import com.example.ui.theme.PlayGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.LocalAppLanguage
 
 @Composable
 fun ShareInviteDialog(
@@ -46,9 +47,12 @@ fun ShareInviteDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    val language = LocalAppLanguage.current
+    val isArabic = language == AppLanguage.AR
 
-    val inviteMessage = remember(app) {
-        """
+    val inviteMessage = remember(app, isArabic) {
+        if (isArabic) {
+            """
 مرحباً زملائي المطورين! 🚀
 أحتاج 20 مختبراً لتطبيقي الجديد على Google Play لاجتياز شرط الـ 14 يوماً:
 
@@ -64,7 +68,26 @@ ${app.googleGroupUrl}
 أندرويد: ${if (app.androidOptInUrl.isNotBlank()) app.androidOptInUrl else "متوفر في المتجر"}
 
 🤝 سأقوم باختبار تطبيقك بالمقابل يومياً طوال الـ 14 يوماً! شكراً لدعمكم.
-        """.trimIndent()
+            """.trimIndent()
+        } else {
+            """
+Hey fellow Android Developers! 🚀
+I need 20 testers for my Google Play closed test to satisfy the 14-day requirement:
+
+📱 App Name: ${app.name}
+📦 Package: ${app.packageName}
+
+How to join the closed test:
+1️⃣ Join the testing Google Group (Required):
+${app.googleGroupUrl}
+
+2️⃣ Accept Opt-in invitation via Web or Android:
+Web: ${if (app.webOptInUrl.isNotBlank()) app.webOptInUrl else "Available in Group"}
+Android: ${if (app.androidOptInUrl.isNotBlank()) app.androidOptInUrl else "Available on Play Store"}
+
+🤝 I will reciprocate and test your app daily for the full 14 days! Thank you for the support.
+            """.trimIndent()
+        }
     }
 
     AlertDialog(
@@ -79,7 +102,7 @@ ${app.googleGroupUrl}
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "مشاركة دعوة الاختبار المغلق",
+                    text = if (isArabic) "مشاركة دعوة الاختبار المغلق" else "Share Closed Test Invitation",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -93,7 +116,10 @@ ${app.googleGroupUrl}
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "شارك هذه الرسالة في مجموعات واتساب، تيليجرام، أو مجتمعات المطورين للحصول على 20 مختبراً بسرعة:",
+                    text = if (isArabic)
+                        "شارك هذه الرسالة في مجموعات واتساب، تيليجرام، أو مجتمعات المطورين للحصول على 20 مختبراً بسرعة:"
+                    else
+                        "Share this invite to developer groups (WhatsApp, Telegram, Discord, Reddit) to quickly recruit 20 verified testers:",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -114,27 +140,27 @@ ${app.googleGroupUrl}
         confirmButton = {
             Button(
                 onClick = {
-                    shareText(context, inviteMessage)
+                    shareText(context, inviteMessage, if (isArabic) "مشاركة دعوة المختبرين" else "Share Tester Invitation")
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
                 modifier = Modifier.testTag("share_action_btn")
             ) {
                 Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("مشاركة")
+                Text(if (isArabic) "مشاركة" else "Share")
             }
         },
         dismissButton = {
             OutlinedButton(
                 onClick = {
                     copyToClipboard(context, inviteMessage)
-                    Toast.makeText(context, "تم نسخ نص الدعوة إلى الحافظة", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, if (isArabic) "تم نسخ نص الدعوة إلى الحافظة" else "Invitation text copied to clipboard", Toast.LENGTH_SHORT).show()
                 },
                 modifier = Modifier.testTag("copy_invite_btn")
             ) {
                 Icon(imageVector = Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("نسخ النص")
+                Text(if (isArabic) "نسخ النص" else "Copy Text")
             }
         }
     )
@@ -146,12 +172,12 @@ fun copyToClipboard(context: Context, text: String) {
     clipboard.setPrimaryClip(clip)
 }
 
-fun shareText(context: Context, text: String) {
+fun shareText(context: Context, text: String, chooserTitle: String = "Share Tester Invitation") {
     val sendIntent: Intent = Intent().apply {
         action = Intent.ACTION_SEND
         putExtra(Intent.EXTRA_TEXT, text)
         type = "text/plain"
     }
-    val shareIntent = Intent.createChooser(sendIntent, "مشاركة دعوة المختبرين")
+    val shareIntent = Intent.createChooser(sendIntent, chooserTitle)
     context.startActivity(shareIntent)
 }

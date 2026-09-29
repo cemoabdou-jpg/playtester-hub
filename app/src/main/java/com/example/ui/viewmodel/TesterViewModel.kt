@@ -18,6 +18,7 @@ import com.example.data.model.UserApp
 import com.example.data.model.UserWallet
 import com.example.data.repository.TesterRepository
 import com.example.ui.theme.ThemeMode
+import com.example.ui.util.AppLanguage
 import com.example.util.AppUpdateHelper
 import com.example.util.AppUpdateStatus
 import com.example.util.NotificationHelper
@@ -42,6 +43,26 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         }
     )
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
+
+    private val _language = MutableStateFlow(
+        try {
+            AppLanguage.valueOf(prefs.getString("app_language", AppLanguage.AR.name) ?: AppLanguage.AR.name)
+        } catch (e: Exception) {
+            AppLanguage.AR
+        }
+    )
+    val language: StateFlow<AppLanguage> = _language.asStateFlow()
+
+    fun setLanguage(lang: AppLanguage) {
+        prefs.edit().putString("app_language", lang.name).apply()
+        _language.value = lang
+        _userMessage.value = if (lang == AppLanguage.AR) "تم تغيير لغة التطبيق إلى العربية" else "Language changed to English"
+    }
+
+    fun toggleLanguage() {
+        val next = if (_language.value == AppLanguage.AR) AppLanguage.EN else AppLanguage.AR
+        setLanguage(next)
+    }
 
     fun setThemeMode(mode: ThemeMode) {
         prefs.edit().putString("theme_mode", mode.name).apply()
@@ -123,17 +144,31 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
     private val _appUpdateStatus = MutableStateFlow<AppUpdateStatus?>(null)
     val appUpdateStatus: StateFlow<AppUpdateStatus?> = _appUpdateStatus.asStateFlow()
 
+    private val _showUpdateDialog = MutableStateFlow(true)
+    val showUpdateDialog: StateFlow<Boolean> = _showUpdateDialog.asStateFlow()
+
     fun checkForAppUpdate(context: Context, showToastIfLatest: Boolean = false) {
         AppUpdateHelper.checkPlayInAppUpdate(context) { status ->
             _appUpdateStatus.value = status
+            if (status.isUpdateAvailable) {
+                _showUpdateDialog.value = true
+            }
             if (!status.isUpdateAvailable && showToastIfLatest) {
-                _userMessage.value = "أنت تستخدم أحدث إصدار من التطبيق v${AppUpdateHelper.getInstalledVersionName(context)} (${AppUpdateHelper.getInstalledVersionCode(context)})"
+                val isAr = _language.value == AppLanguage.AR
+                _userMessage.value = if (isAr)
+                    "أنت تستخدم أحدث إصدار من التطبيق v${AppUpdateHelper.getInstalledVersionName(context)} (${AppUpdateHelper.getInstalledVersionCode(context)})"
+                else
+                    "You are using the latest version of the app v${AppUpdateHelper.getInstalledVersionName(context)} (${AppUpdateHelper.getInstalledVersionCode(context)})"
             }
         }
     }
 
     fun dismissAppUpdatePrompt() {
-        _appUpdateStatus.value = null
+        _showUpdateDialog.value = false
+    }
+
+    fun promptUpdateDialog() {
+        _showUpdateDialog.value = true
     }
 
     val currentUser: StateFlow<AuthUser?> = repository.currentUser

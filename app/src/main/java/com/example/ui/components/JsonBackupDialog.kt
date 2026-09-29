@@ -4,7 +4,6 @@ import android.content.Intent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -54,6 +53,8 @@ import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
 import com.example.ui.theme.SuccessGreen
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.LocalAppLanguage
 
 @Composable
 fun JsonBackupDialog(
@@ -63,6 +64,8 @@ fun JsonBackupDialog(
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
+    val language = LocalAppLanguage.current
+    val isArabic = language == AppLanguage.AR
 
     var selectedTab by remember { mutableStateOf(0) } // 0 = Export, 1 = Restore
     var isCopied by remember { mutableStateOf(false) }
@@ -77,7 +80,7 @@ fun JsonBackupDialog(
                 putExtra(Intent.EXTRA_SUBJECT, "PlayTester_Hub_Backup.json")
                 type = "text/plain"
             }
-            context.startActivity(Intent.createChooser(sendIntent, "مشاركة النسخة الاحتياطية"))
+            context.startActivity(Intent.createChooser(sendIntent, if (isArabic) "مشاركة النسخة الاحتياطية" else "Share Backup File"))
         } catch (_: Exception) {}
     }
 
@@ -94,12 +97,12 @@ fun JsonBackupDialog(
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
-                        text = "النسخ الاحتياطي واستعادة البيانات (JSON)",
+                        text = if (isArabic) "النسخ الاحتياطي واستعادة البيانات (JSON)" else "Data Backup & Restore (JSON)",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "حفظ رصيد النقاط، التطبيقات المنشورة، وسجلات الـ 14 يوماً",
+                        text = if (isArabic) "حفظ رصيد النقاط، التطبيقات المنشورة، وسجلات الـ 14 يوماً" else "Export or restore apps, points, and 14-day logs",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -121,13 +124,13 @@ fun JsonBackupDialog(
                     FilterChip(
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
-                        label = { Text("تصدير نسخة (Export)") },
+                        label = { Text(if (isArabic) "تصدير نسخة (Export)" else "Export Backup") },
                         leadingIcon = { Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(16.dp)) }
                     )
                     FilterChip(
                         selected = selectedTab == 1,
                         onClick = { selectedTab = 1 },
-                        label = { Text("استعادة نسخة (Restore)") },
+                        label = { Text(if (isArabic) "استعادة نسخة (Restore)" else "Restore Backup") },
                         leadingIcon = { Icon(Icons.Default.Restore, contentDescription = null, modifier = Modifier.size(16.dp)) }
                     )
                 }
@@ -135,7 +138,7 @@ fun JsonBackupDialog(
                 if (selectedTab == 0) {
                     // Export Section
                     Text(
-                        text = "النسخة الاحتياطية الحالية جاهزة للحفظ والتصدير:",
+                        text = if (isArabic) "النسخة الاحتياطية الحالية جاهزة للحفظ والتصدير:" else "Current snapshot is ready to copy or share:",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -176,7 +179,7 @@ fun JsonBackupDialog(
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(if (isCopied) "تم النسخ!" else "نسخ النص")
+                            Text(if (isCopied) (if (isArabic) "تم النسخ!" else "Copied!") else (if (isArabic) "نسخ النص" else "Copy JSON"))
                         }
 
                         OutlinedButton(
@@ -186,13 +189,13 @@ fun JsonBackupDialog(
                         ) {
                             Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("مشاركة ملف")
+                            Text(if (isArabic) "مشاركة ملف" else "Share File")
                         }
                     }
                 } else {
                     // Restore Section
                     Text(
-                        text = "الصق محتوى ملف النسخة الاحتياطية (JSON) هنا لاستعادة بياناتك فوراً:",
+                        text = if (isArabic) "الصق محتوى ملف النسخة الاحتياطية (JSON) هنا لاستعادة بياناتك فوراً:" else "Paste your backup JSON snippet below to restore your state:",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -221,7 +224,7 @@ fun JsonBackupDialog(
                     ) {
                         Icon(Icons.Default.FileUpload, contentDescription = null, tint = androidx.compose.ui.graphics.Color.Black)
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("بدء استعادة البيانات الآن", color = androidx.compose.ui.graphics.Color.Black, fontWeight = FontWeight.Bold)
+                        Text(if (isArabic) "بدء استعادة البيانات الآن" else "Restore Data Now", color = androidx.compose.ui.graphics.Color.Black, fontWeight = FontWeight.Bold)
                     }
 
                     restoreResult?.let { (success, message) ->
@@ -257,7 +260,7 @@ fun JsonBackupDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
                 modifier = Modifier.testTag("btn_close_backup_dialog")
             ) {
-                Text("إغلاق")
+                Text(if (isArabic) "إغلاق" else "Close")
             }
         }
     )
