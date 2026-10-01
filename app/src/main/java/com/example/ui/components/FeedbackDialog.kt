@@ -2,12 +2,15 @@ package com.example.ui.components
 
 import android.os.Build
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -18,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Speed
@@ -28,6 +32,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -42,6 +47,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -56,38 +63,74 @@ import com.example.ui.util.LocalAppLanguage
 
 @Composable
 fun FeedbackDialog(
-    test: JoinedTest,
+    test: JoinedTest? = null,
+    appName: String = test?.appName ?: "",
+    packageName: String = test?.packageName ?: "",
     onDismiss: () -> Unit,
-    onSubmitFeedback: (content: String, rating: Int, feedbackType: String) -> Unit
+    onSubmitFeedback: (content: String, rating: Int, feedbackType: String, deviceModel: String, androidVersion: String) -> Unit
 ) {
     val language = LocalAppLanguage.current
     val isArabic = language == AppLanguage.AR
 
     var feedbackText by remember { mutableStateOf("") }
     var rating by remember { mutableIntStateOf(5) }
-    var feedbackType by remember { mutableStateOf("FEEDBACK") } // "FEEDBACK" or "BUG_REPORT"
+    var feedbackType by remember { mutableStateOf("FEEDBACK") } // "FEEDBACK", "BUG_REPORT", "UI_UX", "PERFORMANCE"
     var attachDeviceSpecs by remember { mutableStateOf(true) }
 
+    val deviceModelName = remember {
+        "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL}"
+    }
+    val androidVersionName = remember {
+        "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})"
+    }
     val deviceSpecSummary = remember {
-        "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL} (Android ${Build.VERSION.RELEASE}, API ${Build.VERSION.SDK_INT})"
+        "$deviceModelName ($androidVersionName)"
+    }
+
+    val ratingLabels = remember(isArabic) {
+        mapOf(
+            1 to if (isArabic) "ضعيف / يحتاج تحسينات جذرية" else "Poor / Needs major fixes",
+            2 to if (isArabic) "مقبول مع وجود مشاكل" else "Fair / Has several issues",
+            3 to if (isArabic) "جيد ومناسب للاختبار" else "Good / Decent for testing",
+            4 to if (isArabic) "ممتاز جداً وسلس" else "Very Good / Smooth",
+            5 to if (isArabic) "استثنائي وجاهز للإنتاج 🌟" else "Exceptional / Production Ready 🌟"
+        )
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = if (feedbackType == "BUG_REPORT") Icons.Default.BugReport else Icons.AutoMirrored.Filled.Chat,
-                    contentDescription = null,
-                    tint = if (feedbackType == "BUG_REPORT") DangerRed else PlayGreen,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = if (isArabic) "تقييم وملاحظات المختبر" else "Tester Feedback & Review",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (feedbackType == "BUG_REPORT") DangerRed.copy(alpha = 0.15f) else AmberGold.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (feedbackType == "BUG_REPORT") Icons.Default.BugReport else Icons.Default.Star,
+                        contentDescription = null,
+                        tint = if (feedbackType == "BUG_REPORT") DangerRed else AmberGold,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = if (isArabic) "تقييم ومراجعة التطبيق ⭐" else "Rate & Review App ⭐",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (appName.isNotBlank()) {
+                        Text(
+                            text = appName,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
             }
         },
         text = {
@@ -96,74 +139,90 @@ fun FeedbackDialog(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .imePadding(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text(
-                    text = if (isArabic) "تطبيق: ${test.appName}" else "App: ${test.appName}",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                Text(
-                    text = if (isArabic)
-                        "يطلب Google Play وجود ملاحظات فعلية من المختبرين كدليل على اختبار التطبيق. ملاحظتك ستُسجل للمطور في تقرير الجاهزية:"
-                    else
-                        "Google Play requires documented feedback from testers as proof of closed testing. Your feedback will be saved in the readiness report:",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                // Feedback Type Selector
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    FilterChip(
-                        selected = feedbackType == "FEEDBACK",
-                        onClick = { feedbackType = "FEEDBACK" },
-                        label = { Text(if (isArabic) "ملاحظة عامة" else "General Feedback", fontSize = 12.sp) }
-                    )
-                    FilterChip(
-                        selected = feedbackType == "BUG_REPORT",
-                        onClick = { feedbackType = "BUG_REPORT" },
-                        label = { Text(if (isArabic) "إبلاغ عن عطل (Bug)" else "Bug Report", fontSize = 12.sp) }
-                    )
-                }
-
-                // Star Rating
+                // Interactive Star Rating Selector
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = if (isArabic) "تقييم الاستقرار:" else "Stability Rating:",
-                            style = MaterialTheme.typography.labelMedium
+                            text = if (isArabic) "حدد تقييمك العام للتطبيق:" else "Select overall star rating:",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium
                         )
-                        Row {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             (1..5).forEach { star ->
                                 Icon(
                                     imageVector = if (star <= rating) Icons.Default.Star else Icons.Default.StarOutline,
                                     contentDescription = "$star stars",
                                     tint = if (star <= rating) AmberGold else MaterialTheme.colorScheme.outline,
                                     modifier = Modifier
-                                        .size(24.dp)
+                                        .size(32.dp)
                                         .clickable { rating = star }
+                                        .padding(2.dp)
                                 )
                             }
                         }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = ratingLabels[rating] ?: "",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (rating >= 4) PlayGreen else if (rating == 3) AmberGold else DangerRed
+                        )
                     }
                 }
 
-                // Constructive Templates Chips
+                // Feedback Category Selector
                 Text(
-                    text = if (isArabic) "قوالب ملاحظات سريعة واحترافية:" else "Quick Feedback Templates:",
+                    text = if (isArabic) "نوع الملاحظة / التصنيف:" else "Category:",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    FilterChip(
+                        selected = feedbackType == "FEEDBACK",
+                        onClick = { feedbackType = "FEEDBACK" },
+                        label = { Text(if (isArabic) "عام" else "General", fontSize = 11.sp) }
+                    )
+                    FilterChip(
+                        selected = feedbackType == "BUG_REPORT",
+                        onClick = { feedbackType = "BUG_REPORT" },
+                        label = { Text(if (isArabic) "عطل 🐛" else "Bug 🐛", fontSize = 11.sp) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = DangerRed,
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                    FilterChip(
+                        selected = feedbackType == "UI_UX",
+                        onClick = { feedbackType = "UI_UX" },
+                        label = { Text(if (isArabic) "تصميم 🎨" else "UI/UX", fontSize = 11.sp) }
+                    )
+                    FilterChip(
+                        selected = feedbackType == "PERFORMANCE",
+                        onClick = { feedbackType = "PERFORMANCE" },
+                        label = { Text(if (isArabic) "أداء ⚡" else "Speed", fontSize = 11.sp) }
+                    )
+                }
+
+                // Quick Review Templates
+                Text(
+                    text = if (isArabic) "قوالب تقييم وملاحظات سريعة:" else "Quick Review Presets:",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
@@ -174,86 +233,89 @@ fun FeedbackDialog(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(6.dp),
+                        shape = RoundedCornerShape(8.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                         modifier = Modifier
                             .weight(1f)
                             .clickable {
+                                rating = 5
+                                feedbackType = "FEEDBACK"
+                                feedbackText = if (isArabic)
+                                    "التطبيق ممتاز وسلس جداً، ولم أواجه أي توقف طوال فترة الفحص اليومي."
+                                else
+                                    "Smooth and responsive app; no crashes encountered during testing."
+                            }
+                    ) {
+                        Row(modifier = Modifier.padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(13.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(if (isArabic) "سلس ومستقر" else "Stable & Fast", fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable {
+                                feedbackType = "UI_UX"
+                                feedbackText = if (isArabic)
+                                    "التصميم أنيق وواضح، الخطوط مريحة للعين وتوزيع العناصر ممتاز."
+                                else
+                                    "UI design is clean and pleasant; typography and spacing are great."
+                            }
+                    ) {
+                        Row(modifier = Modifier.padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Palette, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(13.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(if (isArabic) "واجهة أنيقة" else "Clean UI", fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable {
+                                rating = 2
                                 feedbackType = "BUG_REPORT"
                                 feedbackText = if (isArabic)
-                                    "واجهت مشكلة إغلاق مفاجئ أو تجمد عند التنقل بين الشاشات الرئيسية."
+                                    "واجهت بطء ملحوظ أو إغلاقاً مفاجئاً عند الانتقال بين الشاشات الرئيسية."
                                 else
-                                    "Experienced a slight freeze or unexpected lag when switching between primary screens."
+                                    "Experienced slight stutter or unexpected lag when navigating screens."
                             }
                     ) {
                         Row(modifier = Modifier.padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.BugReport, contentDescription = null, tint = DangerRed, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.BugReport, contentDescription = null, tint = DangerRed, modifier = Modifier.size(13.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(if (isArabic) "عطل مفاجئ" else "Bug / Crash", fontSize = 10.sp, fontWeight = FontWeight.Medium)
-                        }
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable {
-                                feedbackType = "FEEDBACK"
-                                feedbackText = if (isArabic)
-                                    "التصميم ممتاز والخطوط واضحة، ولكن أقترح زيادة حجم بعض الأزرار لتسهيل اللمس."
-                                else
-                                    "UI design is clean and legible; suggest slightly enlarging buttons for better touch ergonomics."
-                            }
-                    ) {
-                        Row(modifier = Modifier.padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Palette, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(if (isArabic) "اقتراح تصميم" else "UI / Polish", fontSize = 10.sp, fontWeight = FontWeight.Medium)
-                        }
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable {
-                                feedbackType = "FEEDBACK"
-                                feedbackText = if (isArabic)
-                                    "التطبيق خفيف وسريع الاستجابة جداً، استهلاك البطارية والذاكرة منخفض وممتاز."
-                                else
-                                    "App is highly responsive and smooth; battery usage and memory footprint are optimal."
-                            }
-                    ) {
-                        Row(modifier = Modifier.padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Speed, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(if (isArabic) "سرعة وأداء" else "Speed / Perf", fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                            Text(if (isArabic) "إبلاغ عطل" else "Report Bug", fontSize = 10.sp, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
 
+                // Text Input
                 OutlinedTextField(
                     value = feedbackText,
                     onValueChange = { feedbackText = it },
                     label = {
                         Text(
                             if (feedbackType == "BUG_REPORT")
-                                (if (isArabic) "وصف المشكلة وكيفية تكرارها" else "Describe issue & reproduction steps")
+                                (if (isArabic) "وصف المشكلة بالتفصيل" else "Bug details")
                             else
-                                (if (isArabic) "الملاحظات أو المقترحات" else "Feedback & suggestions")
+                                (if (isArabic) "اكتب مراجعتك أو تقييمك للمطور..." else "Write review / feedback...")
                         )
                     },
                     placeholder = {
                         Text(
-                            if (feedbackType == "BUG_REPORT")
-                                (if (isArabic) "مثال: التطبيق يتوقف عند الضغط على زر التقرير في شاشة البداية..." else "e.g. App crashes when tapping the report button on home screen...")
+                            if (isArabic)
+                                "اكتب تجربتك مع التطبيق، الميزات التي أعجبتك، أو أي اقتراحات للتحسين..."
                             else
-                                (if (isArabic) "مثال: التطبيق سريع وواضح، التصميم ممتاز، أقترح إضافة الوضع الليلي..." else "e.g. Smooth app, great UI, suggest adding dark mode...")
+                                "Share your testing experience, features you liked, or improvements..."
                         )
                     },
                     modifier = Modifier
@@ -285,7 +347,7 @@ fun FeedbackDialog(
                                 Icon(Icons.Default.Devices, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = if (isArabic) "إرفاق مواصفات جهازي تلقائياً للمطور:" else "Attach device specs for developer report:",
+                                    text = if (isArabic) "توثيق مواصفات جهازي مع التقييم:" else "Attach device info with review:",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -304,18 +366,17 @@ fun FeedbackDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    var finalContent = feedbackText.ifBlank {
+                    val finalContent = feedbackText.ifBlank {
                         if (isArabic) "تطبيق ممتاز ومستقر بعد التجربة." else "Stable and smooth application experience."
                     }
-                    if (attachDeviceSpecs) {
-                        finalContent += "\n[" + (if (isArabic) "مواصفات الجهاز: " else "Device Specs: ") + "$deviceSpecSummary]"
-                    }
-                    onSubmitFeedback(finalContent, rating, feedbackType)
+                    val devModel = if (attachDeviceSpecs) deviceModelName else ""
+                    val androidVer = if (attachDeviceSpecs) androidVersionName else ""
+                    onSubmitFeedback(finalContent, rating, feedbackType, devModel, androidVer)
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
                 modifier = Modifier.testTag("submit_feedback_btn")
             ) {
-                Text(if (isArabic) "إرسال وكسب +20 نقطة" else "Submit (+20 XP)")
+                Text(if (isArabic) "إرسال التقييم (+25 نقطة) ⭐" else "Submit (+25 XP) ⭐", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {

@@ -6,14 +6,17 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -36,13 +39,17 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -87,6 +94,7 @@ fun JoinedTestCard(
         test.checkedDaysCsv.split(",").filter { it.isNotEmpty() }.mapNotNull { it.toIntOrNull() }.toSet()
     }
     val progress = (test.daysCompleted.toFloat() / 14f).coerceIn(0f, 1f)
+    var showCalendarGrid by remember { mutableStateOf(false) }
 
     Card(
         modifier = modifier
@@ -98,16 +106,16 @@ fun JoinedTestCard(
         ),
         border = BorderStroke(
             1.dp,
-            if (test.isCompleted) PlayGreen.copy(alpha = 0.6f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+            if (test.isCompleted) PlayGreen.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(12.dp)
         ) {
-            // Header: Status badge & Delete icon
+            // Header: Status badge & Quick Calendar toggle & Delete icon
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -115,46 +123,67 @@ fun JoinedTestCard(
             ) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = if (test.isCompleted) SuccessGreen.copy(alpha = 0.15f) else CyanAccent.copy(alpha = 0.15f)
+                    color = if (test.isCompleted) SuccessGreen.copy(alpha = 0.15f) else CyanAccent.copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, if (test.isCompleted) SuccessGreen.copy(alpha = 0.35f) else CyanAccent.copy(alpha = 0.35f))
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
                             imageVector = if (test.isCompleted) Icons.Default.CheckCircle else Icons.Default.Schedule,
                             contentDescription = null,
                             tint = if (test.isCompleted) SuccessGreen else CyanAccent,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(13.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = if (test.isCompleted) s.testingCompletedCount else s.testingActiveCount,
                             style = MaterialTheme.typography.labelSmall,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (test.isCompleted) SuccessGreen else CyanAccent
                         )
                     }
                 }
 
-                IconButton(
-                    onClick = onDeleteClick,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .testTag("delete_test_${test.id}")
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = s.deleteJoinedTest,
-                        tint = DangerRed.copy(alpha = 0.7f),
-                        modifier = Modifier.size(18.dp)
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.clickable { showCalendarGrid = !showCalendarGrid }
+                    ) {
+                        Text(
+                            text = if (showCalendarGrid) (if (isArabic) "إخفاء التقويم ▴" else "Hide ▴") else (if (isArabic) "تفاصيل الأيام ▾" else "Days ▾"),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onDeleteClick,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .testTag("delete_test_${test.id}")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = s.deleteJoinedTest,
+                            tint = DangerRed.copy(alpha = 0.6f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // App row: Clickable icon + title & package
+            // App row: Clickable icon + title & package + progress bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -162,7 +191,7 @@ fun JoinedTestCard(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(52.dp)
+                        .size(48.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                         .clickable {
@@ -183,7 +212,7 @@ fun JoinedTestCard(
                             model = if (test.iconUrl.startsWith("/")) File(test.iconUrl) else test.iconUrl,
                             contentDescription = if (isArabic) "أيقونة ${test.appName}" else "Icon of ${test.appName}",
                             modifier = Modifier
-                                .fillMaxWidth()
+                                .fillMaxSize()
                                 .clip(RoundedCornerShape(12.dp)),
                             contentScale = androidx.compose.ui.layout.ContentScale.Crop
                         )
@@ -191,21 +220,22 @@ fun JoinedTestCard(
                         Text(
                             text = test.appName.take(2).uppercase(),
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.ExtraBold,
                             color = PlayGreen
                         )
                     }
 
                     Surface(
                         shape = CircleShape,
-                        color = PlayGreen.copy(alpha = 0.85f),
+                        color = PlayGreen,
+                        shadowElevation = 1.dp,
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .size(16.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.PlayArrow,
-                            contentDescription = if (isArabic) "فتح" else "Launch",
+                            contentDescription = null,
                             tint = Color.White,
                             modifier = Modifier.size(10.dp).padding(1.dp)
                         )
@@ -215,165 +245,168 @@ fun JoinedTestCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = test.appName,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
+                    Spacer(modifier = Modifier.height(1.dp))
                     Text(
                         text = test.packageName,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
-                    Text(
-                        text = if (isArabic) "⚡ اضغط على الأيقونة لفتح التطبيق وتوثيق اليوم" else "⚡ Tap icon to launch app & track testing",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = PlayGreen,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        LinearProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(5.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = if (test.isCompleted) SuccessGreen else PlayGreen,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                        Text(
+                            text = "${test.daysCompleted}/14 يوم",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (test.isCompleted) SuccessGreen else PlayGreen
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Progress Summary Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = if (isArabic) "سجل الأيام الـ 14 المطلوبة:" else "14-Day Testing Progress:",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = s.daysCompletedFmt(test.daysCompleted),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (test.isCompleted) PlayGreen else MaterialTheme.colorScheme.primary
-                )
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp)),
-                color = if (test.isCompleted) PlayGreen else CyanAccent,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // 14-Day Calendar Circles Grid (1..14)
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                maxItemsInEachRow = 7
-            ) {
-                for (day in 1..14) {
-                    val isChecked = checkedDaysList.contains(day)
-                    val isCurrentDay = day == test.daysCompleted + 1 && !isCheckedToday && !test.isCompleted
-
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(
-                                when {
-                                    isChecked -> PlayGreen
-                                    isCurrentDay -> AmberGold.copy(alpha = 0.2f)
-                                    else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                }
-                            )
-                            .then(
-                                if (isCurrentDay) {
-                                    Modifier.background(
-                                        color = Color.Transparent,
-                                        shape = CircleShape
-                                    )
-                                } else Modifier
-                            ),
-                        contentAlignment = Alignment.Center
+            // Expandable 14-Day Calendar Circles Grid (1..14)
+            AnimatedVisibility(visible = showCalendarGrid) {
+                Column(modifier = Modifier.padding(top = 10.dp)) {
+                    Text(
+                        text = if (isArabic) "تفاصيل الأيام المكتملة:" else "Completed Days:",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 10.sp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        maxItemsInEachRow = 7
                     ) {
-                        if (isChecked) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = if (isArabic) "يوم $day مكتمل" else "Day $day completed",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        } else {
-                            Text(
-                                text = "$day",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = if (isCurrentDay) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isCurrentDay) AmberGold else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        for (day in 1..14) {
+                            val isChecked = checkedDaysList.contains(day)
+                            val isCurrentDay = day == test.daysCompleted + 1 && !isCheckedToday && !test.isCompleted
+
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        when {
+                                            isChecked -> PlayGreen
+                                            isCurrentDay -> AmberGold.copy(alpha = 0.2f)
+                                            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                                        }
+                                    )
+                                    .then(
+                                        if (isCurrentDay) {
+                                            Modifier.border(
+                                                width = 1.5.dp,
+                                                color = AmberGold,
+                                                shape = CircleShape
+                                            )
+                                        } else Modifier
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isChecked) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                } else {
+                                    Text(
+                                        text = "$day",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontSize = 10.sp,
+                                        fontWeight = if (isCurrentDay) FontWeight.ExtraBold else FontWeight.Medium,
+                                        color = if (isCurrentDay) AmberGold else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Daily Check-in CTA Button
-            if (!test.isCompleted) {
-                Button(
-                    onClick = onCheckInClick,
-                    enabled = !isCheckedToday,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .testTag("check_in_btn_${test.id}"),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PlayGreen,
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    if (isCheckedToday) {
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = s.checkInDoneToday,
-                            tint = PlayGreen,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = s.checkInDoneToday,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.Medium
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.FactCheck,
-                            contentDescription = s.dailyCheckIn,
-                            modifier = Modifier.size(20.dp),
-                            tint = Color.Black
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = s.dailyCheckIn,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
+            // Action Buttons (Compact, Direct & Clean)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Daily Check-in CTA Button
+                if (!test.isCompleted) {
+                    Button(
+                        onClick = onCheckInClick,
+                        enabled = !isCheckedToday,
+                        modifier = Modifier
+                            .weight(1.3f)
+                            .height(34.dp)
+                            .testTag("check_in_btn_${test.id}"),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PlayGreen,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        if (isCheckedToday) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = PlayGreen,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (isArabic) "تم الفحص اليوم ✓" else "Tested Today ✓",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.FactCheck,
+                                contentDescription = null,
+                                modifier = Modifier.size(15.dp),
+                                tint = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = s.dailyCheckIn,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                fontSize = 11.sp
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
-            }
-
-            // Bottom Action Row: Launch Installed App, Feedback
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
                 // Launch or open in store
                 OutlinedButton(
                     onClick = {
@@ -388,36 +421,39 @@ fun JoinedTestCard(
                     },
                     modifier = Modifier
                         .weight(1f)
+                        .height(34.dp)
                         .testTag("launch_app_btn_${test.id}"),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                        contentDescription = s.openAppBtn,
-                        modifier = Modifier.size(16.dp)
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(s.openAppBtn, maxLines = 1)
+                    Text(s.openAppBtn, maxLines = 1, fontSize = 11.sp)
                 }
 
                 // Send feedback button
                 OutlinedButton(
                     onClick = onFeedbackClick,
                     modifier = Modifier
-                        .weight(1f)
+                        .height(34.dp)
                         .testTag("feedback_btn_${test.id}"),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Chat,
-                        contentDescription = s.sendFeedbackBtn,
+                        contentDescription = null,
                         tint = if (test.feedbackSent) SuccessGreen else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = if (test.feedbackSent) (if (isArabic) "تم التقييم ✓" else "Rated ✓") else s.sendFeedbackBtn,
-                        maxLines = 1
+                        fontSize = 11.sp
                     )
                 }
             }

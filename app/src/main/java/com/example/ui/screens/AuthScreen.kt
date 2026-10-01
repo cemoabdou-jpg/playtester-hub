@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,8 +24,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
@@ -89,6 +92,7 @@ fun AuthScreen(
     onLogin: (email: String, pass: String) -> Unit,
     onRegister: (name: String, email: String, pass: String) -> Unit,
     onGoogleSignIn: (email: String, name: String) -> Unit,
+    onGuestLogin: () -> Unit = {},
     onResetPassword: (email: String, newPass: String, onResult: (Boolean, String) -> Unit) -> Unit = { _, _, _ -> },
     modifier: Modifier = Modifier
 ) {
@@ -136,12 +140,43 @@ fun AuthScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Quick Language Switcher
-            if (onToggleLanguage != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+            // Top Bar: Quick Guest Entry + Language Switcher
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Quick Guest Entry Pill
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = PlayGreen.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, PlayGreen.copy(alpha = 0.4f)),
+                    modifier = Modifier
+                        .clickable { onGuestLogin() }
+                        .testTag("btn_auth_guest_top")
                 ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DirectionsRun,
+                            contentDescription = null,
+                            tint = PlayGreen,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (isArabic) "الدخول السريع كضيف ➔" else "Continue as Guest ➔",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = PlayGreen
+                        )
+                    }
+                }
+
+                // Quick Language Switcher
+                if (onToggleLanguage != null) {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant,
@@ -169,8 +204,8 @@ fun AuthScreen(
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
             }
+            Spacer(modifier = Modifier.height(8.dp))
 
             // App Branding Icon
             Box(
@@ -234,13 +269,13 @@ fun AuthScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (isArabic) "نظام الحساب الإلزامي والمحمي للمطورين" else "Protected Developer Account System",
+                            text = if (isArabic) "تسجيل الدخول أو الاستمرار كضيف" else "Sign in or Continue as Guest",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = if (isArabic) "التسجيل فوري ومحفوظ محلياً ودائماً، ويمكنك استعادة كلمة مرورك في أي وقت." else "Registration is instant & saved securely. You can recover your password anytime.",
+                            text = if (isArabic) "يمكنك إنشاء حساب لحفظ نقاطك وتطبيقاتك، أو الدخول كضيف للتصفح بدون تسجيل." else "Create an account to keep your apps & rewards, or explore as a guest with no sign-in.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                         )
@@ -648,6 +683,53 @@ fun AuthScreen(
                             text = if (isArabic) "ربط وتأكيد الحساب عبر Google" else "Sign in with Google",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        HorizontalDivider(modifier = Modifier.weight(1f))
+                        Text(
+                            text = if (isArabic) "أو التصفح بدون تسجيل دخول" else "Or explore without account",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 10.dp)
+                        )
+                        HorizontalDivider(modifier = Modifier.weight(1f))
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Guest Login Button
+                    Button(
+                        onClick = onGuestLogin,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("btn_guest_login_main"),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        ),
+                        border = BorderStroke(1.2.dp, PlayGreen.copy(alpha = 0.6f))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = null,
+                            tint = PlayGreen,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isArabic) "الدخول المباشر كضيف (بدون تسجيل دخول)" else "Continue as Guest (No Login)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }

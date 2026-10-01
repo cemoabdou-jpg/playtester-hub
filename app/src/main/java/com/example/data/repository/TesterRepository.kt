@@ -174,6 +174,127 @@ class TesterRepository(private val dao: AppDao) {
         return Result.success(userToLogin)
     }
 
+    suspend fun loginAsGuest(): Result<AuthUser> {
+        dao.logoutAllUsers()
+        val guestEmail = "guest@playtester.local"
+        val existing = dao.getUserByEmail(guestEmail)
+        val guestUser = if (existing != null) {
+            existing.copy(isLoggedIn = true, displayName = "زائر / Guest", role = "GUEST", authProvider = "GUEST")
+        } else {
+            AuthUser(
+                email = guestEmail,
+                displayName = "زائر / Guest",
+                authProvider = "GUEST",
+                role = "GUEST",
+                isLoggedIn = true
+            )
+        }
+        dao.insertAuthUser(guestUser)
+        return Result.success(guestUser)
+    }
+
+    suspend fun upgradeGuestAccountWithEmail(
+        displayName: String,
+        email: String,
+        password: String
+    ): Result<AuthUser> {
+        val cleanEmail = email.trim().lowercase()
+        val cleanName = displayName.trim()
+        if (cleanName.isBlank()) {
+            return Result.failure(Exception("يرجى إدخال اسم المطور أو الحساب"))
+        }
+        if (cleanEmail.isBlank() || !cleanEmail.contains("@")) {
+            return Result.failure(Exception("يرجى إدخال بريد إلكتروني صالح"))
+        }
+        if (password.length < 6) {
+            return Result.failure(Exception("كلمة المرور يجب ألا تقل عن 6 أحرف"))
+        }
+
+        val current = dao.getCurrentUserOnce() ?: return Result.failure(Exception("لم يتم العثور على جلسة ضيف نشطة"))
+        val existingOther = dao.getUserByEmail(cleanEmail)
+        val assignedRole = if (isAdminEmail(cleanEmail)) "ADMIN" else "DEVELOPER"
+
+        val upgradedUser = if (existingOther != null && existingOther.id != current.id) {
+            val updated = existingOther.copy(
+                displayName = cleanName,
+                passwordHash = password,
+                isLoggedIn = true,
+                role = assignedRole
+            )
+            dao.deleteAuthUser(current)
+            dao.logoutAllUsers()
+            dao.updateAuthUser(updated)
+            updated
+        } else {
+            val updated = current.copy(
+                email = cleanEmail,
+                displayName = cleanName,
+                passwordHash = password,
+                authProvider = "EMAIL",
+                role = assignedRole,
+                isLoggedIn = true
+            )
+            dao.updateAuthUser(updated)
+            updated
+        }
+
+        addNotification(
+            title = "تمت ترقية الحساب بنجاح 👤🌟",
+            message = "تم حفظ وتوثيق بياناتك ونقاطك رسمياً باسم ${upgradedUser.displayName}.",
+            type = "ACCOUNT_UPGRADE",
+            actionRoute = "profile"
+        )
+
+        return Result.success(upgradedUser)
+    }
+
+    suspend fun upgradeGuestAccountWithGoogle(
+        displayName: String,
+        email: String
+    ): Result<AuthUser> {
+        val cleanEmail = email.trim().lowercase()
+        val cleanName = displayName.trim().ifBlank { "مطور معتمد" }
+        if (cleanEmail.isBlank() || !cleanEmail.contains("@")) {
+            return Result.failure(Exception("يرجى إدخال بريد Google صالح"))
+        }
+
+        val current = dao.getCurrentUserOnce() ?: return Result.failure(Exception("لم يتم العثور على جلسة ضيف نشطة"))
+        val existingOther = dao.getUserByEmail(cleanEmail)
+        val assignedRole = if (isAdminEmail(cleanEmail)) "ADMIN" else "DEVELOPER"
+
+        val upgradedUser = if (existingOther != null && existingOther.id != current.id) {
+            val updated = existingOther.copy(
+                displayName = cleanName,
+                authProvider = "GOOGLE",
+                isLoggedIn = true,
+                role = assignedRole
+            )
+            dao.deleteAuthUser(current)
+            dao.logoutAllUsers()
+            dao.updateAuthUser(updated)
+            updated
+        } else {
+            val updated = current.copy(
+                email = cleanEmail,
+                displayName = cleanName,
+                authProvider = "GOOGLE",
+                role = assignedRole,
+                isLoggedIn = true
+            )
+            dao.updateAuthUser(updated)
+            updated
+        }
+
+        addNotification(
+            title = "تمت ترقية الحساب بنجاح 👤🌟",
+            message = "تم ربط وتوثيق حسابك عبر Google (${upgradedUser.email}) مع الحفاظ على جميع بياناتك ونقاطك!",
+            type = "ACCOUNT_UPGRADE",
+            actionRoute = "profile"
+        )
+
+        return Result.success(upgradedUser)
+    }
+
     suspend fun logout(): Result<Unit> {
         dao.logoutAllUsers()
         return Result.success(Unit)
@@ -187,6 +308,22 @@ class TesterRepository(private val dao: AppDao) {
         }
         val updated = current.copy(displayName = trimmed)
         dao.updateAuthUser(updated)
+
+        // Sync new name to user's published community apps
+        try {
+            val userPackages = dao.getAllUserAppsOnce().map { it.packageName.trim().lowercase() }.toSet()
+            val commApps = dao.getAllCommunityAppsOnce()
+            commApps.forEach { commApp ->
+                if (userPackages.contains(commApp.packageName.trim().lowercase()) ||
+                    commApp.developerName == current.displayName ||
+                    commApp.developerName == "أنا (مطور التطبيق)" ||
+                    commApp.developerName == "أنا"
+                ) {
+                    insertOrUpdateCommunityApp(commApp.copy(developerName = trimmed))
+                }
+            }
+        } catch (_: Exception) {}
+
         return Result.success(updated)
     }
 
@@ -347,6 +484,13 @@ class TesterRepository(private val dao: AppDao) {
         // Award join reward points (+10 bonus)
         updateWalletPoints(10, incrementStreak = false)
 
+        addNotification(
+            title = "انضمام لاختبار تطبيق 📱",
+            message = "انضممت بنجاح لاختبار تطبيق '${app.name}'. افتحه يومياً لتوثيق الـ 14 يوماً وكسب النقاط!",
+            type = "TEST_JOINED",
+            actionRoute = "joined"
+        )
+
         return Result.success("تم الانضمام للاختبار بنجاح وحصلت على +10 نقاط!")
     }
 
@@ -393,14 +537,13 @@ class TesterRepository(private val dao: AppDao) {
         )
         dao.insertDailyTestLog(dailyLog)
 
-        // Notify user of successful daily testing verification
-        val notif = AppNotification(
+        // Notify user of successful daily testing verification & push system alert
+        addNotification(
             title = "تأكيد التجربة اليومية (اليوم $newDays من 14)",
             message = "تم تأكيد وتوثيق تجربة تطبيق ${test.appName} بنجاح! حصلت على +25 نقطة.",
             type = "DAILY_CONFIRMATION",
             actionRoute = "joined"
         )
-        dao.insertNotification(notif)
 
         val pointsGained = if (isNowCompleted) 60 else 25
         updateWalletPoints(pointsGained, incrementStreak = true, isTestComplete = isNowCompleted)
@@ -418,13 +561,12 @@ class TesterRepository(private val dao: AppDao) {
     }
 
     suspend fun sendDailyTestingReminder(app: UserApp): Result<String> {
-        val notif = AppNotification(
+        addNotification(
             title = "تذكير يومي عاجل للمختبرين",
             message = "مطلوب تأكيد تجربة تطبيق '${app.name}' لليوم لضمان استيفاء شرط الـ 14 يوماً المتواصلة في Google Play.",
             type = "DAILY_REMINDER",
             actionRoute = "joined"
         )
-        dao.insertNotification(notif)
         return Result.success("تم إرسال تذكير تأكيد التجربة اليومية للمختبرين بنجاح!")
     }
 
@@ -438,36 +580,105 @@ class TesterRepository(private val dao: AppDao) {
         content: String,
         rating: Int = 5,
         feedbackType: String = "FEEDBACK",
-        testerEmail: String = "tester@example.com"
+        testerEmail: String = "tester@example.com",
+        testerName: String = "",
+        deviceModel: String = "",
+        androidVersion: String = ""
     ): Result<String> {
         if (content.isBlank()) {
             return Result.failure(Exception("يرجى كتابة ملاحظتك أو تقرير المشكلة أولاً"))
         }
+        val user = dao.getCurrentUserOnce()
+        val authorName = testerName.ifBlank { user?.displayName?.ifBlank { null } ?: user?.email?.substringBefore("@") ?: "مختبر معتمد" }
+        val authorEmail = testerEmail.ifBlank { user?.email ?: "tester@example.com" }
+
         val feedback = TesterFeedback(
             userAppId = test.communityAppId,
             packageName = test.packageName,
             appName = test.appName,
-            testerEmail = testerEmail,
-            rating = rating,
+            testerName = authorName,
+            testerEmail = authorEmail,
+            rating = rating.coerceIn(1, 5),
             feedbackType = feedbackType,
             content = content.trim(),
+            deviceModel = deviceModel,
+            androidVersion = androidVersion,
+            isVerifiedTester = true,
             submittedAt = System.currentTimeMillis()
         )
         dao.insertFeedback(feedback)
         dao.updateJoinedTest(test.copy(feedbackSent = true))
 
-        // Notify developer of new feedback
-        dao.insertNotification(
-            AppNotification(
-                title = "ملاحظة وتقييم جديد من مختبر",
-                message = "قدم مختبر ملاحظات لتطبيق '${test.appName}' بتقييم $rating نجوم.",
-                type = "FEEDBACK",
-                actionRoute = "my_apps"
-            )
+        // Notify developer of new feedback & push alert
+        addNotification(
+            title = "⭐ تقييم وملاحظات جديدة ($rating نجوم)",
+            message = "قام المختبر ($authorName) بإرسال تقييم لتطبيق '${test.appName}': \"${content.take(50)}\"",
+            type = "FEEDBACK",
+            actionRoute = "my_apps"
         )
 
-        updateWalletPoints(20, incrementStreak = false)
-        return Result.success("تم إرسال الملاحظات بنجاح للمطور وحصلت على +20 نقطة!")
+        updateWalletPoints(25, incrementStreak = false)
+        return Result.success("تم إرسال التقييم والملاحظات بنجاح للمطور وحصلت على +25 نقطة! ⭐")
+    }
+
+    suspend fun submitAppReview(
+        packageName: String,
+        appName: String,
+        content: String,
+        rating: Int = 5,
+        feedbackType: String = "FEEDBACK",
+        deviceModel: String = "",
+        androidVersion: String = ""
+    ): Result<String> {
+        if (content.isBlank()) {
+            return Result.failure(Exception("يرجى كتابة مراجعتك أو تقييمك أولاً"))
+        }
+        val user = dao.getCurrentUserOnce()
+        val authorName = user?.displayName?.ifBlank { null } ?: user?.email?.substringBefore("@") ?: "مختبر معتمد"
+        val authorEmail = user?.email ?: "tester@example.com"
+        val isVerified = dao.getJoinedTestsOnce().any { it.packageName == packageName }
+
+        val feedback = TesterFeedback(
+            packageName = packageName,
+            appName = appName,
+            testerName = authorName,
+            testerEmail = authorEmail,
+            rating = rating.coerceIn(1, 5),
+            feedbackType = feedbackType,
+            content = content.trim(),
+            deviceModel = deviceModel,
+            androidVersion = androidVersion,
+            isVerifiedTester = isVerified,
+            submittedAt = System.currentTimeMillis()
+        )
+        dao.insertFeedback(feedback)
+
+        addNotification(
+            title = "⭐ مراجعة وتقييم جديد لتطبيق $appName",
+            message = "كتب المختبر ($authorName) تقييماً ($rating نجوم): \"${content.take(50)}\"",
+            type = "FEEDBACK",
+            actionRoute = "my_apps"
+        )
+
+        updateWalletPoints(25, incrementStreak = false)
+        return Result.success("تم نشر تقييمك ومراجعتك بنجاح وحصلت على +25 نقطة! ⭐")
+    }
+
+    suspend fun replyToFeedback(feedbackId: Int, replyText: String): Result<String> {
+        if (replyText.isBlank()) {
+            return Result.failure(Exception("لا يمكن إرسال رد فارغ"))
+        }
+        val item = dao.getFeedbackById(feedbackId) ?: return Result.failure(Exception("لم يتم العثور على التقييم"))
+        dao.updateDeveloperReply(feedbackId, replyText.trim(), System.currentTimeMillis())
+
+        addNotification(
+            title = "رد المطور على تقييمك 💬",
+            message = "قام مطور تطبيق '${item.appName}' بالرد على تقييمك: \"${replyText.take(50)}\"",
+            type = "DEVELOPER_REPLY",
+            actionRoute = "joined"
+        )
+
+        return Result.success("تم إرسال ردك على المختبر بنجاح!")
     }
 
     suspend fun deleteFeedback(id: Int) {
@@ -495,6 +706,11 @@ class TesterRepository(private val dao: AppDao) {
 
     suspend fun cleanDuplicateCommunityApps() {
         try {
+            val currentUser = dao.getCurrentUserOnce()
+            val currentDevName = currentUser?.displayName?.trim()?.ifBlank { null }
+                ?: (if (currentUser?.email?.isNotBlank() == true) currentUser.email.trim().substringBefore("@") else null)
+                ?: "مطور معتمد"
+
             val allApps = dao.getAllCommunityAppsOnce()
             val seen = mutableSetOf<String>()
             for (app in allApps) {
@@ -503,6 +719,9 @@ class TesterRepository(private val dao: AppDao) {
                     dao.deleteCommunityApp(app.id)
                 } else {
                     seen.add(key)
+                    if (app.developerName == "أنا (مطور التطبيق)" || app.developerName == "أنا") {
+                        dao.insertCommunityApp(app.copy(developerName = currentDevName))
+                    }
                 }
             }
         } catch (_: Exception) {}
@@ -515,12 +734,18 @@ class TesterRepository(private val dao: AppDao) {
 
         dao.insertUserApp(appToInsert)
 
+        // Retrieve the current user to attribute developer name accurately
+        val currentUser = dao.getCurrentUserOnce()
+        val devName = currentUser?.displayName?.trim()?.ifBlank { null }
+            ?: (if (currentUser?.email?.isNotBlank() == true) currentUser.email.trim().substringBefore("@") else null)
+            ?: "مطور معتمد"
+
         // Also add to community exchange so others can test it
         val existingCommunityApp = dao.getCommunityAppByPackage(cleanPackage)
         val communityItem = CommunityApp(
             id = existingCommunityApp?.id ?: 0,
             name = app.name,
-            developerName = "أنا (مطور التطبيق)",
+            developerName = devName,
             packageName = cleanPackage,
             description = if (app.instructions.isNotEmpty()) app.instructions else "تطبيق قيد الاختبار المغلق لـ 14 يوماً",
             category = app.category,
@@ -534,6 +759,13 @@ class TesterRepository(private val dao: AppDao) {
             isFeatured = featureWithPoints
         )
         insertOrUpdateCommunityApp(communityItem)
+
+        addNotification(
+            title = "تم نشر تطبيق جديد 🎉",
+            message = "تطبيقك '${app.name}' أصبح متاحاً الآن في سوق التبادل لجمع الـ 20 مختبراً واحتساب الـ 14 يوماً!",
+            type = "APP_PUBLISHED",
+            actionRoute = "my_apps"
+        )
 
         // Sync to remote Firestore DB so other developers see it
         val remoteRes = firestoreService.publishAppToFirestore(communityItem)
@@ -614,6 +846,34 @@ class TesterRepository(private val dao: AppDao) {
         return Result.success("تم تحديث رابط مجموعة الاختبار بنجاح!")
     }
 
+    suspend fun syncAppIconFromGooglePlay(packageName: String, userAppId: Int? = null): Result<String> {
+        val cleanPackage = packageName.trim()
+        if (cleanPackage.isBlank()) return Result.failure(Exception("اسم الحزمة فارغ"))
+
+        val info = com.example.util.GooglePlayScraperHelper.fetchAppInfo(cleanPackage)
+        if (info == null || info.iconUrl.isBlank()) {
+            return Result.failure(Exception("تعذر العثور على أيقونة التطبيق في Google Play (قد يكون التطبيق قيد المراجعة أو غير معلن)"))
+        }
+
+        val iconUrl = info.iconUrl
+        if (userAppId != null) {
+            dao.updateUserAppIcon(userAppId, iconUrl)
+        } else {
+            dao.updateUserAppIconByPackage(cleanPackage, iconUrl)
+        }
+        dao.updateCommunityAppIcon(cleanPackage, iconUrl)
+        dao.updateJoinedTestIcon(cleanPackage, iconUrl)
+
+        val commApp = dao.getCommunityAppByPackage(cleanPackage)
+        if (commApp != null) {
+            try {
+                firestoreService.publishAppToFirestore(commApp.copy(iconUrl = iconUrl))
+            } catch (_: Exception) {}
+        }
+
+        return Result.success("تم سحب أيقونة التطبيق من متجر Google Play وتطبيقها بنجاح! 🎨")
+    }
+
     suspend fun syncTesterActivitiesForPackage(packageName: String) {
         try {
             val remoteActivities = firestoreService.fetchTesterActivitiesForPackage(packageName).getOrDefault(emptyList())
@@ -632,6 +892,8 @@ class TesterRepository(private val dao: AppDao) {
     }
 
     // Notifications operations
+    suspend fun getAllNotificationsOnce(): List<AppNotification> = dao.getAllNotificationsOnce()
+
     suspend fun addNotification(
         title: String,
         message: String,
@@ -644,7 +906,21 @@ class TesterRepository(private val dao: AppDao) {
             type = type,
             actionRoute = actionRoute
         )
-        return dao.insertNotification(notification)
+        val id = dao.insertNotification(notification)
+
+        // Automatically push live system notification to the device status bar / tray
+        try {
+            com.example.util.NotificationHelper.showSystemNotification(
+                context = com.example.PlayTesterApplication.instance,
+                title = title,
+                message = message,
+                notificationId = (id % 100000).toInt().coerceAtLeast(1)
+            )
+        } catch (e: Exception) {
+            android.util.Log.e("TesterRepo", "Failed to push system notification: ${e.message}")
+        }
+
+        return id
     }
 
     suspend fun markNotificationAsRead(id: Int) {
@@ -661,6 +937,52 @@ class TesterRepository(private val dao: AppDao) {
 
     suspend fun clearAllNotifications() {
         dao.clearAllNotifications()
+    }
+
+    suspend fun awardEarnedPoints(
+        pointsToAdd: Int,
+        reason: String,
+        incrementStreak: Boolean = false
+    ): Result<String> {
+        val current = dao.getWalletOnce() ?: UserWallet(id = 1)
+        val newPoints = current.points + pointsToAdd
+        val updated = current.copy(
+            points = newPoints,
+            currentStreak = if (incrementStreak) current.currentStreak + 1 else current.currentStreak
+        )
+        dao.insertOrUpdateWallet(updated)
+
+        addNotification(
+            title = "🌟 نقاط مكتسبة جديدة (+$pointsToAdd نقطة)!",
+            message = "تمت إضافة $pointsToAdd نقطة إلى محفظتك بنجاح ($reason). رصيدك الحالي: $newPoints نقطة.",
+            type = "POINTS_AWARDED",
+            actionRoute = "profile"
+        )
+
+        return Result.success("تمت إضافة +$pointsToAdd نقطة بنجاح إلى رصيدك! 🌟")
+    }
+
+    suspend fun claimBadgeReward(badgeId: String, pointsReward: Int): Result<String> {
+        val settingKey = "claimed_badge_$badgeId"
+        val alreadyClaimed = dao.getSettingOnce(settingKey) != null
+        if (alreadyClaimed) {
+            return Result.failure(Exception("تم استلام مكافأة هذه الشارة مسبقاً!"))
+        }
+
+        dao.saveSetting(AppSetting(settingKey, "true"))
+        return awardEarnedPoints(pointsReward, "مكافأة فتح الشارة التقديرية", incrementStreak = false)
+    }
+
+    suspend fun isBadgeClaimed(badgeId: String): Boolean {
+        return dao.getSettingOnce("claimed_badge_$badgeId") != null
+    }
+
+    suspend fun getClaimedBadgeIds(): Set<String> {
+        val allSettings = dao.getAllSettingsOnce()
+        return allSettings
+            .filter { it.key.startsWith("claimed_badge_") && it.value == "true" }
+            .map { it.key.removePrefix("claimed_badge_") }
+            .toSet()
     }
 
     private suspend fun updateWalletPoints(pointsToAdd: Int, incrementStreak: Boolean, isTestComplete: Boolean = false) {
@@ -748,11 +1070,16 @@ class TesterRepository(private val dao: AppDao) {
             return Result.failure(Exception("لا توجد تطبيقات محلية مسجلة في جهازك لرفعها."))
         }
         val groupUrl = getEffectiveOfficialGroupUrl()
+        val currentUser = dao.getCurrentUserOnce()
+        val devName = currentUser?.displayName?.trim()?.ifBlank { null }
+            ?: (if (currentUser?.email?.isNotBlank() == true) currentUser.email.trim().substringBefore("@") else null)
+            ?: "مطور معتمد"
+
         val communityAppsToUpload = userAppsList.map { app ->
             CommunityApp(
                 id = 0,
                 name = app.name,
-                developerName = "أنا (مطور التطبيق)",
+                developerName = devName,
                 packageName = app.packageName,
                 description = if (app.instructions.isNotEmpty()) app.instructions else "تطبيق قيد الاختبار المغلق لـ 14 يوماً",
                 category = app.category,

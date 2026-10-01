@@ -2,6 +2,7 @@ package com.example.ui.components
 
 import android.content.Context
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -34,6 +35,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
@@ -45,6 +47,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -58,6 +61,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,6 +83,8 @@ import com.example.ui.theme.PlayGreen
 import com.example.ui.util.AppLanguage
 import com.example.ui.util.L
 import com.example.ui.util.LocalAppLanguage
+import com.example.util.GooglePlayScraperHelper
+import kotlinx.coroutines.launch
 import java.io.File
 
 @Composable
@@ -113,6 +119,8 @@ fun AddAppDialog(
     var isFeatured by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showUrlIconInput by remember { mutableStateOf(false) }
+    var isFetchingPlayInfo by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     val clipboardManager = LocalClipboardManager.current
     var isGroupEmailCopied by remember { mutableStateOf(false) }
@@ -359,6 +367,105 @@ fun AddAppDialog(
                             style = MaterialTheme.typography.labelMedium,
                             color = PlayGreen
                         )
+                    }
+                }
+
+                // --- Automatic Fetch App Icon & Title from Google Play ---
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = PlayGreen.copy(alpha = 0.08f),
+                    border = BorderStroke(1.dp, PlayGreen.copy(alpha = 0.35f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(10.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = if (isArabic) "سحب صورة وبيانات التطبيق من Google Play" else "Fetch Icon & Info from Google Play",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PlayGreen
+                                )
+                                Text(
+                                    text = if (isArabic) "جلب أيقونة المتجر واسم التطبيق تلقائياً" else "Auto-extract the real app icon and title",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    val targetQuery = packageName.ifBlank { androidOptInUrl }.ifBlank { webOptInUrl }
+                                    if (targetQuery.isBlank()) {
+                                        errorMessage = if (isArabic) "يرجى كتابة اسم الحزمة أو رابط التطبيق أولاً" else "Please enter package name or Play URL first"
+                                        return@Button
+                                    }
+                                    isFetchingPlayInfo = true
+                                    errorMessage = null
+                                    coroutineScope.launch {
+                                        try {
+                                            val info = GooglePlayScraperHelper.fetchAppInfo(targetQuery)
+                                            if (info != null) {
+                                                if (info.iconUrl.isNotBlank()) {
+                                                    iconUrl = info.iconUrl
+                                                }
+                                                if (name.isBlank() && info.title.isNotBlank()) {
+                                                    name = info.title
+                                                }
+                                                if (packageName.isBlank() && info.packageName.isNotBlank()) {
+                                                    packageName = info.packageName
+                                                }
+                                                if (webOptInUrl.isBlank()) {
+                                                    webOptInUrl = "https://play.google.com/apps/testing/${info.packageName}"
+                                                }
+                                                if (androidOptInUrl.isBlank()) {
+                                                    androidOptInUrl = "https://play.google.com/store/apps/details?id=${info.packageName}"
+                                                }
+                                                Toast.makeText(
+                                                    context,
+                                                    if (isArabic) "تم سحب الأيقونة وبيانات التطبيق من متجر Google Play بنجاح! ✓" else "Fetched icon & details from Google Play! ✓",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            } else {
+                                                Toast.makeText(
+                                                    context,
+                                                    if (isArabic) "تعذر سحب الأيقونة تلقائياً (قد يكون التطبيق غير معلن بعد). يمكنك اختيار صورة من المعرض." else "Could not fetch public icon. You can pick an image manually.",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
+                                            }
+                                        } catch (e: Exception) {
+                                            errorMessage = if (isArabic) "خطأ أثناء الاتصال بـ Google Play" else "Error connecting to Google Play"
+                                        } finally {
+                                            isFetchingPlayInfo = false
+                                        }
+                                    }
+                                },
+                                enabled = !isFetchingPlayInfo,
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                modifier = Modifier.height(34.dp).testTag("btn_fetch_play_info")
+                            ) {
+                                if (isFetchingPlayInfo) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(14.dp),
+                                        strokeWidth = 2.dp,
+                                        color = Color.White
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(if (isArabic) "جاري السحب..." else "Fetching...", fontSize = 11.sp, color = Color.White)
+                                } else {
+                                    Icon(Icons.Default.Download, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(if (isArabic) "سحب من Play" else "Fetch", fontSize = 11.sp, color = Color.White)
+                                }
+                            }
+                        }
                     }
                 }
 

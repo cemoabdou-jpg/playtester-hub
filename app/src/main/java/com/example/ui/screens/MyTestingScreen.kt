@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.EmojiEvents
@@ -62,6 +61,7 @@ import com.example.ui.components.DeveloperXpRankCard
 import com.example.ui.components.DailyTestConfirmationDialog
 import com.example.ui.components.FeedbackDialog
 import com.example.ui.components.JoinedTestCard
+import com.example.ui.components.ReminderAlarmsDialog
 import com.example.ui.components.TestingHeatmapCard
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
@@ -81,7 +81,7 @@ fun MyTestingScreen(
     currentStreak: Int = 0,
     onCheckIn: (JoinedTest) -> Unit = {},
     onConfirmDailyTest: ((JoinedTest, Int, Int, String) -> Unit)? = null,
-    onSendFeedback: (JoinedTest, String, Int, String) -> Unit,
+    onSendFeedback: (test: JoinedTest, content: String, rating: Int, type: String, devModel: String, androidVer: String) -> Unit,
     onDeleteTest: (Int) -> Unit,
     onNavigateToCommunity: () -> Unit,
     onRecordAppOpened: (packageName: String, appName: String) -> Unit = { _, _ -> },
@@ -94,6 +94,7 @@ fun MyTestingScreen(
     var selectedTestForFeedback by remember { mutableStateOf<JoinedTest?>(null) }
     var selectedTestForDailyConfirmation by remember { mutableStateOf<JoinedTest?>(null) }
     var showMissionsAndXp by remember { mutableStateOf(false) }
+    var showReminderAlarmsDialog by remember { mutableStateOf(false) }
 
     val todayStr = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
     val activeCount = joinedTests.count { !it.isCompleted }
@@ -107,55 +108,94 @@ fun MyTestingScreen(
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Compact Decluttered Stats & Missions Bar
+            // Unified Compact Stats & Alarms Row (Sleek, Uncluttered)
             item {
+                val reminderHours = NotificationHelper.getReminderHours(context)
+                val isReminderActive = NotificationHelper.isDailyReminderEnabled(context)
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Card(
+                    // Active tests pill
+                    Surface(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        color = CyanAccent.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, CyanAccent.copy(alpha = 0.3f))
                     ) {
-                        Column(
-                            modifier = Modifier.padding(10.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text(
-                                text = "$activeCount",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = CyanAccent
-                            )
-                            Text(
-                                text = s.testingActiveCount,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Icon(Icons.Default.Schedule, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(16.dp))
+                            Column {
+                                Text(text = "$activeCount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = CyanAccent)
+                                Text(text = s.testingActiveCount, style = MaterialTheme.typography.labelSmall, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                            }
                         }
                     }
 
-                    Card(
+                    // Completed tests pill
+                    Surface(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        color = SuccessGreen.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.3f))
                     ) {
-                        Column(
-                            modifier = Modifier.padding(10.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text(
-                                text = "$completedCount",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = SuccessGreen
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(16.dp))
+                            Column {
+                                Text(text = "$completedCount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = SuccessGreen)
+                                Text(text = s.testingCompletedCount, style = MaterialTheme.typography.labelSmall, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                            }
+                        }
+                    }
+
+                    // Alarms quick button
+                    Surface(
+                        modifier = Modifier
+                            .weight(1.2f)
+                            .clickable { showReminderAlarmsDialog = true }
+                            .testTag("card_testing_reminders_bar"),
+                        shape = RoundedCornerShape(12.dp),
+                        color = AmberGold.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, AmberGold.copy(alpha = 0.35f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsActive,
+                                contentDescription = null,
+                                tint = AmberGold,
+                                modifier = Modifier.size(16.dp)
                             )
-                            Text(
-                                text = s.testingCompletedCount,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Column {
+                                Text(
+                                    text = if (isReminderActive) "${reminderHours.size} مواعيد ⏰" else "المنبهات",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    color = if (isReminderActive) AmberGold else MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    text = if (isReminderActive) "مفعل (انقر للضبط)" else "انقر للتفعيل",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontSize = 9.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1
+                                )
+                            }
                         }
                     }
                 }
@@ -164,9 +204,9 @@ fun MyTestingScreen(
             // Collapsible Missions & XP Card (Declutters screen while keeping full functionality)
             item {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    border = BorderStroke(1.dp, if (showMissionsAndXp) AmberGold.copy(alpha = 0.45f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .animateContentSize()
@@ -177,18 +217,26 @@ fun MyTestingScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { showMissionsAndXp = !showMissionsAndXp }
-                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.EmojiEvents,
-                                    contentDescription = null,
-                                    tint = AmberGold,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = AmberGold.copy(alpha = 0.15f),
+                                    modifier = Modifier.size(30.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.EmojiEvents,
+                                            contentDescription = null,
+                                            tint = AmberGold,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
                                 Text(
                                     text = if (isArabic) "المهام اليومية ورتبة المطور 🏆" else "Daily Missions & Developer XP 🏆",
                                     style = MaterialTheme.typography.titleSmall,
@@ -314,10 +362,17 @@ fun MyTestingScreen(
         FeedbackDialog(
             test = test,
             onDismiss = { selectedTestForFeedback = null },
-            onSubmitFeedback = { content, rating, type ->
-                onSendFeedback(test, content, rating, type)
+            onSubmitFeedback = { content, rating, type, devModel, androidVer ->
+                onSendFeedback(test, content, rating, type, devModel, androidVer)
                 selectedTestForFeedback = null
             }
+        )
+    }
+
+    // Multi-Schedule Alarms Manager Dialog
+    if (showReminderAlarmsDialog) {
+        ReminderAlarmsDialog(
+            onDismiss = { showReminderAlarmsDialog = false }
         )
     }
 }

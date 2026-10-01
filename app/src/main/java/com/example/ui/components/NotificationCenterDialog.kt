@@ -73,6 +73,7 @@ fun NotificationCenterDialog(
     onDeleteNotification: (Int) -> Unit,
     onClearAll: () -> Unit,
     onSendTestNotification: () -> Unit,
+    onPushAllNotifications: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
     val language = LocalAppLanguage.current
@@ -239,18 +240,40 @@ fun NotificationCenterDialog(
                             )
                         }
 
-                        OutlinedButton(
-                            onClick = onSendTestNotification,
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.testTag("btn_send_test_notification")
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Notifications,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(if (isArabic) "إشعار تجريبي" else "Test Alert", fontSize = 11.sp)
+                            Button(
+                                onClick = onPushAllNotifications,
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PlayGreen, contentColor = Color.White),
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier.testTag("btn_push_all_notifications")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.NotificationsActive,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(if (isArabic) "دفع الكل 🔔" else "Push All 🔔", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            OutlinedButton(
+                                onClick = onSendTestNotification,
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier.testTag("btn_send_test_notification")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Notifications,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(if (isArabic) "تجريبي" else "Test", fontSize = 11.sp)
+                            }
                         }
                     }
                 }

@@ -82,6 +82,24 @@ interface AppDao {
     @Query("SELECT * FROM user_apps ORDER BY id DESC")
     fun getAllUserApps(): Flow<List<UserApp>>
 
+    @Query("SELECT * FROM user_apps WHERE id = :id LIMIT 1")
+    suspend fun getUserAppById(id: Int): UserApp?
+
+    @Query("SELECT * FROM user_apps WHERE packageName = :packageName LIMIT 1")
+    suspend fun getUserAppByPackage(packageName: String): UserApp?
+
+    @Query("UPDATE user_apps SET iconUrl = :iconUrl WHERE id = :id")
+    suspend fun updateUserAppIcon(id: Int, iconUrl: String)
+
+    @Query("UPDATE user_apps SET iconUrl = :iconUrl WHERE packageName = :packageName")
+    suspend fun updateUserAppIconByPackage(packageName: String, iconUrl: String)
+
+    @Query("UPDATE community_apps SET iconUrl = :iconUrl WHERE packageName = :packageName")
+    suspend fun updateCommunityAppIcon(packageName: String, iconUrl: String)
+
+    @Query("UPDATE joined_tests SET iconUrl = :iconUrl WHERE packageName = :packageName")
+    suspend fun updateJoinedTestIcon(packageName: String, iconUrl: String)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUserApp(app: UserApp): Long
 
@@ -165,6 +183,9 @@ interface AppDao {
     @Query("SELECT * FROM app_notifications ORDER BY timestamp DESC")
     fun getAllNotifications(): Flow<List<AppNotification>>
 
+    @Query("SELECT * FROM app_notifications ORDER BY timestamp DESC")
+    suspend fun getAllNotificationsOnce(): List<AppNotification>
+
     @Query("SELECT COUNT(*) FROM app_notifications WHERE isRead = 0")
     fun getUnreadNotificationsCount(): Flow<Int>
 
@@ -212,12 +233,21 @@ interface AppDao {
     @Query("DELETE FROM tester_feedback WHERE id = :id")
     suspend fun deleteFeedback(id: Int)
 
+    @Query("SELECT * FROM tester_feedback WHERE id = :id LIMIT 1")
+    suspend fun getFeedbackById(id: Int): TesterFeedback?
+
+    @Query("UPDATE tester_feedback SET developerReply = :reply, developerRepliedAt = :repliedAt WHERE id = :id")
+    suspend fun updateDeveloperReply(id: Int, reply: String, repliedAt: Long)
+
     // Platform System Settings (e.g. Official Google Group URL & Email)
     @Query("SELECT value FROM app_settings WHERE `key` = :key LIMIT 1")
     fun getSettingFlow(key: String): Flow<String?>
 
     @Query("SELECT value FROM app_settings WHERE `key` = :key LIMIT 1")
     suspend fun getSettingOnce(key: String): String?
+
+    @Query("SELECT * FROM app_settings")
+    suspend fun getAllSettingsOnce(): List<com.example.data.model.AppSetting>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveSetting(setting: com.example.data.model.AppSetting)

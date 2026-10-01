@@ -147,10 +147,10 @@ fun OnboardingScreen(
                 badgeIcon = Icons.Default.RocketLaunch,
                 badgeColor = PlayGreen,
                 imageResId = R.drawable.promo_step3_publish_1789982347173,
-                mainDescription = "بمجرد إتمام فترة الاختبار، يوفر لك التطبيق تقريراً شاملاً بكافة إحصائيات المختبرين وتفاعلهم لتعبئة استبيان Google Play Console والإجابة على أسئلة الوصول للإنتاج بنجاح وقبول فوري.",
+                mainDescription = "بمجرد إتمام فترة الـ 14 يوماً وتأكيد المختبرين، يوفر لك التطبيق تقريراً شاملاً بكافة إحصائيات المختبرين وتفاعلهم وملاحظاتهم الموثقة لتقديم طلب الإنتاج في Google Play Console بثقة.",
                 keyPoints = listOf(
-                    Icons.Default.CheckCircle to "تصدير قائمة المختبرين والتقييمات بصيغة واضحة.",
-                    Icons.Default.Security to "دليل إرشادي تفصيلي للإجابة على أسئلة الوصول للإنتاج بدون رفض.",
+                    Icons.Default.CheckCircle to "تصدير قائمة المختبرين والتقييمات بصيغة معتمدة وواضحة.",
+                    Icons.Default.Security to "دليل إرشادي شامل لتجنب أسباب الرفض واستيفاء سياسات المتجر.",
                     Icons.Default.RocketLaunch to "نشر تطبيقك على Google Play بثقة تامة واستقرار مضمون."
                 ),
                 highlightNote = "أنت الآن جاهز للانضمام لمجتمع المطورين والمختبرين الأقوى والأكثر فاعلية!"
@@ -210,10 +210,10 @@ fun OnboardingScreen(
                 badgeIcon = Icons.Default.RocketLaunch,
                 badgeColor = PlayGreen,
                 imageResId = R.drawable.promo_step3_publish_1789982347173,
-                mainDescription = "Export complete tester logs, feedback reports, and use our Production Questionnaire Assistant to ace the Google Play review without rejections.",
+                mainDescription = "Export complete tester logs, feedback reports, and verified readiness statistics to submit your application for Google Play production review with confidence.",
                 keyPoints = listOf(
                     Icons.Default.CheckCircle to "Generate verified readiness certificate & logs.",
-                    Icons.Default.Security to "Google Play Console questionnaire response templates.",
+                    Icons.Default.Security to "Comprehensive rejection avoidance guidelines.",
                     Icons.Default.RocketLaunch to "Launch your app globally on Google Play with confidence."
                 ),
                 highlightNote = "You are ready to join the most productive developer testing hub!"

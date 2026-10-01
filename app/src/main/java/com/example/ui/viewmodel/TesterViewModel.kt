@@ -238,8 +238,17 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
 
     val wallet: StateFlow<UserWallet> = repository.wallet
         .combine(MutableStateFlow(Unit)) { w, _ ->
-            w ?: UserWallet(id = 1, points = 150, testsCompleted = 2, currentStreak = 4)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UserWallet(id = 1, points = 150, testsCompleted = 2, currentStreak = 4))
+            w ?: UserWallet(id = 1, points = 50, testsCompleted = 0, currentStreak = 0, lastActiveDate = "")
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UserWallet(id = 1, points = 50, testsCompleted = 0, currentStreak = 0, lastActiveDate = ""))
+
+    private val _claimedBadgeIds = MutableStateFlow<Set<String>>(emptySet())
+    val claimedBadgeIds: StateFlow<Set<String>> = _claimedBadgeIds
+
+    init {
+        viewModelScope.launch {
+            _claimedBadgeIds.value = repository.getClaimedBadgeIds()
+        }
+    }
 
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
@@ -283,6 +292,56 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
                 _userMessage.value = "تم تسجيل الدخول بحساب Google (${user.email}) بنجاح!"
             }.onFailure { err ->
                 _userMessage.value = err.message ?: "فشل تسجيل الدخول عبر Google"
+            }
+        }
+    }
+
+    fun loginAsGuest() {
+        viewModelScope.launch {
+            val res = repository.loginAsGuest()
+            res.onSuccess { user ->
+                _userMessage.value = "تم الدخول كضيف بنجاح! يمكنك الآن تجربة التطبيق وتصفح الميزات بحرية."
+            }.onFailure { err ->
+                _userMessage.value = err.message ?: "فشل الدخول كضيف"
+            }
+        }
+    }
+
+    fun upgradeGuestAccountWithEmail(
+        displayName: String,
+        email: String,
+        password: String,
+        onResult: (Boolean, String) -> Unit
+    ) {
+        viewModelScope.launch {
+            val res = repository.upgradeGuestAccountWithEmail(displayName, email, password)
+            res.onSuccess { user ->
+                val msg = "تهانينا ${user.displayName}! تم ترقية حسابك بنجاح وحفظ كافة نقاطك وتطبيقاتك بشكل دائم 🚀"
+                _userMessage.value = msg
+                onResult(true, msg)
+            }.onFailure { err ->
+                val msg = err.message ?: "فشلت ترقية الحساب"
+                _userMessage.value = msg
+                onResult(false, msg)
+            }
+        }
+    }
+
+    fun upgradeGuestAccountWithGoogle(
+        displayName: String,
+        email: String,
+        onResult: (Boolean, String) -> Unit
+    ) {
+        viewModelScope.launch {
+            val res = repository.upgradeGuestAccountWithGoogle(displayName, email)
+            res.onSuccess { user ->
+                val msg = "تهانينا ${user.displayName}! تم ربط الحساب بـ Google (${user.email}) وحفظ جميع بياناتك بنجاح 🚀"
+                _userMessage.value = msg
+                onResult(true, msg)
+            }.onFailure { err ->
+                val msg = err.message ?: "فشل الربط بحساب Google"
+                _userMessage.value = msg
+                onResult(false, msg)
             }
         }
     }
@@ -451,6 +510,29 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun awardEarnedPoints(points: Int, reason: String, incrementStreak: Boolean = false) {
+        viewModelScope.launch {
+            val res = repository.awardEarnedPoints(points, reason, incrementStreak)
+            res.onSuccess { msg ->
+                _userMessage.value = msg
+            }.onFailure { err ->
+                _userMessage.value = err.message ?: "فشل إضافة النقاط"
+            }
+        }
+    }
+
+    fun claimBadgeReward(badgeId: String, pointsReward: Int) {
+        viewModelScope.launch {
+            val res = repository.claimBadgeReward(badgeId, pointsReward)
+            res.onSuccess { msg ->
+                _claimedBadgeIds.value = _claimedBadgeIds.value + badgeId
+                _userMessage.value = msg
+            }.onFailure { err ->
+                _userMessage.value = err.message ?: "تعذر استلام مكافأة الشارة"
+            }
+        }
+    }
+
     fun sendTesterTip(testerId: Int, points: Int, note: String) {
         viewModelScope.launch {
             val currentWallet = wallet.value
@@ -525,15 +607,65 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         test: JoinedTest,
         content: String = "التطبيق يعمل بشكل جيد ومستقر.",
         rating: Int = 5,
-        feedbackType: String = "FEEDBACK"
+        feedbackType: String = "FEEDBACK",
+        deviceModel: String = "",
+        androidVersion: String = ""
     ) {
         viewModelScope.launch {
             val userEmail = currentUser.value?.email ?: "tester@example.com"
-            val res = repository.submitFeedback(test, content, rating, feedbackType, userEmail)
+            val userName = currentUser.value?.displayName ?: "مختبر معتمد"
+            val res = repository.submitFeedback(
+                test = test,
+                content = content,
+                rating = rating,
+                feedbackType = feedbackType,
+                testerEmail = userEmail,
+                testerName = userName,
+                deviceModel = deviceModel,
+                androidVersion = androidVersion
+            )
             res.onSuccess { msg ->
                 _userMessage.value = msg
             }.onFailure { err ->
-                _userMessage.value = err.message ?: "فشل إرسال الملاحظات"
+                _userMessage.value = err.message ?: "فشل إرسال التقييم"
+            }
+        }
+    }
+
+    fun submitAppReview(
+        packageName: String,
+        appName: String,
+        content: String,
+        rating: Int = 5,
+        feedbackType: String = "FEEDBACK",
+        deviceModel: String = "",
+        androidVersion: String = ""
+    ) {
+        viewModelScope.launch {
+            val res = repository.submitAppReview(
+                packageName = packageName,
+                appName = appName,
+                content = content,
+                rating = rating,
+                feedbackType = feedbackType,
+                deviceModel = deviceModel,
+                androidVersion = androidVersion
+            )
+            res.onSuccess { msg ->
+                _userMessage.value = msg
+            }.onFailure { err ->
+                _userMessage.value = err.message ?: "فشل إرسال المراجعة"
+            }
+        }
+    }
+
+    fun replyToFeedback(feedbackId: Int, replyText: String) {
+        viewModelScope.launch {
+            val res = repository.replyToFeedback(feedbackId, replyText)
+            res.onSuccess { msg ->
+                _userMessage.value = msg
+            }.onFailure { err ->
+                _userMessage.value = err.message ?: "فشل إرسال الرد"
             }
         }
     }
@@ -541,7 +673,7 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
     fun deleteFeedback(id: Int) {
         viewModelScope.launch {
             repository.deleteFeedback(id)
-            _userMessage.value = "تم حذف الملاحظة"
+            _userMessage.value = "تم حذف المراجعة/التقييم"
         }
     }
 
@@ -609,6 +741,18 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun syncAppIconFromGooglePlay(packageName: String, userAppId: Int? = null) {
+        viewModelScope.launch {
+            _userMessage.value = "جاري سحب أيقونة التطبيق من Google Play..."
+            val res = repository.syncAppIconFromGooglePlay(packageName, userAppId)
+            res.onSuccess { msg ->
+                _userMessage.value = msg
+            }.onFailure { err ->
+                _userMessage.value = err.message ?: "فشل سحب أيقونة التطبيق"
+            }
+        }
+    }
+
     fun deleteUserApp(id: Int) {
         viewModelScope.launch {
             repository.deleteUserApp(id)
@@ -671,6 +815,34 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
                 "تم إرسال إشعار النظام بنجاح إلى شريط الإشعارات!"
             } else {
                 "تم إضافة الإشعار في مركز الإشعارات (تأكد من تفعيل إذن الإشعارات لإظهارها في شريط النظام)"
+            }
+        }
+    }
+
+    /**
+     * Pushes all current/unread notifications directly to the Android notification drawer.
+     */
+    fun pushAllNotifications(context: Context) {
+        viewModelScope.launch {
+            var list = repository.getAllNotificationsOnce()
+            if (list.isEmpty()) {
+                repository.addNotification(
+                    title = "🚀 مرحباً بك في PlayTester Hub",
+                    message = "منظومتك المتكاملة لتخطي متطلب الـ 14 يوماً و20 مختبراً في متجر Google Play!",
+                    type = "WELCOME"
+                )
+                repository.addNotification(
+                    title = "⏰ تذكير الفحص اليومي النشط",
+                    message = "تم تفعيل دفع وتوصيل كافة التنبيهات لضمان عدم تفويت فحص التطبيقات اليومي.",
+                    type = "DAILY_REMINDER"
+                )
+                list = repository.getAllNotificationsOnce()
+            }
+            val pushedCount = NotificationHelper.pushAllNotifications(context, list)
+            _userMessage.value = if (pushedCount > 0) {
+                "تم دفع وتفعيل جميع الإشعارات بنجاح ($pushedCount إشعار) في شريط أندرويد! 🔔"
+            } else {
+                "تم تجهيز الإشعارات (يرجى التأكد من منح إذن الإشعارات في النظام)"
             }
         }
     }

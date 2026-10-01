@@ -26,7 +26,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -60,13 +62,16 @@ import com.example.data.model.UserBadge
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.PlayGreen
+import com.example.ui.theme.SuccessGreen
 import com.example.ui.util.AppLanguage
 import com.example.ui.util.LocalAppLanguage
 
 @Composable
 fun BadgesDialog(
     badges: List<UserBadge>,
-    onDismiss: () -> Unit
+    claimedBadgeIds: Set<String> = emptySet(),
+    onDismiss: () -> Unit,
+    onClaimBadgeReward: (badgeId: String, points: Int) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
     val language = LocalAppLanguage.current
@@ -161,14 +166,15 @@ fun BadgesDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
-                        modifier = Modifier.padding(14.dp)
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
+                            Column {
                                 Text(
                                     text = if (isArabic) "رتبتك الحالية:" else "Current Rank:",
                                     style = MaterialTheme.typography.labelSmall,
@@ -180,64 +186,91 @@ fun BadgesDialog(
                                     fontWeight = FontWeight.Bold,
                                     color = AmberGold
                                 )
-                                Text(
-                                    text = rankDesc,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
                             }
-
                             Surface(
-                                shape = CircleShape,
+                                shape = RoundedCornerShape(20.dp),
                                 color = AmberGold.copy(alpha = 0.15f),
-                                border = BorderStroke(1.dp, AmberGold.copy(alpha = 0.4f)),
-                                modifier = Modifier.size(48.dp)
+                                border = BorderStroke(1.dp, AmberGold.copy(alpha = 0.4f))
                             ) {
-                                Box(contentAlignment = Alignment.Center) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Stars,
+                                        contentDescription = null,
+                                        tint = AmberGold,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "${(overallProgress * 100).toInt()}%",
+                                        text = "$unlockedCount/$totalCount",
+                                        style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.labelLarge,
                                         color = AmberGold
                                     )
                                 }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        LinearProgressIndicator(
-                            progress = { animatedProgress },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(8.dp)
-                                .clip(RoundedCornerShape(4.dp)),
-                            color = AmberGold,
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                        Text(
+                            text = rankDesc,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+
+                        // Progress to next rank
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = if (isArabic) "التقدم الإجمالي للشارات" else "Overall Badges Progress",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "${(animatedProgress * 100).toInt()}%",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = AmberGold
+                                )
+                            }
+                            LinearProgressIndicator(
+                                progress = { animatedProgress },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(8.dp)
+                                    .clip(RoundedCornerShape(4.dp)),
+                                color = AmberGold,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Category Chips Row
+                // Category Filter Chips
                 LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    contentPadding = PaddingValues(horizontal = 2.dp)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     items(BadgeCategory.values()) { category ->
-                        val catTitle = if (isArabic) category.title else when (category) {
-                            BadgeCategory.ALL -> "All"
-                            BadgeCategory.TESTING -> "Testing"
-                            BadgeCategory.DEVELOPER -> "Developer"
-                            BadgeCategory.QUALITY -> "Quality"
-                            BadgeCategory.STREAK -> "Streak"
+                        val isSelected = selectedCategory == category
+                        val label = when (category) {
+                            BadgeCategory.ALL -> if (isArabic) "الكل" else "All"
+                            BadgeCategory.TESTING -> if (isArabic) "الاختبار" else "Testing"
+                            BadgeCategory.DEVELOPER -> if (isArabic) "المطور" else "Developer"
+                            BadgeCategory.QUALITY -> if (isArabic) "الجودة" else "Quality"
+                            BadgeCategory.STREAK -> if (isArabic) "الاستمرار" else "Streak"
                         }
                         FilterChip(
-                            selected = selectedCategory == category,
+                            selected = isSelected,
                             onClick = { selectedCategory = category },
-                            label = { Text(catTitle, fontSize = 12.sp) }
+                            label = { Text(label, fontSize = 12.sp) },
+                            modifier = Modifier.testTag("badge_filter_${category.name}")
                         )
                     }
                 }
@@ -252,7 +285,13 @@ fun BadgesDialog(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(filteredBadges, key = { it.id }) { badge ->
-                        BadgeItemCard(badge = badge, isArabic = isArabic)
+                        val isClaimed = claimedBadgeIds.contains(badge.id)
+                        BadgeItemCard(
+                            badge = badge,
+                            isClaimed = isClaimed,
+                            isArabic = isArabic,
+                            onClaim = { onClaimBadgeReward(badge.id, badge.pointsReward) }
+                        )
                     }
                 }
             }
@@ -299,7 +338,12 @@ fun BadgesDialog(
 }
 
 @Composable
-fun BadgeItemCard(badge: UserBadge, isArabic: Boolean = true) {
+fun BadgeItemCard(
+    badge: UserBadge,
+    isClaimed: Boolean = false,
+    isArabic: Boolean = true,
+    onClaim: () -> Unit = {}
+) {
     val rarityColor = Color(badge.rarity.colorHex)
     val progressRatio = if (badge.maxProgress > 0) badge.currentProgress.toFloat() / badge.maxProgress else 0f
 
@@ -316,97 +360,159 @@ fun BadgeItemCard(badge: UserBadge, isArabic: Boolean = true) {
             .fillMaxWidth()
             .testTag("badge_card_${badge.id}")
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Badge Emoji / Icon
-            Surface(
-                shape = CircleShape,
-                color = if (badge.isUnlocked) rarityColor.copy(alpha = 0.18f)
-                else MaterialTheme.colorScheme.surfaceVariant,
-                border = BorderStroke(1.dp, if (badge.isUnlocked) rarityColor else Color.Transparent),
-                modifier = Modifier.size(46.dp)
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    if (badge.isUnlocked) {
+                // Badge Emoji / Icon
+                Surface(
+                    shape = CircleShape,
+                    color = if (badge.isUnlocked) rarityColor.copy(alpha = 0.18f)
+                    else MaterialTheme.colorScheme.surfaceVariant,
+                    border = BorderStroke(1.dp, if (badge.isUnlocked) rarityColor else Color.Transparent),
+                    modifier = Modifier.size(46.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        if (badge.isUnlocked) {
+                            Text(
+                                text = badge.iconEmoji,
+                                fontSize = 24.sp
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = if (isArabic) "مقفل" else "Locked",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Text(
-                            text = badge.iconEmoji,
-                            fontSize = 24.sp
+                            text = badge.title,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (badge.isUnlocked) MaterialTheme.colorScheme.onSurface
+                            else MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = if (isArabic) "مقفل" else "Locked",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                            modifier = Modifier.size(20.dp)
+
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = PlayGreen.copy(alpha = 0.12f)
+                            ) {
+                                Text(
+                                    text = "+${badge.pointsReward} نقطة",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PlayGreen,
+                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                )
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = rarityColor.copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    text = if (isArabic) badge.rarity.label else badge.rarity.name.lowercase().capitalize(),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = rarityColor,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(3.dp))
+
+                    Text(
+                        text = badge.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        LinearProgressIndicator(
+                            progress = { progressRatio },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(5.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = if (badge.isUnlocked) PlayGreen else CyanAccent,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Text(
+                            text = if (badge.isUnlocked) (if (isArabic) "مكتمل ✓" else "Unlocked ✓") else "${badge.currentProgress}/${badge.maxProgress}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (badge.isUnlocked) PlayGreen else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
+            // Claim Reward Button if Unlocked
+            if (badge.isUnlocked) {
+                Spacer(modifier = Modifier.height(8.dp))
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
                 ) {
-                    Text(
-                        text = badge.title,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = if (badge.isUnlocked) MaterialTheme.colorScheme.onSurface
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = rarityColor.copy(alpha = 0.15f)
-                    ) {
-                        Text(
-                            text = if (isArabic) badge.rarity.label else badge.rarity.name.lowercase().capitalize(),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = rarityColor,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
+                    if (isClaimed) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = SuccessGreen.copy(alpha = 0.12f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(12.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (isArabic) "تم استلام +${badge.pointsReward} نقطة ✓" else "Claimed +${badge.pointsReward} pts ✓",
+                                    color = SuccessGreen,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    } else {
+                        Button(
+                            onClick = onClaim,
+                            shape = RoundedCornerShape(6.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = AmberGold),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = Color.Black, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (isArabic) "استلام المكافأة (+${badge.pointsReward} نقطة)" else "Claim (+${badge.pointsReward} pts)",
+                                color = Color.Black,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
-                }
-
-                Spacer(modifier = Modifier.height(3.dp))
-
-                Text(
-                    text = badge.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    LinearProgressIndicator(
-                        progress = { progressRatio },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(5.dp)
-                            .clip(RoundedCornerShape(3.dp)),
-                        color = if (badge.isUnlocked) PlayGreen else CyanAccent,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Text(
-                        text = if (badge.isUnlocked) (if (isArabic) "مكتمل ✓" else "Unlocked ✓") else "${badge.currentProgress}/${badge.maxProgress}",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = if (badge.isUnlocked) PlayGreen else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
             }
         }

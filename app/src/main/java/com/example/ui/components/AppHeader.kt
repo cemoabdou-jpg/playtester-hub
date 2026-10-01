@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Badge
@@ -51,6 +52,7 @@ import com.example.data.model.AuthUser
 import com.example.data.model.UserWallet
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
+import com.example.ui.theme.EmeraldGradientStart
 import com.example.ui.theme.PlayGreen
 import com.example.ui.util.AppLanguage
 import com.example.ui.util.L
@@ -67,9 +69,11 @@ fun AppHeader(
     onToggleTheme: (() -> Unit)? = null,
     onNotificationsClick: (() -> Unit)? = null,
     onBadgesClick: (() -> Unit)? = null,
+    onPointsClick: (() -> Unit)? = null,
     onProfileClick: (() -> Unit)? = null,
     onOpenOnboarding: (() -> Unit)? = null,
     onToggleSimplifiedMode: (() -> Unit)? = null,
+    onUpgradeGuestClick: (() -> Unit)? = null,
     onLogout: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -82,12 +86,16 @@ fun AppHeader(
             .statusBarsPadding()
             .testTag("app_header"),
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+        ),
+        tonalElevation = 3.dp
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 6.dp),
+                .padding(horizontal = 14.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -95,15 +103,17 @@ fun AppHeader(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
                     .clickable(enabled = onProfileClick != null) { onProfileClick?.invoke() }
+                    .padding(4.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(34.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
                         .background(
                             Brush.linearGradient(
-                                listOf(PlayGreen, CyanAccent)
+                                listOf(EmeraldGradientStart, CyanAccent)
                             )
                         ),
                     contentAlignment = Alignment.Center
@@ -115,19 +125,20 @@ fun AppHeader(
                         modifier = Modifier.size(20.dp)
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = "PlayTester Hub",
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            letterSpacing = 0.3.sp
                         )
                         if (currentUser?.role == "ADMIN") {
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
                             Surface(
-                                shape = RoundedCornerShape(4.dp),
+                                shape = RoundedCornerShape(6.dp),
                                 color = AmberGold
                             ) {
                                 Text(
@@ -136,8 +147,38 @@ fun AppHeader(
                                     fontWeight = FontWeight.Bold,
                                     color = Color.Black,
                                     fontSize = 10.sp,
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
                                 )
+                            }
+                        } else if (currentUser?.role == "GUEST" || currentUser?.authProvider == "GUEST") {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = PlayGreen.copy(alpha = 0.18f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, PlayGreen.copy(alpha = 0.6f)),
+                                modifier = Modifier
+                                    .clickable(enabled = onUpgradeGuestClick != null) { onUpgradeGuestClick?.invoke() }
+                                    .testTag("btn_header_guest_upgrade")
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.RocketLaunch,
+                                        contentDescription = null,
+                                        tint = PlayGreen,
+                                        modifier = Modifier.size(10.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        text = if (isArabic) "ترقية الحساب ⚡" else "Upgrade ⚡",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = PlayGreen,
+                                        fontSize = 10.sp
+                                    )
+                                }
                             }
                         }
                     }
@@ -152,18 +193,22 @@ fun AppHeader(
 
             // Right Action Controls & Stats Pill
             Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Points pill
                 Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = AmberGold.copy(alpha = 0.15f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, AmberGold.copy(alpha = 0.3f)),
-                    modifier = Modifier.clickable(enabled = onBadgesClick != null) { onBadgesClick?.invoke() }
+                    shape = RoundedCornerShape(20.dp),
+                    color = AmberGold.copy(alpha = 0.12f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, AmberGold.copy(alpha = 0.35f)),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable(enabled = onPointsClick != null || onBadgesClick != null) {
+                            if (onPointsClick != null) onPointsClick.invoke() else onBadgesClick?.invoke()
+                        }
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -172,7 +217,7 @@ fun AppHeader(
                             tint = AmberGold,
                             modifier = Modifier.size(14.dp)
                         )
-                        Spacer(modifier = Modifier.width(3.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "${wallet.points}",
                             style = MaterialTheme.typography.labelSmall,
@@ -184,13 +229,15 @@ fun AppHeader(
 
                 // Streak pill
                 Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = PlayGreen.copy(alpha = 0.15f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, PlayGreen.copy(alpha = 0.3f)),
-                    modifier = Modifier.clickable(enabled = onBadgesClick != null) { onBadgesClick?.invoke() }
+                    shape = RoundedCornerShape(20.dp),
+                    color = PlayGreen.copy(alpha = 0.12f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, PlayGreen.copy(alpha = 0.35f)),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable(enabled = onBadgesClick != null) { onBadgesClick?.invoke() }
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -212,21 +259,22 @@ fun AppHeader(
                 // Language Switcher Quick Pill Button
                 if (onToggleLanguage != null) {
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(14.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                         modifier = Modifier
+                            .clip(RoundedCornerShape(14.dp))
                             .clickable { onToggleLanguage.invoke() }
                             .testTag("btn_language_toggle")
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = if (language == AppLanguage.AR) "EN" else "عربي",
                                 style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.primary,
                                 fontSize = 11.sp
                             )
@@ -239,7 +287,7 @@ fun AppHeader(
                     IconButton(
                         onClick = onToggleTheme,
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(34.dp)
                             .testTag("btn_theme_toggle")
                     ) {
                         Icon(
@@ -250,7 +298,7 @@ fun AppHeader(
                                 if (isArabic) "التبديل إلى الوضع الداكن" else "Switch to Dark Mode"
                             },
                             tint = if (isDarkTheme) AmberGold else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(19.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -260,7 +308,7 @@ fun AppHeader(
                     IconButton(
                         onClick = onNotificationsClick,
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(34.dp)
                             .testTag("btn_notifications_bell")
                     ) {
                         BadgedBox(
@@ -283,7 +331,7 @@ fun AppHeader(
                                 imageVector = Icons.Default.Notifications,
                                 contentDescription = if (isArabic) "الإشعارات" else "Notifications",
                                 tint = if (unreadNotificationsCount > 0) CyanAccent else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(19.dp)
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }

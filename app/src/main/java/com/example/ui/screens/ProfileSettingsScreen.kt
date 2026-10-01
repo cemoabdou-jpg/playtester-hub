@@ -10,7 +10,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,6 +54,7 @@ import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Translate
@@ -99,6 +102,7 @@ import androidx.core.content.ContextCompat
 import com.example.data.model.AuthUser
 import com.example.data.model.UserWallet
 import com.example.ui.components.JsonBackupDialog
+import com.example.ui.components.ReminderAlarmsDialog
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
@@ -134,6 +138,9 @@ fun ProfileSettingsScreen(
     onToggleSimplifiedMode: () -> Unit,
     onOpenOnboarding: () -> Unit,
     onOpenBadges: () -> Unit,
+    onOpenPointsCenter: (() -> Unit)? = null,
+    onUpgradeGuestClick: (() -> Unit)? = null,
+    onPushAllNotifications: (() -> Unit)? = null,
     onLogout: () -> Unit,
     onDeleteAccount: () -> Unit,
     onCheckForUpdates: () -> Unit = {},
@@ -150,6 +157,7 @@ fun ProfileSettingsScreen(
     var showEditNameDialog by remember { mutableStateOf(false) }
     var showChangePasswordDialog by remember { mutableStateOf(false) }
     var showDeleteAccountDialog by remember { mutableStateOf(false) }
+    var showAlarmsDialog by remember { mutableStateOf(false) }
 
     var editDevice by remember(deviceModel) { mutableStateOf(deviceModel) }
     var editAndroidVer by remember(androidVersion) { mutableStateOf(androidVersion) }
@@ -179,7 +187,7 @@ fun ProfileSettingsScreen(
         }
     }
 
-    var selectedReminderTime by remember { mutableStateOf(if (isArabic) "09:00 ص" else "09:00 AM") }
+    var activeReminderHours by remember { mutableStateOf(NotificationHelper.getReminderHours(context)) }
     var notifyNewApps by remember { mutableStateOf(true) }
     var notifyNewTesters by remember { mutableStateOf(true) }
     var notifyReadinessReport by remember { mutableStateOf(true) }
@@ -204,8 +212,69 @@ fun ProfileSettingsScreen(
                 user = currentUser,
                 registeredDate = registeredDateFormatted,
                 s = s,
+                isArabic = isArabic,
                 onEditNameClick = { showEditNameDialog = true }
             )
+        }
+
+        // --- 1.2. Guest Upgrade Card (When active user is Guest) ---
+        if (currentUser?.role == "GUEST" || currentUser?.authProvider == "GUEST") {
+            item {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = PlayGreen.copy(alpha = 0.12f)),
+                    border = BorderStroke(1.2.dp, PlayGreen.copy(alpha = 0.5f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("card_guest_upgrade_banner")
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(CircleShape)
+                                    .background(PlayGreen),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.RocketLaunch, contentDescription = null, tint = Color.Black, modifier = Modifier.size(20.dp))
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = if (isArabic) "ترقية حساب الضيف وحفظ البيانات 🔒" else "Upgrade Guest & Save Data 🔒",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = if (isArabic) "احفظ رصيدك (${wallet.points} نقطة) وتطبيقاتك وسجلاتك بشكل دائم." else "Save your ${wallet.points} points, apps & logs permanently.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = { onUpgradeGuestClick?.invoke() },
+                            colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp)
+                                .testTag("btn_profile_upgrade_guest")
+                        ) {
+                            Icon(Icons.Default.Security, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (isArabic) "ترقية الحساب الآن (بريد أو Google) ➔" else "Upgrade Account Now ➔",
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         // --- 1.5. App Language Selection Card ---
@@ -290,7 +359,8 @@ fun ProfileSettingsScreen(
             UserStatsOverviewCard(
                 wallet = wallet,
                 s = s,
-                onOpenBadges = onOpenBadges
+                onOpenBadges = onOpenBadges,
+                onOpenPointsCenter = onOpenPointsCenter
             )
         }
 
@@ -422,28 +492,63 @@ fun ProfileSettingsScreen(
                         }
                     }
 
-                    // Instant Test Notification Button
-                    OutlinedButton(
-                        onClick = {
-                            val success = NotificationHelper.showSystemNotification(
-                                context = context,
-                                title = if (isArabic) "🔔 إشعار تجريبي من PlayTester Hub" else "🔔 Test Notification from PlayTester Hub",
-                                message = if (isArabic) "نظام الإشعارات يعمل بكفاءة تامة! ستتلقى التذكيرات اليومية وتحديثات الـ 20 مختبراً في موعدها." else "Notification system is active! You will receive daily test reminders on time."
-                            )
-                            if (success) {
-                                Toast.makeText(context, if (isArabic) "تم إرسال إشعار تجريبي للجهاز بنجاح!" else "Test notification sent successfully!", Toast.LENGTH_SHORT).show()
-                            } else {
-                                Toast.makeText(context, if (isArabic) "يرجى منح إذن الإشعارات أولاً لإظهار التنبيه" else "Please grant notification permission first", Toast.LENGTH_LONG).show()
-                            }
-                        },
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("btn_send_test_notification")
+                    // Notification Action Buttons (Push All + Test)
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(s.sendTestNotifBtn, fontWeight = FontWeight.SemiBold)
+                        Button(
+                            onClick = {
+                                if (onPushAllNotifications != null) {
+                                    onPushAllNotifications.invoke()
+                                } else {
+                                    val count = NotificationHelper.pushAllNotifications(
+                                        context = context,
+                                        notifications = emptyList()
+                                    )
+                                    Toast.makeText(
+                                        context,
+                                        if (isArabic) "تم تفعيل ودفع جميع التنبيهات في شريط الإشعارات بنجاح!" else "All notifications pushed and activated!",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PlayGreen, contentColor = Color.White),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("btn_push_all_notifications_profile")
+                        ) {
+                            Icon(imageVector = Icons.Default.NotificationsActive, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (isArabic) "دفع وتفعيل كافة الإشعارات والتنبيهات 🔔" else "Push & Activate All Notifications 🔔",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                val success = NotificationHelper.showSystemNotification(
+                                    context = context,
+                                    title = if (isArabic) "🔔 إشعار تجريبي من PlayTester Hub" else "🔔 Test Notification from PlayTester Hub",
+                                    message = if (isArabic) "نظام الإشعارات يعمل بكفاءة تامة! ستتلقى التذكيرات اليومية وتحديثات الـ 20 مختبراً في موعدها." else "Notification system is active! You will receive daily test reminders on time."
+                                )
+                                if (success) {
+                                    Toast.makeText(context, if (isArabic) "تم إرسال إشعار تجريبي للجهاز بنجاح!" else "Test notification sent successfully!", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(context, if (isArabic) "يرجى منح إذن الإشعارات أولاً لإظهار التنبيه" else "Please grant notification permission first", Toast.LENGTH_LONG).show()
+                                }
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("btn_send_test_notification")
+                        ) {
+                            Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(s.sendTestNotifBtn, fontWeight = FontWeight.SemiBold)
+                        }
                     }
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
@@ -474,39 +579,90 @@ fun ProfileSettingsScreen(
                         )
                     }
 
-                    // Reminder Preferred Time Chips
+                    // Reminder Preferred Time Chips (Multi-schedule alarms)
                     if (editReminder) {
-                        val timeSlots = if (isArabic) listOf("09:00 ص", "03:00 م", "08:00 م") else listOf("09:00 AM", "03:00 PM", "08:00 PM")
+                        val reminderSlots = remember(isArabic) {
+                            listOf(
+                                9 to (if (isArabic) "🌅 صباحاً (09:00 ص)" else "🌅 Morning (09:00 AM)"),
+                                14 to (if (isArabic) "☀️ ظهراً (02:00 م)" else "☀️ Midday (02:00 PM)"),
+                                20 to (if (isArabic) "🌇 مساءً (08:00 م)" else "🌇 Evening (08:00 PM)"),
+                                23 to (if (isArabic) "🌙 ليلاً (11:00 م)" else "🌙 Night (11:00 PM)")
+                            )
+                        }
+
                         Column(modifier = Modifier.padding(start = 32.dp)) {
                             Text(
-                                text = s.preferredReminderTime,
+                                text = if (isArabic) "مواعيد التنبيهات اليومية (يمكنك تفعيل أكثر من موعد):" else "Daily Reminder Schedules (select one or multiple):",
                                 style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = if (isArabic) "ستصلك إشعارات وتنبيهات في كل موعد محدد لتذكيرك بإجراء الفحص اليومي." else "You will receive system notifications at each selected time to keep your streak.",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Spacer(modifier = Modifier.height(6.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
+
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                timeSlots.forEach { timeSlot ->
+                                reminderSlots.forEach { (hour, slotLabel) ->
+                                    val isSlotActive = activeReminderHours.contains(hour)
                                     FilterChip(
-                                        selected = selectedReminderTime == timeSlot,
+                                        selected = isSlotActive,
                                         onClick = {
-                                            selectedReminderTime = timeSlot
-                                            val hour = when (timeSlot) {
-                                                "09:00 ص", "09:00 AM" -> 9
-                                                "03:00 م", "03:00 PM" -> 15
-                                                else -> 20
+                                            val updated = NotificationHelper.toggleReminderHour(context, hour)
+                                            activeReminderHours = updated
+                                            val isNowActive = updated.contains(hour)
+                                            val feedbackMsg = if (isNowActive) {
+                                                if (isArabic) "تم تفعيل منبه $slotLabel ✓" else "Enabled $slotLabel ✓"
+                                            } else {
+                                                if (isArabic) "تم إيقاف منبه $slotLabel" else "Disabled $slotLabel"
                                             }
-                                            NotificationHelper.setReminderHour(context, hour)
-                                            Toast.makeText(context, if (isArabic) "تم جدولة التذكير اليومي الساعة $timeSlot" else "Reminder scheduled for $timeSlot", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, feedbackMsg, Toast.LENGTH_SHORT).show()
                                         },
-                                        label = { Text(timeSlot, fontSize = 12.sp) },
+                                        label = {
+                                            Text(
+                                                text = slotLabel,
+                                                fontSize = 12.sp,
+                                                fontWeight = if (isSlotActive) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                        },
                                         leadingIcon = {
-                                            Icon(imageVector = Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(14.dp))
+                                            Icon(
+                                                imageVector = if (isSlotActive) Icons.Default.NotificationsActive else Icons.Default.AccessTime,
+                                                contentDescription = null,
+                                                tint = if (isSlotActive) PlayGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(15.dp)
+                                            )
                                         }
                                     )
                                 }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            OutlinedButton(
+                                onClick = { showAlarmsDialog = true },
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(38.dp)
+                                    .testTag("btn_manage_multi_alarms")
+                            ) {
+                                Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = AmberGold, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = if (isArabic) "إدارة وتخصيص مواعيد المنبهات المتعددة ⏰" else "Manage Multi-Schedule Alarms ⏰",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
@@ -1129,6 +1285,12 @@ fun ProfileSettingsScreen(
             }
         )
     }
+
+    if (showAlarmsDialog) {
+        ReminderAlarmsDialog(
+            onDismiss = { showAlarmsDialog = false }
+        )
+    }
 }
 
 // --- Sub-components for Settings ---
@@ -1138,6 +1300,7 @@ private fun ProfileHeroCard(
     user: AuthUser?,
     registeredDate: String,
     s: com.example.ui.util.AppStrings,
+    isArabic: Boolean = true,
     onEditNameClick: () -> Unit
 ) {
     Card(
@@ -1200,14 +1363,30 @@ private fun ProfileHeroCard(
                 // Role Badge
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = if (user?.role == "ADMIN") AmberGold.copy(alpha = 0.2f) else PlayGreen.copy(alpha = 0.15f),
-                    border = BorderStroke(1.dp, if (user?.role == "ADMIN") AmberGold else PlayGreen)
+                    color = when (user?.role) {
+                        "ADMIN" -> AmberGold.copy(alpha = 0.2f)
+                        "GUEST" -> CyanAccent.copy(alpha = 0.15f)
+                        else -> PlayGreen.copy(alpha = 0.15f)
+                    },
+                    border = BorderStroke(1.dp, when (user?.role) {
+                        "ADMIN" -> AmberGold
+                        "GUEST" -> CyanAccent
+                        else -> PlayGreen
+                    })
                 ) {
                     Text(
-                        text = if (user?.role == "ADMIN") s.roleAdmin else s.roleTester,
+                        text = when (user?.role) {
+                            "ADMIN" -> s.roleAdmin
+                            "GUEST" -> if (isArabic) "حساب ضيف (زائر)" else "Guest Mode"
+                            else -> s.roleTester
+                        },
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = if (user?.role == "ADMIN") AmberGold else PlayGreen,
+                        color = when (user?.role) {
+                            "ADMIN" -> AmberGold
+                            "GUEST" -> CyanAccent
+                            else -> PlayGreen
+                        },
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
                 }
@@ -1218,7 +1397,11 @@ private fun ProfileHeroCard(
                     color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Text(
-                        text = if (user?.authProvider == "GOOGLE") "Google Auth" else "Email Auth",
+                        text = when (user?.authProvider) {
+                            "GOOGLE" -> "Google Auth"
+                            "GUEST" -> if (isArabic) "دخول كضيف" else "Guest"
+                            else -> "Email Auth"
+                        },
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -1241,7 +1424,8 @@ private fun ProfileHeroCard(
 private fun UserStatsOverviewCard(
     wallet: UserWallet,
     s: com.example.ui.util.AppStrings,
-    onOpenBadges: () -> Unit
+    onOpenBadges: () -> Unit,
+    onOpenPointsCenter: (() -> Unit)? = null
 ) {
     Card(
         shape = RoundedCornerShape(16.dp),
@@ -1270,9 +1454,26 @@ private fun UserStatsOverviewCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                StatItem(icon = Icons.Default.MonetizationOn, tint = AmberGold, value = "${wallet.points}", label = s.pointsBalanceLabel)
-                StatItem(icon = Icons.Default.Bolt, tint = PlayGreen, value = "${wallet.currentStreak}", label = s.activeStreakLabel)
-                StatItem(icon = Icons.Default.CheckCircle, tint = CyanAccent, value = "${wallet.testsCompleted}", label = s.testsCompletedLabel)
+                StatItem(
+                    icon = Icons.Default.MonetizationOn,
+                    tint = AmberGold,
+                    value = "${wallet.points}",
+                    label = s.pointsBalanceLabel,
+                    onClick = onOpenPointsCenter
+                )
+                StatItem(
+                    icon = Icons.Default.Bolt,
+                    tint = PlayGreen,
+                    value = "${wallet.currentStreak}",
+                    label = s.activeStreakLabel,
+                    onClick = onOpenBadges
+                )
+                StatItem(
+                    icon = Icons.Default.CheckCircle,
+                    tint = CyanAccent,
+                    value = "${wallet.testsCompleted}",
+                    label = s.testsCompletedLabel
+                )
             }
         }
     }
@@ -1283,12 +1484,16 @@ private fun StatItem(
     icon: ImageVector,
     tint: Color,
     value: String,
-    label: String
+    label: String,
+    onClick: (() -> Unit)? = null
 ) {
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface,
-        modifier = Modifier.width(100.dp)
+        border = if (onClick != null) BorderStroke(1.dp, tint.copy(alpha = 0.35f)) else null,
+        modifier = Modifier
+            .width(100.dp)
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
     ) {
         Column(
             modifier = Modifier.padding(10.dp),

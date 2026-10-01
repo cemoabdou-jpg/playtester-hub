@@ -102,7 +102,6 @@ import com.example.ui.util.L
 enum class GuideTab(val title: String, val icon: ImageVector) {
     ALL("الكل", Icons.Default.FilterList),
     CHECKLIST("خطوات الـ 14 يوماً", Icons.Default.CheckCircle),
-    PRODUCTION_QA("نماذج إجابات الإنتاج", Icons.Default.QuestionAnswer),
     PITFALLS("تفادي الرفض", Icons.Default.WarningAmber),
     FAQ("الأسئلة الشائعة", Icons.AutoMirrored.Filled.HelpOutline),
     RESOURCES("أدوات ومصادر", Icons.Default.Link)
@@ -111,7 +110,6 @@ enum class GuideTab(val title: String, val icon: ImageVector) {
 fun GuideTab.localizedTitle(isArabic: Boolean): String = when (this) {
     GuideTab.ALL -> if (isArabic) "الكل" else "All"
     GuideTab.CHECKLIST -> if (isArabic) "خطوات الـ 14 يوماً" else "14-Day Steps"
-    GuideTab.PRODUCTION_QA -> if (isArabic) "نماذج إجابات الإنتاج" else "Production Q&A"
     GuideTab.PITFALLS -> if (isArabic) "تفادي الرفض" else "Avoid Rejection"
     GuideTab.FAQ -> if (isArabic) "الأسئلة الشائعة" else "FAQs"
     GuideTab.RESOURCES -> if (isArabic) "أدوات ومصادر" else "Tools & Links"
@@ -124,14 +122,6 @@ data class GuideStepItem(
     val details: String,
     val importantTip: String? = null,
     val tag: String
-)
-
-data class ProductionQuestion(
-    val title: String,
-    val subtitle: String,
-    val arabicTemplate: String,
-    val englishTemplate: String,
-    val keyTips: List<String>
 )
 
 data class PitfallItem(
@@ -162,7 +152,6 @@ fun GuideScreen(
 
     val checkedSteps = remember { mutableStateMapOf<Int, Boolean>() }
     var expandedStepId by remember { mutableStateOf<Int?>(null) }
-    var expandedQaIndex by remember { mutableStateOf<Int?>(null) }
     var expandedPitfallIndex by remember { mutableStateOf<Int?>(null) }
     var expandedFaqIndex by remember { mutableStateOf<Int?>(null) }
     var showApprovalGuide by remember { mutableStateOf(false) }
@@ -224,7 +213,7 @@ fun GuideScreen(
                     id = 7,
                     title = "7. التقديم على الإنتاج (Apply for Production) وتعبئة الاستبيان",
                     summary = "بعد اكتمال 14 يوماً، يظهر زر 'التقدم بطلب لنشر التطبيق في الإنتاج'",
-                    details = "ستظهر أسئلة حول: كيف جمعت المختبرين؟ ما هي الملاحظات التي تلقيتها؟ ما هي التحديثات التي قمت بها أثناء الاختبار؟ استخدم نماذج الإجابات المعتمدة في هذا الدليل للإجابة بدقة وشفافية لضمان القبول الفوري.",
+                    details = "ستظهر أسئلة حول: كيف جمعت المختبرين؟ ما هي الملاحظات التي تلقيتها؟ ما هي التحديثات التي قمت بها أثناء الاختبار؟ قم بالاستعانة بإحصائيات وتقارير الاختبار بالمنصة وتوثيق الملاحظات الفعلية لضمان القبول الرسمي وتفادي الرفض.",
                     importantTip = "قم بتصدير تقرير الجاهزية من المنصة للاستعانة بالإحصائيات والتحسينات الموثقة أثناء تعبئة الاستبيان.",
                     tag = "النشر للإنتاج"
                 )
@@ -283,69 +272,12 @@ fun GuideScreen(
                     id = 7,
                     title = "7. Apply for Production & Complete Questionnaire",
                     summary = "Unlock 'Apply for Production' and answer Play Console questionnaire.",
-                    details = "After 14 consecutive days with 20+ active testers, click Apply for Production. Answer the questionnaire using the battle-tested templates provided in this guide.",
+                    details = "After 14 consecutive days with 20+ active testers, click Apply for Production. Answer the questionnaire using real metrics, user feedback, and changelog updates documented during your test.",
                     importantTip = "Export your PlayTester Hub Readiness Report for exact metrics and documented feedback.",
                     tag = "Production Approval"
                 )
             )
         }
-    }
-
-    val productionQuestions = remember(isArabic) {
-        listOf(
-            ProductionQuestion(
-                title = if (isArabic) "سؤال 1: كيف قمت بتجنيد وتوظيف المختبرين؟" else "Question 1: How did you recruit testers for your closed test?",
-                subtitle = "How did you recruit testers for your closed test?",
-                arabicTemplate = "تم تجنيد المختبرين من خلال شبكة ومجتمع مطوري أندرويد المعتمد (PlayTester Hub) وقوائم البريد الإلكتروني المخصصة ومجموعات Google Groups المتخصصة في اختبار الجودة. قمنا بضم واعتماد أكثر من 20 مختبراً حقيقياً يمتلكون أجهزة أندرويد متنوعة بمستويات API وإصدارات شاشات مختلفة، مع توجيههم لاتباع سيناريوهات استخدام واقعية وتجربة كافة وظائف التطبيق طوال فترة الـ 14 يوماً.",
-                englishTemplate = "Testers were recruited through an active Android developer community (PlayTester Hub), dedicated email tester lists, and Google Groups for quality assurance. We onboarded 20+ verified real testers with diverse Android devices across different OS versions and screen sizes, guiding them through realistic test scenarios and ensuring active daily testing throughout the 14-day closed testing track.",
-                keyTips = if (isArabic) listOf(
-                    "أكد أن المختبرين مستخدمون حقيقيون ولديهم أجهزة فعلية وليسوا برامج روبوت أو محاكيات.",
-                    "وضح التنوع في إصدارات أندرويد والأجهزة وقنوات ضم المختبرين (قوائم الإيميلات والمجموعات)."
-                ) else listOf(
-                    "Emphasize that testers are real humans on physical hardware, not emulators or bot scripts.",
-                    "Highlight device and OS diversity (screen sizes, Android versions) and verified recruitment channels."
-                )
-            ),
-            ProductionQuestion(
-                title = if (isArabic) "سؤال 2: ما هي التغذية الراجعة والملاحظات التي تلقيتها؟" else "Question 2: What feedback did you receive from testers?",
-                subtitle = "What feedback did you receive from testers during closed testing?",
-                arabicTemplate = "تلقينا ملاحظات قيمة شملت: تحسين تجربة تسجيل الدخول وجعل الخطوات أسرع، إصلاح تباعد بعض العناصر في الشاشات الصغيرة، تحسين استجابة الرسوم المتحركة في القوائم، والتأكد من دعم الوضع الداكن بشكل متناسق. كما أشاد المختبرون باستقرار التطبيق وسهولة تصفح الواجهات.",
-                englishTemplate = "We gathered actionable feedback including: streamlining the authentication flow for faster onboarding, optimizing UI padding and text scaling on smaller phone screens, improving animation smoothness in list rendering, and ensuring full dark mode contrast consistency. Testers also confirmed overall stability and intuitive navigation.",
-                keyTips = if (isArabic) listOf(
-                    "اذكر تفاصيل محددة (مثل UI, أداء, دعم شاشات, سهولة الاستخدام) بدلاً من كتابة 'كل شيء كان ممتازاً'.",
-                    "جوجل تفضل دائماً رؤية ملاحظات حقيقية تشير إلى أن التطبيق خضع لاختبار واقعي."
-                ) else listOf(
-                    "List concrete feedback (UI spacing, performance, navigation, dark mode) rather than generic praises.",
-                    "Google reviewers look for authentic constructive feedback indicating genuine user testing."
-                )
-            ),
-            ProductionQuestion(
-                title = if (isArabic) "سؤال 3: ما هي التعديلات والتحديثات التي قمت بها أثناء الاختبار؟" else "Question 3: What changes did you make based on tester feedback?",
-                subtitle = "What changes did you make to your app based on tester feedback?",
-                arabicTemplate = "بناءً على التغذية الراجعة، قمنا بإصدار تحديث جديد أثناء فترة الاختبار تضمن: معالجة تسريب طفيف في الذاكرة لتقليل استهلاك البطارية، إعادة تصميم بعض الأزرار لتوافق معايير إمكانية الوصول (Accessibility 48dp)، وإضافة رسائل خطأ توضيحية عند انقطاع الاتصال بالإنترنت.",
-                englishTemplate = "Based on feedback, we rolled out an updated release during the testing track: resolved minor memory overhead to improve battery efficiency, enlarged interactive touch targets to satisfy Material 3 accessibility standards (48dp), and implemented friendly offline error states with automatic retry handling.",
-                keyTips = if (isArabic) listOf(
-                    "يُحبذ رفع إصدار جديد (New Release AAB) في المسار المغلق أثناء الأسبوعين كدليل على تفاعلك مع الملاحظات.",
-                    "بين كيف عززت التحديثات تجربة المستخدم واستقرار التطبيق."
-                ) else listOf(
-                    "Releasing a minor app update (AAB) during the 14 days strongly proves active development.",
-                    "Explain how revisions improved accessibility, performance, and user retention."
-                )
-            ),
-            ProductionQuestion(
-                title = if (isArabic) "سؤال 4: كيف تأكدت من أن تطبيقك جاهز للطرح في الإنتاج العام؟" else "Question 4: How did you decide your app is ready for production?",
-                subtitle = "How did you decide that your app is ready for production?",
-                arabicTemplate = "تأكدنا من الجاهزية بعد: إكمال 14 يوماً متواصلاً دون تسجيل أي أعطال برمجية حرجة (Crashes / ANRs = 0%)، تأكيد جميع المختبرين لسلاسة رحلة المستخدم الأساسية، استيفاء سياسات الخصوصية والأمان لمتجر Google Play، وإجراء اختبارات أداء على شبكات بيانات مختلفة.",
-                englishTemplate = "Production readiness was verified after: achieving 14 consecutive testing days with zero critical crashes or ANRs, unanimous tester confirmation of smooth primary user workflows, full compliance with Google Play Developer Policies and Privacy Guidelines, and robust stress-testing across diverse network conditions.",
-                keyTips = if (isArabic) listOf(
-                    "أشر إلى مقاييس الاستقرار (Zero crashes / Zero ANRs).",
-                    "أكد التوافق مع سياسات الخصوصية والأمان الرسمية لـ Google Play."
-                ) else listOf(
-                    "Cite core stability metrics: 0% Crash Rate and 0% ANRs in Android Vitals.",
-                    "Confirm full compliance with Google Play Privacy, Permissions, and Developer Policies."
-                )
-            )
-        )
     }
 
     val pitfalls = remember(isArabic) {
@@ -570,9 +502,9 @@ fun GuideScreen(
 
                     Text(
                         text = if (isArabic)
-                            "مرجع شامل ومفصل لمطوري تطبيقات أندرويد لاجتياز شرط الـ 14 يوماً و20 مختبراً وتعبئة استبيان الإنتاج بنماذج معتمدة تضمن القبول وتفادي الرفض."
+                            "مرجع شامل ومفصل لمطوري تطبيقات أندرويد لاجتياز شرط الـ 14 يوماً و20 مختبراً وتجهيز تقارير وملاحظات الاختبار لضمان القبول وتفادي الرفض."
                         else
-                            "Comprehensive reference for Android developers to satisfy 20 testers & 14 consecutive days, with verified production questionnaire templates.",
+                            "Comprehensive reference for Android developers to satisfy 20 testers & 14 consecutive days, with verified guidelines and testing logs.",
                         style = MaterialTheme.typography.bodySmall,
                         lineHeight = 20.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -730,9 +662,9 @@ fun GuideScreen(
                 placeholder = {
                     Text(
                         if (isArabic)
-                            "ابحث في الخطوات، نماذج الإجابات، الأسئلة الشائعة..."
+                            "ابحث في خطوات الاختبار، أسباب الرفض، الأسئلة الشائعة..."
                         else
-                            "Search steps, answer templates, FAQs..."
+                            "Search steps, rejection reasons, FAQs..."
                     )
                 },
                 leadingIcon = {
@@ -1002,208 +934,7 @@ fun GuideScreen(
             }
         }
 
-        // --- 7. SECTION: Production Questions & Ready-to-Copy Answers ---
-        if (selectedTab == GuideTab.ALL || selectedTab == GuideTab.PRODUCTION_QA) {
-            val filteredQa = productionQuestions.filter {
-                searchQuery.isEmpty() ||
-                        it.title.contains(searchQuery, ignoreCase = true) ||
-                        it.subtitle.contains(searchQuery, ignoreCase = true) ||
-                        it.arabicTemplate.contains(searchQuery, ignoreCase = true) ||
-                        it.englishTemplate.contains(searchQuery, ignoreCase = true)
-            }
-
-            if (filteredQa.isNotEmpty()) {
-                item {
-                    SectionHeader(
-                        title = if (isArabic) "نماذج إجابات استبيان الإنتاج في Google Play Console" else "Play Console Production Questionnaire Templates",
-                        icon = Icons.Default.QuestionAnswer,
-                        tint = IndigoAccent
-                    )
-                }
-
-                itemsIndexed(filteredQa) { index, qa ->
-                    val isExpanded = expandedQaIndex == index
-
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("production_qa_card_$index"),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, IndigoAccent.copy(alpha = 0.3f))
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .animateContentSize()
-                                .padding(14.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { expandedQaIndex = if (isExpanded) null else index },
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = IndigoAccent.copy(alpha = 0.15f),
-                                        modifier = Modifier.size(32.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Text(
-                                                text = "${index + 1}",
-                                                style = MaterialTheme.typography.titleSmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = IndigoAccent
-                                            )
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Column {
-                                        Text(
-                                            text = qa.title,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Text(
-                                            text = qa.subtitle,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-
-                                Icon(
-                                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-
-                            AnimatedVisibility(visible = isExpanded) {
-                                Column(modifier = Modifier.padding(top = 12.dp)) {
-                                    // Arabic Template
-                                    Text(
-                                        text = if (isArabic) "النموذج العربي المقترح:" else "Arabic Response Template:",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Surface(
-                                        shape = RoundedCornerShape(10.dp),
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Column(modifier = Modifier.padding(12.dp)) {
-                                            Text(
-                                                text = qa.arabicTemplate,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                lineHeight = 20.sp,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.End
-                                            ) {
-                                                OutlinedButton(
-                                                    onClick = {
-                                                        clipboardManager.setText(AnnotatedString(qa.arabicTemplate))
-                                                        Toast.makeText(context, if (isArabic) "تم نسخ النموذج العربي!" else "Arabic text copied!", Toast.LENGTH_SHORT).show()
-                                                    },
-                                                    shape = RoundedCornerShape(8.dp),
-                                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                                    modifier = Modifier.testTag("btn_copy_qa_arabic_$index")
-                                                ) {
-                                                    Icon(imageVector = Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp))
-                                                    Spacer(modifier = Modifier.width(4.dp))
-                                                    Text(if (isArabic) "نسخ النص العربي" else "Copy Arabic Text", fontSize = 11.sp)
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.height(10.dp))
-
-                                    // English Template
-                                    Text(
-                                        text = if (isArabic) "النموذج الإنجليزي المقترح (English):" else "English Response Template:",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = IndigoAccent
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Surface(
-                                        shape = RoundedCornerShape(10.dp),
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Column(modifier = Modifier.padding(12.dp)) {
-                                            Text(
-                                                text = qa.englishTemplate,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                lineHeight = 18.sp,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.End
-                                            ) {
-                                                OutlinedButton(
-                                                    onClick = {
-                                                        clipboardManager.setText(AnnotatedString(qa.englishTemplate))
-                                                        Toast.makeText(context, if (isArabic) "تم نسخ النموذج الإنجليزي!" else "English text copied!", Toast.LENGTH_SHORT).show()
-                                                    },
-                                                    shape = RoundedCornerShape(8.dp),
-                                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                                    modifier = Modifier.testTag("btn_copy_qa_english_$index")
-                                                ) {
-                                                    Icon(imageVector = Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp))
-                                                    Spacer(modifier = Modifier.width(4.dp))
-                                                    Text(if (isArabic) "نسخ النص الإنجليزي" else "Copy English Text", fontSize = 11.sp)
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.height(10.dp))
-
-                                    // Key Tips
-                                    qa.keyTips.forEach { tip ->
-                                        Row(
-                                            modifier = Modifier.padding(vertical = 2.dp),
-                                            verticalAlignment = Alignment.Top
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Lightbulb,
-                                                contentDescription = null,
-                                                tint = AmberGold,
-                                                modifier = Modifier
-                                                    .size(14.dp)
-                                                    .padding(top = 2.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                text = tip,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // --- 8. SECTION: Pitfalls & Avoid Rejection ---
+        // --- 7. SECTION: Pitfalls & Avoid Rejection ---
         if (selectedTab == GuideTab.ALL || selectedTab == GuideTab.PITFALLS) {
             val filteredPitfalls = pitfalls.filter {
                 searchQuery.isEmpty() ||

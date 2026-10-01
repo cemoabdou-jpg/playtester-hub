@@ -44,3 +44,13 @@ val SuccessGreen = Color(0xFF10B981)       // Positive Emerald
 val WarningOrange = Color(0xFFF59E0B)      // Warm Amber
 val DangerRed = Color(0xFFF43F5E)          // Soft Rose Red
 
+// Modern Gradient Tokens
+val EmeraldGradientStart = Color(0xFF0D9488)
+val EmeraldGradientEnd = Color(0xFF14B8A6)
+val AmberGradientStart = Color(0xFFF59E0B)
+val AmberGradientEnd = Color(0xFFFBBF24)
+val CyanGradientStart = Color(0xFF06B6D4)
+val CyanGradientEnd = Color(0xFF38BDF8)
+val IndigoGradientStart = Color(0xFF6366F1)
+val IndigoGradientEnd = Color(0xFF818CF8)
+

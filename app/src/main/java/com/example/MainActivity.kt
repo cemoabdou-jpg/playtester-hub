@@ -27,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -43,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -58,11 +60,13 @@ import com.example.ui.components.AddAppDialog
 import com.example.ui.components.AppHeader
 import com.example.ui.components.BadgesDialog
 import com.example.ui.components.DailyTestConfirmationDialog
+import com.example.ui.components.EarnedPointsCenterDialog
 import com.example.ui.components.InAppUpdateDialog
 import com.example.ui.components.NotificationCenterDialog
 import com.example.ui.components.SimplifiedDashboardCard
 import com.example.ui.components.TesterInvitationDialog
 import com.example.ui.components.TipTesterDialog
+import com.example.ui.components.UpgradeGuestAccountDialog
 import com.example.ui.screens.AdminControlScreen
 import com.example.ui.screens.AuthScreen
 import com.example.ui.screens.CommunityScreen
@@ -72,6 +76,7 @@ import com.example.ui.screens.MyTestingScreen
 import com.example.ui.screens.OnboardingScreen
 import com.example.ui.screens.ProfileSettingsScreen
 import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.theme.PlayGreen
 import com.example.ui.theme.ThemeMode
 import com.example.ui.viewmodel.TesterViewModel
 import com.example.util.FcmService
@@ -118,10 +123,12 @@ fun PlayTesterApp(
     var showAddAppDialog by remember { mutableStateOf(false) }
     var showNotificationsDialog by remember { mutableStateOf(false) }
     var showBadgesDialog by remember { mutableStateOf(false) }
+    var showPointsCenterDialog by remember { mutableStateOf(false) }
     var showOnboardingExplicitly by remember { mutableStateOf(false) }
     var quickInviteApp by remember { mutableStateOf<UserApp?>(null) }
     var selectedTestForDailyConfirmation by remember { mutableStateOf<JoinedTest?>(null) }
     var testerForTip by remember { mutableStateOf<InvitedTester?>(null) }
+    var showUpgradeGuestDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     val language by viewModel.language.collectAsStateWithLifecycle()
@@ -145,6 +152,7 @@ fun PlayTesterApp(
     val allDailyTestLogs by viewModel.allDailyTestLogs.collectAsStateWithLifecycle()
     val allFeedback by viewModel.allFeedback.collectAsStateWithLifecycle()
     val allTesterActivities by viewModel.allTesterActivities.collectAsStateWithLifecycle()
+    val claimedBadgeIds by viewModel.claimedBadgeIds.collectAsStateWithLifecycle()
 
     val deviceModel by viewModel.deviceModel.collectAsStateWithLifecycle()
     val androidVersion by viewModel.androidVersion.collectAsStateWithLifecycle()
@@ -212,6 +220,7 @@ fun PlayTesterApp(
                 onLogin = { email, pass -> viewModel.login(email, pass) },
                 onRegister = { name, email, pass -> viewModel.register(name, email, pass) },
                 onGoogleSignIn = { email, name -> viewModel.loginWithGoogle(email, name) },
+                onGuestLogin = { viewModel.loginAsGuest() },
                 onResetPassword = { email, newPass, onResult ->
                     viewModel.resetPassword(email, newPass, onResult)
                 }
@@ -246,78 +255,119 @@ fun PlayTesterApp(
                     onToggleTheme = { viewModel.toggleDarkLightMode(isDarkTheme) },
                     onNotificationsClick = { showNotificationsDialog = true },
                     onBadgesClick = { showBadgesDialog = true },
+                    onPointsClick = { showPointsCenterDialog = true },
                     onProfileClick = { currentTab = 4 },
                     onOpenOnboarding = { showOnboardingExplicitly = true },
                     onToggleSimplifiedMode = { viewModel.toggleSimplifiedMode() },
+                    onUpgradeGuestClick = { showUpgradeGuestDialog = true },
                     onLogout = { viewModel.logout() }
                 )
             },
             bottomBar = {
                 NavigationBar(
-                    modifier = Modifier.testTag("bottom_navigation")
+                    modifier = Modifier.testTag("bottom_navigation"),
+                    tonalElevation = 4.dp
                 ) {
+                    val navItemColors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = PlayGreen,
+                        selectedTextColor = PlayGreen,
+                        indicatorColor = PlayGreen.copy(alpha = 0.16f),
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                    )
+
                     NavigationBarItem(
                         selected = currentTab == 0,
                         onClick = { currentTab = 0 },
+                        colors = navItemColors,
                         icon = {
                             Icon(
                                 imageVector = Icons.Default.SwapHoriz,
                                 contentDescription = s.tabCommunity
                             )
                         },
-                        label = { Text(s.tabCommunity) },
+                        label = {
+                            Text(
+                                text = s.tabCommunity,
+                                fontWeight = if (currentTab == 0) FontWeight.Bold else FontWeight.Medium
+                            )
+                        },
                         modifier = Modifier.testTag("tab_community")
                     )
 
                     NavigationBarItem(
                         selected = currentTab == 1,
                         onClick = { currentTab = 1 },
+                        colors = navItemColors,
                         icon = {
                             Icon(
                                 imageVector = Icons.Default.CheckCircle,
                                 contentDescription = s.tabMyTesting
                             )
                         },
-                        label = { Text(s.tabMyTesting) },
+                        label = {
+                            Text(
+                                text = s.tabMyTesting,
+                                fontWeight = if (currentTab == 1) FontWeight.Bold else FontWeight.Medium
+                            )
+                        },
                         modifier = Modifier.testTag("tab_my_testing")
                     )
 
                     NavigationBarItem(
                         selected = currentTab == 2,
                         onClick = { currentTab = 2 },
+                        colors = navItemColors,
                         icon = {
                             Icon(
                                 imageVector = Icons.Default.RocketLaunch,
                                 contentDescription = s.tabMyApps
                             )
                         },
-                        label = { Text(s.tabMyApps) },
+                        label = {
+                            Text(
+                                text = s.tabMyApps,
+                                fontWeight = if (currentTab == 2) FontWeight.Bold else FontWeight.Medium
+                            )
+                        },
                         modifier = Modifier.testTag("tab_my_apps")
                     )
 
                     NavigationBarItem(
                         selected = currentTab == 3,
                         onClick = { currentTab = 3 },
+                        colors = navItemColors,
                         icon = {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.MenuBook,
                                 contentDescription = s.tabGuide
                             )
                         },
-                        label = { Text(s.tabGuide) },
+                        label = {
+                            Text(
+                                text = s.tabGuide,
+                                fontWeight = if (currentTab == 3) FontWeight.Bold else FontWeight.Medium
+                            )
+                        },
                         modifier = Modifier.testTag("tab_guide")
                     )
 
                     NavigationBarItem(
                         selected = currentTab == 4,
                         onClick = { currentTab = 4 },
+                        colors = navItemColors,
                         icon = {
                             Icon(
                                 imageVector = Icons.Default.Settings,
                                 contentDescription = s.tabSettings
                             )
                         },
-                        label = { Text(s.tabSettings) },
+                        label = {
+                            Text(
+                                text = s.tabSettings,
+                                fontWeight = if (currentTab == 4) FontWeight.Bold else FontWeight.Medium
+                            )
+                        },
                         modifier = Modifier.testTag("tab_settings")
                     )
 
@@ -325,13 +375,19 @@ fun PlayTesterApp(
                         NavigationBarItem(
                             selected = currentTab == 5,
                             onClick = { currentTab = 5 },
+                            colors = navItemColors,
                             icon = {
                                 Icon(
                                     imageVector = Icons.Default.Security,
                                     contentDescription = s.tabAdmin
                                 )
                             },
-                            label = { Text(s.tabAdmin) },
+                            label = {
+                                Text(
+                                    text = s.tabAdmin,
+                                    fontWeight = if (currentTab == 5) FontWeight.Bold else FontWeight.Medium
+                                )
+                            },
                             modifier = Modifier.testTag("tab_admin_owner")
                         )
                     }
@@ -369,6 +425,8 @@ fun PlayTesterApp(
                         joinedTests = joinedTests,
                         searchQuery = searchQuery,
                         selectedCategory = selectedCategory,
+                        userApps = userApps,
+                        allFeedback = allFeedback,
                         currentUser = currentUser,
                         appUpdateStatus = appUpdateStatus,
                         onUpdateClick = {
@@ -383,6 +441,7 @@ fun PlayTesterApp(
                         onCategorySelect = { viewModel.setSelectedCategory(it) },
                         onJoinApp = { viewModel.joinApp(it) },
                         onPublishClick = { showAddAppDialog = true },
+                        onAwardPoints = { pts, reason -> viewModel.awardEarnedPoints(pts, reason) },
                         onSyncClick = { viewModel.syncRemoteAppsNow(showFeedbackToast = true) },
                         onRunCloudDiagnostics = { viewModel.runCloudDiagnostics() },
                         onUploadLocalApps = { cb -> viewModel.reuploadLocalAppsToCloud(cb) },
@@ -390,6 +449,12 @@ fun PlayTesterApp(
                             viewModel.importCommunityAppDirectly(input, appName, devName, category, onComplete)
                         },
                         onOpenAdmin = if (currentUser?.role == "ADMIN") { { currentTab = 5 } } else null,
+                        onReplyToReview = { feedbackId, replyText ->
+                            viewModel.replyToFeedback(feedbackId, replyText)
+                        },
+                        onSubmitReview = { pkg, name, content, rating, type, devModel, androidVer ->
+                            viewModel.submitAppReview(pkg, name, content, rating, type, devModel, androidVer)
+                        },
                         onRecordAppOpened = { pkg, name -> viewModel.recordAppOpened(pkg, name) }
                     )
                     1 -> MyTestingScreen(
@@ -399,8 +464,8 @@ fun PlayTesterApp(
                         onConfirmDailyTest = { test, duration, rating, notes ->
                             viewModel.confirmDailyTest(test, duration, rating, notes)
                         },
-                        onSendFeedback = { test, content, rating, type ->
-                            viewModel.sendFeedback(test, content, rating, type)
+                        onSendFeedback = { test, content, rating, type, devModel, androidVer ->
+                            viewModel.sendFeedback(test, content, rating, type, devModel, androidVer)
                         },
                         onDeleteTest = { viewModel.deleteJoinedTest(it) },
                         onNavigateToCommunity = { currentTab = 0 },
@@ -438,7 +503,14 @@ fun PlayTesterApp(
                         },
                         onUploadLocalApps = { cb -> viewModel.reuploadLocalAppsToCloud(cb) },
                         isUploadingLocalApps = isUploadingLocalApps,
-                        onUpdateGroupUrl = { appId, url -> viewModel.updateUserAppGroupUrl(appId, url) }
+                        onUpdateGroupUrl = { appId, url -> viewModel.updateUserAppGroupUrl(appId, url) },
+                        onSyncPlayIcon = { pkg, appId -> viewModel.syncAppIconFromGooglePlay(pkg, appId) },
+                        onReplyToReview = { feedbackId, replyText ->
+                            viewModel.replyToFeedback(feedbackId, replyText)
+                        },
+                        onDeleteFeedback = { feedbackId ->
+                            viewModel.deleteFeedback(feedbackId)
+                        }
                     )
                     3 -> GuideScreen(
                         onOpenOnboarding = { showOnboardingExplicitly = true }
@@ -465,6 +537,14 @@ fun PlayTesterApp(
                         onToggleSimplifiedMode = { viewModel.toggleSimplifiedMode() },
                         onOpenOnboarding = { showOnboardingExplicitly = true },
                         onOpenBadges = { showBadgesDialog = true },
+                        onOpenPointsCenter = { showPointsCenterDialog = true },
+                        onUpgradeGuestClick = { showUpgradeGuestDialog = true },
+                        onPushAllNotifications = {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                            viewModel.pushAllNotifications(context)
+                        },
                         onLogout = { viewModel.logout() },
                         onDeleteAccount = { viewModel.deleteAccount() },
                         onCheckForUpdates = { viewModel.checkForAppUpdate(context, showToastIfLatest = true) },
@@ -525,7 +605,17 @@ fun PlayTesterApp(
         }
         BadgesDialog(
             badges = badges,
-            onDismiss = { showBadgesDialog = false }
+            claimedBadgeIds = claimedBadgeIds,
+            onDismiss = { showBadgesDialog = false },
+            onClaimBadgeReward = { id, pts -> viewModel.claimBadgeReward(id, pts) }
+        )
+    }
+
+    if (showPointsCenterDialog) {
+        EarnedPointsCenterDialog(
+            wallet = wallet,
+            onDismiss = { showPointsCenterDialog = false },
+            onOpenBadges = { showBadgesDialog = true }
         )
     }
 
@@ -542,6 +632,12 @@ fun PlayTesterApp(
                 } else {
                     viewModel.triggerTestNotification(context)
                 }
+            },
+            onPushAllNotifications = {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                }
+                viewModel.pushAllNotifications(context)
             },
             onDismiss = { showNotificationsDialog = false }
         )
@@ -622,6 +718,19 @@ fun PlayTesterApp(
                 onDismiss = { viewModel.dismissAppUpdatePrompt() }
             )
         }
+    }
+
+    if (showUpgradeGuestDialog) {
+        UpgradeGuestAccountDialog(
+            wallet = wallet,
+            onUpgradeWithEmail = { name, email, pass, onResult ->
+                viewModel.upgradeGuestAccountWithEmail(name, email, pass, onResult)
+            },
+            onUpgradeWithGoogle = { name, email, onResult ->
+                viewModel.upgradeGuestAccountWithGoogle(name, email, onResult)
+            },
+            onDismiss = { showUpgradeGuestDialog = false }
+        )
     }
     }
 }

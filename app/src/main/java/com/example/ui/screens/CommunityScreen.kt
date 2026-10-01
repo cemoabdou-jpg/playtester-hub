@@ -43,6 +43,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -61,7 +62,11 @@ import com.example.data.model.AuthUser
 import com.example.data.model.CloudDiagnosticResult
 import com.example.data.model.CommunityApp
 import com.example.data.model.JoinedTest
+import com.example.data.model.TesterFeedback
+import com.example.data.model.UserApp
+import com.example.ui.components.AppReviewsDialog
 import com.example.ui.components.CloudSyncDiagnosticsDialog
+import com.example.ui.components.FeedbackDialog
 import com.example.ui.components.HeroBannerCard
 import com.example.ui.components.ImportExternalAppDialog
 import com.example.ui.components.ReciprocalPartnershipDialog
@@ -82,6 +87,8 @@ fun CommunityScreen(
     joinedTests: List<JoinedTest>,
     searchQuery: String,
     selectedCategory: String,
+    userApps: List<UserApp> = emptyList(),
+    allFeedback: List<TesterFeedback> = emptyList(),
     currentUser: AuthUser? = null,
     appUpdateStatus: AppUpdateStatus? = null,
     onUpdateClick: (() -> Unit)? = null,
@@ -94,11 +101,14 @@ fun CommunityScreen(
     onCategorySelect: (String) -> Unit,
     onJoinApp: (CommunityApp) -> Unit,
     onPublishClick: () -> Unit,
+    onAwardPoints: (Int, String) -> Unit = { _, _ -> },
     onSyncClick: () -> Unit = {},
     onRunCloudDiagnostics: () -> Unit = {},
     onUploadLocalApps: (((Boolean, String) -> Unit) -> Unit)? = null,
     onImportApp: ((input: String, appName: String, devName: String, category: String, onComplete: (Boolean, String) -> Unit) -> Unit)? = null,
     onOpenAdmin: (() -> Unit)? = null,
+    onReplyToReview: (feedbackId: Int, replyText: String) -> Unit = { _, _ -> },
+    onSubmitReview: (packageName: String, appName: String, content: String, rating: Int, type: String, devModel: String, androidVer: String) -> Unit = { _, _, _, _, _, _, _ -> },
     onRecordAppOpened: (packageName: String, appName: String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
@@ -111,18 +121,8 @@ fun CommunityScreen(
     var showReciprocalDialog by remember { mutableStateOf(false) }
     var showImportAppDialog by remember { mutableStateOf(false) }
     var showCloudDiagnosticsDialog by remember { mutableStateOf(false) }
-
-    val categories = remember(s) {
-        listOf(
-            "الكل" to s.categoryAll,
-            "أدوات" to s.categoryTools,
-            "ألعاب" to s.categoryGames,
-            "إنتاجية" to s.categoryProductivity,
-            "تواصل" to s.categorySocial,
-            "تعليم" to s.categoryEducation,
-            "مالية" to s.categoryFinance
-        )
-    }
+    var appForReviews by remember { mutableStateOf<CommunityApp?>(null) }
+    var appForWritingReview by remember { mutableStateOf<CommunityApp?>(null) }
 
     val sortedCommunityApps: List<CommunityApp> = remember(communityApps, sortBy) {
         val uniqueApps = communityApps.distinctBy { it.packageName.trim().lowercase() }
@@ -218,7 +218,7 @@ fun CommunityScreen(
                 }
             }
 
-            // --- Top Quick Action Bar ---
+            // --- Top Quick Action Bar (Compact & Sleek) ---
             item {
                 Row(
                     modifier = Modifier
@@ -233,29 +233,30 @@ fun CommunityScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
                         shape = RoundedCornerShape(10.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        modifier = Modifier.testTag("btn_quick_publish")
+                        modifier = Modifier.height(34.dp).testTag("btn_quick_publish")
                     ) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(15.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(s.publishNewAppBtn, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(s.publishNewAppBtn, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
 
                     // Reciprocal 1-on-1 Matching
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = AmberGold.copy(alpha = 0.15f),
-                        border = BorderStroke(1.dp, AmberGold.copy(alpha = 0.4f)),
+                        color = AmberGold.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, AmberGold.copy(alpha = 0.35f)),
                         modifier = Modifier
+                            .height(34.dp)
                             .clickable { showReciprocalDialog = true }
                             .testTag("chip_reciprocal_matching")
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Handshake, contentDescription = null, tint = AmberGold, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(5.dp))
-                            Text(s.reciprocalTitle, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Icon(Icons.Default.Handshake, contentDescription = null, tint = AmberGold, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(s.reciprocalTitle, style = MaterialTheme.typography.labelSmall, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
 
@@ -263,18 +264,19 @@ fun CommunityScreen(
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = CyanAccent.copy(alpha = 0.12f),
-                        border = BorderStroke(1.dp, CyanAccent.copy(alpha = 0.4f)),
+                        border = BorderStroke(1.dp, CyanAccent.copy(alpha = 0.35f)),
                         modifier = Modifier
+                            .height(34.dp)
                             .clickable { showImportAppDialog = true }
                             .testTag("chip_import_app")
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.AddLink, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(5.dp))
-                            Text(s.importAppBtn, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Icon(Icons.Default.AddLink, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(s.importAppBtn, style = MaterialTheme.typography.labelSmall, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
 
@@ -282,8 +284,9 @@ fun CommunityScreen(
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                         modifier = Modifier
+                            .height(34.dp)
                             .clickable {
                                 showCloudDiagnosticsDialog = true
                                 onRunCloudDiagnostics()
@@ -291,18 +294,18 @@ fun CommunityScreen(
                             .testTag("chip_cloud_diagnostics")
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.CloudSync, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(5.dp))
-                            Text(s.cloudSyncTitle, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+                            Icon(Icons.Default.CloudSync, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(s.cloudSyncTitle, style = MaterialTheme.typography.labelSmall, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
             }
 
-            // Search bar
+            // Search bar (Modernized Pill Style)
             item {
                 OutlinedTextField(
                     value = searchQuery,
@@ -310,63 +313,39 @@ fun CommunityScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("search_field"),
-                    placeholder = { Text(s.searchPlaceholder) },
+                    placeholder = { Text(s.searchPlaceholder, fontSize = 13.sp) },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = "Search",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
                         )
                     },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { onSearchChange("") }) {
-                                Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear")
+                                Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear", modifier = Modifier.size(18.dp))
                             }
                         }
                     },
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PlayGreen,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    ),
                     singleLine = true
                 )
             }
 
-            // Categories Filter Chips
+            // Sorting Options Row (Sleek Pills)
             item {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    categories.forEach { (catKey, catLabel) ->
-                        val isSelected = selectedCategory == catKey || (catKey == "الكل" && (selectedCategory == "الكل" || selectedCategory == "All"))
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (isSelected) PlayGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
-                            border = BorderStroke(1.dp, if (isSelected) PlayGreen else MaterialTheme.colorScheme.outlineVariant),
-                            modifier = Modifier
-                                .clickable { onCategorySelect(catKey) }
-                                .testTag("cat_chip_$catKey")
-                        ) {
-                            Text(
-                                text = catLabel,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected) PlayGreen else MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Sorting Options Row
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 2.dp),
+                        .padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -378,9 +357,9 @@ fun CommunityScreen(
                     )
 
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (sortBy == "PRIORITY") PlayGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
-                        border = BorderStroke(1.dp, if (sortBy == "PRIORITY") PlayGreen else MaterialTheme.colorScheme.outlineVariant),
+                        shape = RoundedCornerShape(16.dp),
+                        color = if (sortBy == "PRIORITY") PlayGreen.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(1.dp, if (sortBy == "PRIORITY") PlayGreen else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                         modifier = Modifier
                             .testTag("sort_chip_priority")
                             .clickable { sortBy = "PRIORITY" }
@@ -388,16 +367,16 @@ fun CommunityScreen(
                         Text(
                             text = s.sortPriority,
                             style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = if (sortBy == "PRIORITY") FontWeight.Bold else FontWeight.Normal,
                             color = if (sortBy == "PRIORITY") PlayGreen else MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                         )
                     }
 
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (sortBy == "URGENT") AmberGold.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
-                        border = BorderStroke(1.dp, if (sortBy == "URGENT") AmberGold else MaterialTheme.colorScheme.outlineVariant),
+                        shape = RoundedCornerShape(16.dp),
+                        color = if (sortBy == "URGENT") AmberGold.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(1.dp, if (sortBy == "URGENT") AmberGold else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                         modifier = Modifier
                             .testTag("sort_chip_urgent")
                             .clickable { sortBy = "URGENT" }
@@ -405,16 +384,16 @@ fun CommunityScreen(
                         Text(
                             text = s.sortUrgent,
                             style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = if (sortBy == "URGENT") FontWeight.Bold else FontWeight.Normal,
                             color = if (sortBy == "URGENT") AmberGold else MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                         )
                     }
 
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (sortBy == "REWARD") CyanAccent.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
-                        border = BorderStroke(1.dp, if (sortBy == "REWARD") CyanAccent else MaterialTheme.colorScheme.outlineVariant),
+                        shape = RoundedCornerShape(16.dp),
+                        color = if (sortBy == "REWARD") CyanAccent.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(1.dp, if (sortBy == "REWARD") CyanAccent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                         modifier = Modifier
                             .testTag("sort_chip_reward")
                             .clickable { sortBy = "REWARD" }
@@ -422,9 +401,9 @@ fun CommunityScreen(
                         Text(
                             text = s.sortReward,
                             style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = if (sortBy == "REWARD") FontWeight.Bold else FontWeight.Normal,
                             color = if (sortBy == "REWARD") CyanAccent else MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                         )
                     }
                 }
@@ -560,7 +539,7 @@ fun CommunityScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Icon(
-                                imageVector = if (searchQuery.isBlank() && selectedCategory == "الكل") Icons.Default.SwapHoriz else Icons.Default.Search,
+                                imageVector = if (searchQuery.isBlank()) Icons.Default.SwapHoriz else Icons.Default.Search,
                                 contentDescription = null,
                                 modifier = Modifier.size(48.dp),
                                 tint = MaterialTheme.colorScheme.primary
@@ -573,14 +552,14 @@ fun CommunityScreen(
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = if (searchQuery.isBlank() && selectedCategory == "الكل") {
+                                text = if (searchQuery.isBlank()) {
                                     if (isArabic) {
                                         "إذا أضاف مطورون آخرون تطبيقاتهم ولم تظهر، اضغط على «فاحص السحابة» للتأكد من صلاحيات Firebase أو استخدم «إضافة بالرابط» المباشر!"
                                     } else {
                                         "If other developers added apps and they don't show, tap 'Cloud Diagnostics' to verify Firebase sync or use direct 'Import by Link'!"
                                     }
                                 } else {
-                                    if (isArabic) "جرب تغيير كلمات البحث أو اختيار تصنيف آخر" else "Try changing search terms or selecting a different category"
+                                    if (isArabic) "جرب تغيير كلمات البحث للوصول لتطبيقات أخرى" else "Try changing search terms to find other applications"
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -631,7 +610,9 @@ fun CommunityScreen(
                 TesterCard(
                     app = app,
                     isAlreadyJoined = joinedAppIds.contains(app.id),
+                    feedbacks = allFeedback,
                     onJoinClick = { onJoinApp(app) },
+                    onViewReviewsClick = { appForReviews = app },
                     onRecordOpened = onRecordAppOpened
                 )
             }
@@ -658,11 +639,49 @@ fun CommunityScreen(
         }
     }
 
+    // App Reviews & Ratings Dialog
+    appForReviews?.let { app ->
+        val isOwner = (currentUser != null && (
+            (currentUser.displayName.isNotBlank() && app.developerName.equals(currentUser.displayName, ignoreCase = true)) ||
+            (currentUser.email.isNotBlank() && app.developerName.equals(currentUser.email.substringBefore("@"), ignoreCase = true)) ||
+            userApps.any { it.packageName.equals(app.packageName, ignoreCase = true) }
+        )) || currentUser?.role == "ADMIN"
+        AppReviewsDialog(
+            appName = app.name,
+            packageName = app.packageName,
+            feedbacks = allFeedback,
+            isDeveloperOrAdmin = isOwner,
+            onWriteReviewClick = {
+                appForWritingReview = app
+            },
+            onReplyToReview = { feedbackId, replyText ->
+                onReplyToReview(feedbackId, replyText)
+            },
+            onDismiss = { appForReviews = null }
+        )
+    }
+
+    // Write App Review Dialog
+    appForWritingReview?.let { app ->
+        FeedbackDialog(
+            appName = app.name,
+            packageName = app.packageName,
+            onDismiss = { appForWritingReview = null },
+            onSubmitFeedback = { content, rating, type, devModel, androidVer ->
+                onSubmitReview(app.packageName, app.name, content, rating, type, devModel, androidVer)
+                appForWritingReview = null
+            }
+        )
+    }
+
     if (showReciprocalDialog) {
-        val userAppNames = communityApps.filter { it.developerName == (currentUser?.displayName ?: "") }.map { it.name }
+        val userAppNames = userApps.map { it.name }.ifEmpty {
+            communityApps.filter { it.developerName == (currentUser?.displayName ?: "") }.map { it.name }
+        }
         ReciprocalPartnershipDialog(
             userAppsNames = userAppNames,
-            onDismiss = { showReciprocalDialog = false }
+            onDismiss = { showReciprocalDialog = false },
+            onBonusClaimed = { pts, reason -> onAwardPoints(pts, reason) }
         )
     }
 

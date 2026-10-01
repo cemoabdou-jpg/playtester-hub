@@ -10,8 +10,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -37,6 +39,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,19 +57,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.data.model.CommunityApp
+import com.example.data.model.TesterFeedback
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.PlayGreen
 import com.example.ui.util.AppLanguage
 import com.example.ui.util.L
 import com.example.ui.util.LocalAppLanguage
+import com.example.util.GooglePlayScraperHelper
 import java.io.File
 
 @Composable
 fun TesterCard(
     app: CommunityApp,
     isAlreadyJoined: Boolean,
+    feedbacks: List<TesterFeedback> = emptyList(),
     onJoinClick: () -> Unit,
+    onViewReviewsClick: (() -> Unit)? = null,
     onRecordOpened: (packageName: String, appName: String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
@@ -72,6 +83,19 @@ fun TesterCard(
     val isArabic = language == AppLanguage.AR
     val progress = (app.testersCurrent.toFloat() / app.testersTarget.toFloat()).coerceIn(0f, 1f)
 
+    var effectiveIconUrl by remember(app.iconUrl) { mutableStateOf(app.iconUrl) }
+
+    LaunchedEffect(app.packageName, app.iconUrl) {
+        if (effectiveIconUrl.isBlank() && app.packageName.isNotBlank()) {
+            try {
+                val info = GooglePlayScraperHelper.fetchAppInfo(app.packageName)
+                if (info != null && info.iconUrl.isNotBlank()) {
+                    effectiveIconUrl = info.iconUrl
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -80,92 +104,16 @@ fun TesterCard(
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(
             1.dp,
-            if (app.isFeatured) CyanAccent.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+            if (app.isFeatured) AmberGold.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
         ),
-        tonalElevation = if (app.isFeatured) 3.dp else 1.dp
+        tonalElevation = if (app.isFeatured) 2.dp else 0.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(12.dp)
         ) {
-            // Header Row: Featured badge, Priority score, Points Reward
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (app.isFeatured) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = AmberGold.copy(alpha = 0.15f)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Star,
-                                    contentDescription = if (isArabic) "مميز" else "Featured",
-                                    tint = AmberGold,
-                                    modifier = Modifier.size(12.dp)
-                                )
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text(
-                                    text = if (isArabic) "مثبت في القمة" else "Pinned",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = AmberGold,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-
-                    if (app.priorityScore > 0) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = PlayGreen.copy(alpha = 0.15f)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "⚡ #${app.priorityScore}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = PlayGreen,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Reward points
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.MonetizationOn,
-                        contentDescription = if (isArabic) "نقاط" else "Points",
-                        tint = AmberGold,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = if (isArabic) "+${app.rewardPoints} نقطة" else "+${app.rewardPoints} pts",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = AmberGold
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Main App Info Row: Clickable App Icon + Name & Details
+            // Main App Row: Icon + Title/Dev/Progress + Points pill
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -174,8 +122,8 @@ fun TesterCard(
                 // Clickable App Icon
                 Box(
                     modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(14.dp))
+                        .size(52.dp)
+                        .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                         .clickable {
                             launchAppOrTestLink(
@@ -191,28 +139,30 @@ fun TesterCard(
                         .testTag("app_icon_clickable_${app.id}"),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (app.iconUrl.isNotBlank()) {
+                    val displayIcon = effectiveIconUrl.ifBlank { app.iconUrl }
+                    if (displayIcon.isNotBlank()) {
                         AsyncImage(
-                            model = if (app.iconUrl.startsWith("/")) File(app.iconUrl) else app.iconUrl,
+                            model = if (displayIcon.startsWith("/")) File(displayIcon) else displayIcon,
                             contentDescription = "${app.name} icon",
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp)),
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(12.dp)),
                             contentScale = ContentScale.Crop
                         )
                     } else {
                         Text(
                             text = app.name.take(2).uppercase(),
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.ExtraBold,
                             color = PlayGreen
                         )
                     }
 
-                    // Little overlay indicator
+                    // Little play overlay indicator
                     Surface(
                         shape = CircleShape,
-                        color = PlayGreen.copy(alpha = 0.85f),
+                        color = PlayGreen,
+                        shadowElevation = 1.dp,
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .size(18.dp)
@@ -221,126 +171,215 @@ fun TesterCard(
                             imageVector = Icons.Default.PlayArrow,
                             contentDescription = "Open",
                             tint = Color.White,
-                            modifier = Modifier.size(12.dp).padding(2.dp)
+                            modifier = Modifier.size(12.dp).padding(1.dp)
                         )
                     }
                 }
 
-                // App Title, Developer Name
+                // App Title + Developer + Compact Progress Bar
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = app.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = if (isArabic) "بواسطة: ${app.developerName}" else "By: ${app.developerName}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = if (isArabic) "⚡ اضغط على الأيقونة للفتح والاختبار اليومي" else "⚡ Tap icon to launch & test daily",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = PlayGreen,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = app.name,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        if (app.isFeatured) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = AmberGold.copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    text = if (isArabic) "مميز ⭐" else "Pinned ⭐",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = AmberGold,
+                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    val appReviews = remember(feedbacks, app.packageName) {
+                        feedbacks.filter { it.packageName == app.packageName }
+                    }
+                    val avgRating = if (appReviews.isNotEmpty()) appReviews.map { it.rating }.average() else 5.0
+                    val reviewCount = appReviews.size
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = if (isArabic) "بواسطة: ${app.developerName}" else "By: ${app.developerName}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+
+                        // Rating badge
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = AmberGold.copy(alpha = 0.12f),
+                            border = BorderStroke(0.5.dp, AmberGold.copy(alpha = 0.3f)),
+                            modifier = Modifier
+                                .clickable(enabled = onViewReviewsClick != null) { onViewReviewsClick?.invoke() }
+                                .testTag("rating_badge_${app.id}")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Star, contentDescription = null, tint = AmberGold, modifier = Modifier.size(11.dp))
+                                Spacer(modifier = Modifier.width(2.dp))
+                                Text(
+                                    text = if (reviewCount > 0) {
+                                        String.format(java.util.Locale.US, "%.1f (%d)", avgRating, reviewCount)
+                                    } else {
+                                        "5.0 (0)"
+                                    },
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = AmberGold
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Compact progress bar + count
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        LinearProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(5.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = if (app.testersCurrent >= app.testersTarget) PlayGreen else CyanAccent,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                        Text(
+                            text = "${app.testersCurrent}/${app.testersTarget}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (app.testersCurrent >= app.testersTarget) PlayGreen else CyanAccent
+                        )
+                    }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Description
-            if (app.description.isNotBlank()) {
-                Text(
-                    text = app.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Testers Progress
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                // Reward pill
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = AmberGold.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, AmberGold.copy(alpha = 0.3f))
                 ) {
-                    Text(
-                        text = if (isArabic) "المختبرين المنضمين:" else "Active Testers:",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = s.testersNeededFmt(app.testersCurrent, app.testersTarget),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = if (app.testersCurrent >= app.testersTarget) PlayGreen else CyanAccent
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MonetizationOn,
+                            contentDescription = null,
+                            tint = AmberGold,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "+${app.rewardPoints}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = AmberGold
+                        )
+                    }
                 }
-                Spacer(modifier = Modifier.height(4.dp))
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp)),
-                    color = if (app.testersCurrent >= app.testersTarget) PlayGreen else CyanAccent,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Action Buttons
+            // Action Buttons Row (Compact, Clean & Direct)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Group link
+                // Group button (compact)
                 OutlinedButton(
                     onClick = { openUrl(context, app.googleGroupUrl) },
                     modifier = Modifier
                         .weight(1f)
+                        .height(34.dp)
                         .testTag("open_group_${app.id}"),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Group,
-                        contentDescription = s.groupLinkBtn,
-                        modifier = Modifier.size(16.dp)
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(s.groupLinkBtn, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(s.groupLinkBtn, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 11.sp)
                 }
 
+                // Reviews Button
+                OutlinedButton(
+                    onClick = { onViewReviewsClick?.invoke() },
+                    modifier = Modifier
+                        .height(34.dp)
+                        .testTag("btn_reviews_${app.id}"),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = AmberGold,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(if (isArabic) "التقييمات" else "Reviews", fontSize = 11.sp)
+                }
+
+                // Join or Launch button
                 if (!isAlreadyJoined) {
-                    // Join button
                     Button(
                         onClick = onJoinClick,
                         modifier = Modifier
                             .weight(1.3f)
+                            .height(34.dp)
                             .testTag("join_button_${app.id}"),
                         colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = null,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(s.joinTestBtn, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(s.joinTestBtn, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 11.sp)
                     }
                 } else {
-                    // Launch & Test button
                     Button(
                         onClick = {
                             launchAppOrTestLink(
@@ -355,17 +394,19 @@ fun TesterCard(
                         },
                         modifier = Modifier
                             .weight(1.3f)
+                            .height(34.dp)
                             .testTag("open_optin_${app.id}"),
                         colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Android,
-                            contentDescription = s.openAppBtn,
-                            modifier = Modifier.size(16.dp)
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(s.openAppBtn, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(s.openAppBtn, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 11.sp)
                     }
                 }
             }

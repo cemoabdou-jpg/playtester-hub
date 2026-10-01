@@ -15,6 +15,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.example.MainActivity
 import com.example.R
+import com.example.data.model.AppNotification
 import java.util.Calendar
 
 object NotificationHelper {
@@ -27,6 +28,7 @@ object NotificationHelper {
     private const val PREFS_NAME = "playtester_reminder_prefs"
     private const val KEY_DAILY_REMINDER_ENABLED = "daily_reminder_enabled"
     private const val KEY_REMINDER_HOUR = "reminder_hour"
+    private const val KEY_REMINDER_HOURS = "reminder_hours_list"
 
     fun isDailyReminderEnabled(context: Context): Boolean {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -37,86 +39,135 @@ object NotificationHelper {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putBoolean(KEY_DAILY_REMINDER_ENABLED, enabled).apply()
         if (enabled) {
-            scheduleDailyReminderAlarm(context)
+            scheduleAllDailyReminderAlarms(context)
         } else {
-            cancelDailyReminderAlarm(context)
+            cancelAllDailyReminderAlarms(context)
         }
     }
 
-    fun getReminderHour(context: Context): Int {
+    fun getReminderHours(context: Context): Set<Int> {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getInt(KEY_REMINDER_HOUR, 20) // Default 8:00 PM (20:00)
+        val saved = prefs.getString(KEY_REMINDER_HOURS, null)
+        if (saved.isNullOrBlank()) {
+            val single = prefs.getInt(KEY_REMINDER_HOUR, 20)
+            return setOf(9, 14, single)
+        }
+        return saved.split(",")
+            .mapNotNull { it.trim().toIntOrNull() }
+            .filter { it in 0..23 }
+            .toSet()
+            .ifEmpty { setOf(20) }
+    }
+
+    fun setReminderHours(context: Context, hours: Set<Int>) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val joined = hours.joinToString(",")
+        prefs.edit().putString(KEY_REMINDER_HOURS, joined).apply()
+        if (isDailyReminderEnabled(context)) {
+            scheduleAllDailyReminderAlarms(context)
+        }
+    }
+
+    fun toggleReminderHour(context: Context, hour: Int): Set<Int> {
+        val current = getReminderHours(context).toMutableSet()
+        if (current.contains(hour)) {
+            if (current.size > 1) {
+                current.remove(hour)
+            }
+        } else {
+            current.add(hour)
+        }
+        setReminderHours(context, current)
+        return current
+    }
+
+    fun getReminderHour(context: Context): Int {
+        val hours = getReminderHours(context)
+        return hours.maxOrNull() ?: 20
     }
 
     fun setReminderHour(context: Context, hour: Int) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putInt(KEY_REMINDER_HOUR, hour).apply()
-        if (isDailyReminderEnabled(context)) {
-            scheduleDailyReminderAlarm(context, hour)
+        val current = getReminderHours(context).toMutableSet()
+        current.add(hour)
+        setReminderHours(context, current)
+    }
+
+    fun scheduleAllDailyReminderAlarms(context: Context) {
+        if (!isDailyReminderEnabled(context)) return
+
+        val hours = getReminderHours(context)
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+
+        for (hour in hours) {
+            val intent = Intent(context, DailyReminderReceiver::class.java).apply {
+                action = ACTION_DAILY_REMINDER
+                putExtra("reminder_hour", hour)
+            }
+
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                ALARM_REQUEST_CODE + hour,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val calendar = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, hour)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+
+                // If scheduled time has already passed today, set for tomorrow
+                if (timeInMillis <= System.currentTimeMillis()) {
+                    add(Calendar.DAY_OF_YEAR, 1)
+                }
+            }
+
+            try {
+                alarmManager.setInexactRepeating(
+                    AlarmManager.RTC_WAKEUP,
+                    calendar.timeInMillis,
+                    AlarmManager.INTERVAL_DAY,
+                    pendingIntent
+                )
+            } catch (e: Exception) {
+                try {
+                    alarmManager.setAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        calendar.timeInMillis,
+                        pendingIntent
+                    )
+                } catch (_: Exception) {}
+            }
         }
     }
 
     fun scheduleDailyReminderAlarm(context: Context, preferredHour: Int = getReminderHour(context)) {
-        if (!isDailyReminderEnabled(context)) return
-
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
-        val intent = Intent(context, DailyReminderReceiver::class.java).apply {
-            action = ACTION_DAILY_REMINDER
-        }
-
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            ALARM_REQUEST_CODE,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val calendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, preferredHour)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-
-            // If scheduled time has already passed today, set for tomorrow
-            if (timeInMillis <= System.currentTimeMillis()) {
-                add(Calendar.DAY_OF_YEAR, 1)
-            }
-        }
-
-        try {
-            alarmManager.setInexactRepeating(
-                AlarmManager.RTC_WAKEUP,
-                calendar.timeInMillis,
-                AlarmManager.INTERVAL_DAY,
-                pendingIntent
-            )
-        } catch (e: Exception) {
-            try {
-                alarmManager.setAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    calendar.timeInMillis,
-                    pendingIntent
-                )
-            } catch (_: Exception) {}
-        }
+        scheduleAllDailyReminderAlarms(context)
     }
 
     fun scheduleNextDailyReminder(context: Context) {
-        scheduleDailyReminderAlarm(context)
+        scheduleAllDailyReminderAlarms(context)
+    }
+
+    fun cancelAllDailyReminderAlarms(context: Context) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+        for (hour in 0..23) {
+            val intent = Intent(context, DailyReminderReceiver::class.java).apply {
+                action = ACTION_DAILY_REMINDER
+            }
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                ALARM_REQUEST_CODE + hour,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            alarmManager.cancel(pendingIntent)
+        }
     }
 
     fun cancelDailyReminderAlarm(context: Context) {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
-        val intent = Intent(context, DailyReminderReceiver::class.java).apply {
-            action = ACTION_DAILY_REMINDER
-        }
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            ALARM_REQUEST_CODE,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        alarmManager.cancel(pendingIntent)
+        cancelAllDailyReminderAlarms(context)
     }
 
     fun triggerDailyTestingReminder(
@@ -227,5 +278,38 @@ object NotificationHelper {
         } catch (e: SecurityException) {
             return false
         }
+    }
+
+    /**
+     * Push all active/unread notifications to the Android system drawer.
+     * Ensures all testing reminders, status updates, and milestones appear in the status bar.
+     */
+    fun pushAllNotifications(
+        context: Context,
+        notifications: List<AppNotification>
+    ): Int {
+        createNotificationChannel(context)
+        var deliveredCount = 0
+        val targetList = if (notifications.any { !it.isRead }) {
+            notifications.filter { !it.isRead }
+        } else {
+            notifications.take(8)
+        }
+
+        targetList.forEachIndexed { index, notif ->
+            val notifId = if (notif.id > 0) notif.id else (System.currentTimeMillis() % 100000).toInt() + index
+            val ok = showSystemNotification(
+                context = context,
+                title = notif.title,
+                message = notif.message,
+                notificationId = notifId
+            )
+            if (ok) deliveredCount++
+        }
+
+        // Also ensure scheduled background alarms are refreshed
+        scheduleAllDailyReminderAlarms(context)
+
+        return deliveredCount
     }
 }

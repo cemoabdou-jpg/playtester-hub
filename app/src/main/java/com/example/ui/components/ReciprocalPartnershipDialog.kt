@@ -2,6 +2,7 @@ package com.example.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -12,19 +13,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Handshake
 import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -46,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
+import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
 import com.example.ui.theme.SuccessGreen
 import com.example.ui.util.AppLanguage
@@ -60,68 +66,56 @@ data class ReciprocalContract(
     val targetDays: Int = 14,
     val myTestedToday: Boolean,
     val partnerTestedToday: Boolean,
-    val bonusPoints: Int = 200
+    val bonusPoints: Int = 200,
+    val isRewardClaimed: Boolean = false
 )
 
 @Composable
 fun ReciprocalPartnershipDialog(
     userAppsNames: List<String>,
     onDismiss: () -> Unit,
-    onBonusClaimed: (Int) -> Unit = {}
+    onBonusClaimed: (Int, String) -> Unit = { _, _ -> }
 ) {
     val language = LocalAppLanguage.current
     val isArabic = language == AppLanguage.AR
 
-    val contracts = remember {
-        mutableStateListOf(
-            ReciprocalContract(
-                id = "1",
-                partnerName = if (isArabic) "المهندس أحمد حسام" else "Dev Ahmed H.",
-                partnerApp = if (isArabic) "تطبيق حاسبة الزكاة الذكية" else "Smart Zakat Calculator",
-                myApp = if (userAppsNames.isNotEmpty()) userAppsNames.first() else if (isArabic) "تطبيقي الرئيسي" else "My Main App",
-                daysCompleted = 8,
-                targetDays = 14,
-                myTestedToday = true,
-                partnerTestedToday = true
-            ),
-            ReciprocalContract(
-                id = "2",
-                partnerName = if (isArabic) "سارة التميمي (مطور مستقل)" else "Sarah T. (Indie Dev)",
-                partnerApp = if (isArabic) "تطبيق منظم الميزانية الشخصية" else "Expense & Budget Tracker",
-                myApp = if (userAppsNames.isNotEmpty()) userAppsNames.first() else if (isArabic) "تطبيقي الرئيسي" else "My Main App",
-                daysCompleted = 4,
-                targetDays = 14,
-                myTestedToday = true,
-                partnerTestedToday = false
-            )
-        )
-    }
+    // Initial state without any default/dummy mock applications
+    val contracts = remember { mutableStateListOf<ReciprocalContract>() }
 
     var showNewContractSheet by remember { mutableStateOf(false) }
     var partnerInputName by remember { mutableStateOf("") }
     var partnerInputApp by remember { mutableStateOf("") }
-    var selectedMyApp by remember { mutableStateOf(userAppsNames.firstOrNull() ?: if (isArabic) "تطبيقي" else "My App") }
+    var customMyAppInput by remember { mutableStateOf("") }
+    var selectedMyApp by remember { mutableStateOf(userAppsNames.firstOrNull() ?: "") }
     var successMsg by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Handshake,
-                    contentDescription = null,
-                    tint = AmberGold,
-                    modifier = Modifier.size(26.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
+                Surface(
+                    shape = CircleShape,
+                    color = AmberGold.copy(alpha = 0.18f),
+                    modifier = Modifier.size(38.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Handshake,
+                            contentDescription = null,
+                            tint = AmberGold,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text(
                         text = if (isArabic) "عقود التبادل والالتزام المتبادل (1-on-1)" else "1-on-1 Reciprocal Testing Contracts",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = if (isArabic) "اختبار يومي متبادل مضمون بين المطورين بنسبة 100%" else "Guaranteed 100% mutual daily testing between developers",
+                        text = if (isArabic) "نظام شراكات التبادل والنقاط المكتسبة المتبادلة" else "Reciprocal exchange & earned points system",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -135,25 +129,34 @@ fun ReciprocalPartnershipDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Info Banner
+                // Info Banner about Points Economy
                 Surface(
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(12.dp),
                     color = AmberGold.copy(alpha = 0.1f),
                     border = BorderStroke(1.dp, AmberGold.copy(alpha = 0.35f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Stars, contentDescription = null, tint = AmberGold, modifier = Modifier.size(22.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (isArabic) {
-                                "🤝 التزام ثنائي عادل: أنت تختبر تطبيق شريكك يومياً لمدة 14 يوماً، وهو يلتزم باختبار تطبيقك يومياً بنفس القدر، مع نقاط مضاعفة عند الإتمام!"
-                            } else {
-                                "🤝 Fair bilateral commitment: You test your partner's app daily for 14 days, and they test yours daily, with double reward points upon completion!"
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Stars, contentDescription = null, tint = AmberGold, modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = if (isArabic) "🤝 نظام النقاط المكتسبة في شراكات التبادل:" else "🤝 Earned Points System in Partnerships:",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = AmberGold
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = if (isArabic) {
+                                    "• +25 نقطة لكل فحص يومي لتطبيق الشريك.\n• +200 نقطة مكافأة كبرى عند إتمام الـ 14 يوماً.\n• التزام متبادل لضمان جاهزية تطبيقك لـ Google Play."
+                                } else {
+                                    "• +25 points for every daily test of partner app.\n• +200 bonus points upon completing 14 full days.\n• Mutual commitment for Google Play readiness."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
 
@@ -184,16 +187,57 @@ fun ReciprocalPartnershipDialog(
                     ) {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
-                                text = if (isArabic) "إنشاء شراكة تبادل جديدة:" else "Create New Testing Partnership:",
+                                text = if (isArabic) "إنشاء عقد شراكة تبادل جديدة:" else "Create New Testing Partnership:",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = CyanAccent
                             )
+
+                            // Select or enter My App
+                            if (userAppsNames.isNotEmpty()) {
+                                Text(
+                                    text = if (isArabic) "اختر تطبيقك للشراكة:" else "Select Your App for Partnership:",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    userAppsNames.forEach { appName ->
+                                        val isSelected = selectedMyApp == appName
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = if (isSelected) CyanAccent.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface,
+                                            border = BorderStroke(1.dp, if (isSelected) CyanAccent else MaterialTheme.colorScheme.outlineVariant),
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text(
+                                                text = appName,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (isSelected) CyanAccent else MaterialTheme.colorScheme.onSurface,
+                                                modifier = Modifier.padding(8.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            } else {
+                                OutlinedTextField(
+                                    value = customMyAppInput,
+                                    onValueChange = { customMyAppInput = it },
+                                    label = { Text(if (isArabic) "اسم تطبيقك" else "Your App Name") },
+                                    placeholder = { Text(if (isArabic) "مثال: تطبيقي الأول" else "e.g. My Awesome App") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true
+                                )
+                            }
+
                             OutlinedTextField(
                                 value = partnerInputName,
                                 onValueChange = { partnerInputName = it },
                                 label = { Text(if (isArabic) "اسم المطور الشريك أو بريده" else "Partner Developer Name / Email") },
-                                placeholder = { Text(if (isArabic) "مثال: م. عمر خالد" else "e.g. Alex M.") },
+                                placeholder = { Text(if (isArabic) "مثال: م. عمر أحمد" else "e.g. Alex Dev") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
@@ -201,10 +245,11 @@ fun ReciprocalPartnershipDialog(
                                 value = partnerInputApp,
                                 onValueChange = { partnerInputApp = it },
                                 label = { Text(if (isArabic) "اسم تطبيق الشريك الذي ستختبره" else "Partner's App to Test") },
-                                placeholder = { Text(if (isArabic) "مثال: تطبيق مهامي اليومية" else "e.g. Daily Tasks App") },
+                                placeholder = { Text(if (isArabic) "مثال: تطبيق الملاحظات السريعة" else "e.g. Quick Notes App") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
+
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.End
@@ -215,22 +260,29 @@ fun ReciprocalPartnershipDialog(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Button(
                                     onClick = {
+                                        val effectiveMyApp = if (userAppsNames.isNotEmpty()) {
+                                            selectedMyApp.ifBlank { userAppsNames.first() }
+                                        } else {
+                                            customMyAppInput.trim().ifBlank { if (isArabic) "تطبيقي" else "My App" }
+                                        }
+
                                         if (partnerInputName.isNotBlank() && partnerInputApp.isNotBlank()) {
                                             contracts.add(
                                                 ReciprocalContract(
-                                                    id = (contracts.size + 1).toString(),
+                                                    id = System.currentTimeMillis().toString(),
                                                     partnerName = partnerInputName.trim(),
                                                     partnerApp = partnerInputApp.trim(),
-                                                    myApp = selectedMyApp,
-                                                    daysCompleted = 1,
-                                                    myTestedToday = true,
+                                                    myApp = effectiveMyApp,
+                                                    daysCompleted = 0,
+                                                    myTestedToday = false,
                                                     partnerTestedToday = false
                                                 )
                                             )
                                             partnerInputName = ""
                                             partnerInputApp = ""
+                                            customMyAppInput = ""
                                             showNewContractSheet = false
-                                            successMsg = if (isArabic) "تم إنشاء عقد الشراكة بنجاح! تم إشعار المطور لبدء الاختبار المتبادل." else "Partnership contract created! Partner developer notified."
+                                            successMsg = if (isArabic) "تم إنشاء عقد الشراكة بنجاح! يمكنك الآن تسجيل فحص اليوم وكسب النقاط." else "Partnership created! You can now record today's test and earn points."
                                         }
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = CyanAccent)
@@ -248,22 +300,60 @@ fun ReciprocalPartnershipDialog(
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, tint = AmberGold)
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text(if (isArabic) "عقد شراكة تبادل جديدة مع مطور" else "Create New 1-on-1 Contract", color = AmberGold, fontWeight = FontWeight.Bold)
+                        Text(if (isArabic) "إنشاء عقد شراكة تبادل جديدة مع مطور" else "Create New 1-on-1 Contract", color = AmberGold, fontWeight = FontWeight.Bold)
                     }
                 }
 
                 Text(
-                    text = if (isArabic) "عقودك النشطة حالياً (${contracts.size}):" else "Your Active Contracts (${contracts.size}):",
+                    text = if (isArabic) "عقود التبادل النشطة (${contracts.size}):" else "Your Active Contracts (${contracts.size}):",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold
                 )
 
+                // Empty State when no contracts exist
+                if (contracts.isEmpty()) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Handshake,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.size(36.dp)
+                            )
+                            Text(
+                                text = if (isArabic) "لا توجد شراكات تبادل مسجلة حالياً" else "No active exchange partnerships yet",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = if (isArabic) {
+                                    "اضغط على 'إنشاء عقد شراكة تبادل جديدة' للاتفاق مع مطور شريك واختبار تطبيقات بعضكم البعض يومياً لكسب +25 نقطة يومياً ومكافأة +200 نقطة عند الإتمام!"
+                                } else {
+                                    "Tap 'Create New 1-on-1 Contract' to pair with a fellow developer, test each other's apps daily to earn +25 daily points and +200 bonus points!"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                        }
+                    }
+                }
+
                 // Active Contracts List
-                contracts.forEach { contract ->
+                contracts.forEachIndexed { index, contract ->
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surface,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        border = BorderStroke(1.dp, if (contract.daysCompleted >= contract.targetDays) SuccessGreen else MaterialTheme.colorScheme.outlineVariant),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -281,17 +371,25 @@ fun ReciprocalPartnershipDialog(
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = PlayGreen.copy(alpha = 0.12f)
-                                ) {
-                                    Text(
-                                        text = if (isArabic) "+${contract.bonusPoints} نقطة مكافأة" else "+${contract.bonusPoints} Bonus Pts",
-                                        color = PlayGreen,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = PlayGreen.copy(alpha = 0.12f)
+                                    ) {
+                                        Text(
+                                            text = if (isArabic) "+${contract.bonusPoints} نقطة مكافأة" else "+${contract.bonusPoints} Bonus Pts",
+                                            color = PlayGreen,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = { contracts.removeAt(index) },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(Icons.Default.Delete, contentDescription = if (isArabic) "حذف" else "Delete", tint = DangerRed.copy(alpha = 0.7f), modifier = Modifier.size(16.dp))
+                                    }
                                 }
                             }
 
@@ -318,7 +416,7 @@ fun ReciprocalPartnershipDialog(
                                 )
                             }
                             LinearProgressIndicator(
-                                progress = { contract.daysCompleted.toFloat() / contract.targetDays },
+                                progress = { (contract.daysCompleted.toFloat() / contract.targetDays).coerceIn(0f, 1f) },
                                 modifier = Modifier.fillMaxWidth().height(6.dp),
                                 color = PlayGreen
                             )
@@ -381,6 +479,50 @@ fun ReciprocalPartnershipDialog(
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Medium
                                         )
+                                    }
+                                }
+                            }
+
+                            // Earned Points Actions for this Contract
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (!contract.myTestedToday) {
+                                    Button(
+                                        onClick = {
+                                            val newDays = (contract.daysCompleted + 1).coerceAtMost(contract.targetDays)
+                                            contracts[index] = contract.copy(
+                                                daysCompleted = newDays,
+                                                myTestedToday = true
+                                            )
+                                            onBonusClaimed(25, "فحص يومي لشراكة تبادل (${contract.partnerApp})")
+                                            successMsg = if (isArabic) "تم توثيق فحص اليوم لتطبيق الشريك وكسبت +25 نقطة! 🌟" else "Daily test logged! You earned +25 points! 🌟"
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(Icons.Default.MonetizationOn, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(if (isArabic) "فحص اليوم (+25 نقطة)" else "Test Today (+25 pts)", fontSize = 12.sp)
+                                    }
+                                }
+
+                                if (contract.daysCompleted >= contract.targetDays && !contract.isRewardClaimed) {
+                                    Button(
+                                        onClick = {
+                                            contracts[index] = contract.copy(isRewardClaimed = true)
+                                            onBonusClaimed(contract.bonusPoints, "مكافأة إتمام شراكة التبادل لـ 14 يوماً (${contract.partnerApp})")
+                                            successMsg = if (isArabic) "تهانينا! استلمت مكافأة إتمام الشراكة (+${contract.bonusPoints} نقطة) 🏆" else "Congrats! Claimed completion bonus (+${contract.bonusPoints} pts) 🏆"
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = AmberGold),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(Icons.Default.Stars, contentDescription = null, tint = Color.Black, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(if (isArabic) "استلام المكافأة (+200)" else "Claim Reward (+200)", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                     }
                                 }
                             }
