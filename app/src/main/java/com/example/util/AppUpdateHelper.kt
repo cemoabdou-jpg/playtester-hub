@@ -141,7 +141,7 @@ object AppUpdateHelper {
                 packageInfo.versionCode
             }
         } catch (e: Exception) {
-            10
+            16
         }
     }
 
@@ -151,9 +151,9 @@ object AppUpdateHelper {
     fun getInstalledVersionName(context: Context): String {
         return try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            packageInfo.versionName ?: "1.9"
+            packageInfo.versionName ?: "2.5"
         } catch (e: Exception) {
-            "1.9"
+            "2.5"
         }
     }
 }
