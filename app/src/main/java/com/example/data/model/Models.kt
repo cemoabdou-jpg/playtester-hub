@@ -143,6 +143,10 @@ data class DailyTestLog(
     val durationMinutes: Int = 10,
     val rating: Int = 5,
     val notes: String = "",
+    val proofScreenshotUrl: String = "",
+    val deviceModel: String = "",
+    val androidVersion: String = "",
+    val isSyncedToCloud: Boolean = false,
     val verifiedAt: Long = System.currentTimeMillis()
 )
 

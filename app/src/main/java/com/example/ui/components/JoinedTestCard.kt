@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -31,22 +32,27 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -59,6 +65,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.data.model.JoinedTest
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
@@ -68,7 +77,6 @@ import com.example.ui.theme.SuccessGreen
 import com.example.ui.util.AppLanguage
 import com.example.ui.util.L
 import com.example.ui.util.LocalAppLanguage
-import coil.compose.AsyncImage
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -85,6 +93,7 @@ fun JoinedTestCard(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val language = LocalAppLanguage.current
     val isArabic = language == AppLanguage.AR
     val s = L.strings()
@@ -95,6 +104,61 @@ fun JoinedTestCard(
     }
     val progress = (test.daysCompleted.toFloat() / 14f).coerceIn(0f, 1f)
     var showCalendarGrid by remember { mutableStateOf(false) }
+
+    // Check if target app is installed on this device
+    var isAppInstalled by remember(test.packageName) {
+        mutableStateOf(
+            try {
+                context.packageManager.getLaunchIntentForPackage(test.packageName) != null
+            } catch (_: Exception) {
+                false
+            }
+        )
+    }
+
+    var appLaunchStartTime by remember { mutableLongStateOf(0L) }
+    var measuredDwellSeconds by remember { mutableIntStateOf(0) }
+
+    // Auto-track dwell time when returning from the tested app
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                // Refresh installation state
+                isAppInstalled = try {
+                    context.packageManager.getLaunchIntentForPackage(test.packageName) != null
+                } catch (_: Exception) {
+                    false
+                }
+
+                if (appLaunchStartTime > 0L) {
+                    val duration = ((System.currentTimeMillis() - appLaunchStartTime) / 1000).toInt()
+                    appLaunchStartTime = 0L
+                    if (duration > 0) {
+                        measuredDwellSeconds = duration
+                        if (duration >= 30) {
+                            Toast.makeText(
+                                context,
+                                if (isArabic) "أحسنت! قضيت $duration ثانية في تجربة ${test.appName} ⏱️. اضغط 'فحص اليوم' لتوثيق اليوم وكسب النقاط!"
+                                else "Great! You spent $duration seconds testing ${test.appName} ⏱️. Tap 'Daily Check-in' to record progress!",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        } else {
+                            Toast.makeText(
+                                context,
+                                if (isArabic) "قضيت $duration ثانية داخل التطبيق. توصي Google بقضاء 30 ثانية على الأقل لتوثيق الاستخدام الحقيقي."
+                                else "You spent $duration seconds in app. Google recommends at least 30 seconds for genuine usage.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     Card(
         modifier = modifier
@@ -121,29 +185,61 @@ fun JoinedTestCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = if (test.isCompleted) SuccessGreen.copy(alpha = 0.15f) else CyanAccent.copy(alpha = 0.15f),
-                    border = BorderStroke(1.dp, if (test.isCompleted) SuccessGreen.copy(alpha = 0.35f) else CyanAccent.copy(alpha = 0.35f))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (test.isCompleted) SuccessGreen.copy(alpha = 0.15f) else CyanAccent.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, if (test.isCompleted) SuccessGreen.copy(alpha = 0.35f) else CyanAccent.copy(alpha = 0.35f))
                     ) {
-                        Icon(
-                            imageVector = if (test.isCompleted) Icons.Default.CheckCircle else Icons.Default.Schedule,
-                            contentDescription = null,
-                            tint = if (test.isCompleted) SuccessGreen else CyanAccent,
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = if (test.isCompleted) s.testingCompletedCount else s.testingActiveCount,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (test.isCompleted) SuccessGreen else CyanAccent
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = if (test.isCompleted) Icons.Default.CheckCircle else Icons.Default.Schedule,
+                                contentDescription = null,
+                                tint = if (test.isCompleted) SuccessGreen else CyanAccent,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (test.isCompleted) s.testingCompletedCount else s.testingActiveCount,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (test.isCompleted) SuccessGreen else CyanAccent
+                            )
+                        }
+                    }
+
+                    // Device Installation Status Badge
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (isAppInstalled) PlayGreen.copy(alpha = 0.12f) else AmberGold.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, if (isAppInstalled) PlayGreen.copy(alpha = 0.3f) else AmberGold.copy(alpha = 0.3f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isAppInstalled) PlayGreen else AmberGold)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (isAppInstalled) (if (isArabic) "مثبت ✓" else "Installed ✓") else (if (isArabic) "غير مثبت" else "Not Installed"),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isAppInstalled) PlayGreen else AmberGold
+                            )
+                        }
                     }
                 }
 
@@ -195,6 +291,7 @@ fun JoinedTestCard(
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                         .clickable {
+                            appLaunchStartTime = System.currentTimeMillis()
                             launchOrOpenApp(
                                 context = context,
                                 packageName = test.packageName,
@@ -207,23 +304,13 @@ fun JoinedTestCard(
                         .testTag("joined_app_icon_${test.id}"),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (test.iconUrl.isNotBlank()) {
-                        AsyncImage(
-                            model = if (test.iconUrl.startsWith("/")) File(test.iconUrl) else test.iconUrl,
-                            contentDescription = if (isArabic) "أيقونة ${test.appName}" else "Icon of ${test.appName}",
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(12.dp)),
-                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                        )
-                    } else {
-                        Text(
-                            text = test.appName.take(2).uppercase(),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = PlayGreen
-                        )
-                    }
+                    AppIconImage(
+                        iconUrl = test.iconUrl,
+                        appName = test.appName,
+                        packageName = test.packageName,
+                        size = 48.dp,
+                        shape = RoundedCornerShape(12.dp)
+                    )
 
                     Surface(
                         shape = CircleShape,
@@ -282,6 +369,32 @@ fun JoinedTestCard(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (test.isCompleted) SuccessGreen else PlayGreen
+                        )
+                    }
+                }
+            }
+
+            // Measured Dwell Time Pill (if tester launched app recently)
+            if (measuredDwellSeconds > 0) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = PlayGreen.copy(alpha = 0.1f),
+                    border = BorderStroke(1.dp, PlayGreen.copy(alpha = 0.3f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Timer, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(13.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (isArabic) "⏱️ مدة التجربة المحسوبة: $measuredDwellSeconds ثانية (استخدام حقيقي موثق)" else "⏱️ Dwell time: ${measuredDwellSeconds}s (Genuine usage logged)",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp,
+                            color = PlayGreen,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -353,63 +466,16 @@ fun JoinedTestCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Action Buttons (Compact, Direct & Clean)
+            // Action Buttons (Direct App Launcher + Daily Check-in + Feedback)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Daily Check-in CTA Button
-                if (!test.isCompleted) {
-                    Button(
-                        onClick = onCheckInClick,
-                        enabled = !isCheckedToday,
-                        modifier = Modifier
-                            .weight(1.3f)
-                            .height(34.dp)
-                            .testTag("check_in_btn_${test.id}"),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = PlayGreen,
-                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
-                        ),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        if (isCheckedToday) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                tint = PlayGreen,
-                                modifier = Modifier.size(15.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = if (isArabic) "تم الفحص اليوم ✓" else "Tested Today ✓",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.FactCheck,
-                                contentDescription = null,
-                                modifier = Modifier.size(15.dp),
-                                tint = Color.White
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = s.dailyCheckIn,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                fontSize = 11.sp
-                            )
-                        }
-                    }
-                }
-
-                // Launch or open in store
-                OutlinedButton(
+                // Direct App Launcher Button with Auto-Duration Tracking
+                Button(
                     onClick = {
+                        appLaunchStartTime = System.currentTimeMillis()
                         launchOrOpenApp(
                             context = context,
                             packageName = test.packageName,
@@ -420,19 +486,77 @@ fun JoinedTestCard(
                         )
                     },
                     modifier = Modifier
-                        .weight(1f)
+                        .weight(1.1f)
                         .height(34.dp)
-                        .testTag("launch_app_btn_${test.id}"),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                        .testTag("direct_launch_btn_${test.id}"),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isAppInstalled) PlayGreen else CyanAccent
+                    ),
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                    shape = RoundedCornerShape(10.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                        imageVector = if (isAppInstalled) Icons.Default.RocketLaunch else Icons.Default.Download,
                         contentDescription = null,
-                        modifier = Modifier.size(14.dp)
+                        tint = Color.White,
+                        modifier = Modifier.size(13.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(s.openAppBtn, maxLines = 1, fontSize = 11.sp)
+                    Text(
+                        text = if (isAppInstalled) (if (isArabic) "تشغيل التطبيق" else "Launch App") else (if (isArabic) "تثبيت التطبيق" else "Install App"),
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        maxLines = 1
+                    )
+                }
+
+                // Daily Check-in CTA Button
+                if (!test.isCompleted) {
+                    Button(
+                        onClick = onCheckInClick,
+                        enabled = !isCheckedToday,
+                        modifier = Modifier
+                            .weight(1.1f)
+                            .height(34.dp)
+                            .testTag("check_in_btn_${test.id}"),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        if (isCheckedToday) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = PlayGreen,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = if (isArabic) "تم الفحص ✓" else "Tested ✓",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.FactCheck,
+                                contentDescription = null,
+                                modifier = Modifier.size(13.dp),
+                                tint = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = if (isArabic) "تأكيد الفحص" else "Check-in",
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                fontSize = 10.sp
+                            )
+                        }
+                    }
                 }
 
                 // Send feedback button
@@ -442,18 +566,18 @@ fun JoinedTestCard(
                         .height(34.dp)
                         .testTag("feedback_btn_${test.id}"),
                     shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Chat,
                         contentDescription = null,
                         tint = if (test.feedbackSent) SuccessGreen else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(13.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(3.dp))
                     Text(
-                        text = if (test.feedbackSent) (if (isArabic) "تم التقييم ✓" else "Rated ✓") else s.sendFeedbackBtn,
-                        fontSize = 11.sp
+                        text = if (test.feedbackSent) (if (isArabic) "تم التقييم ✓" else "Rated ✓") else (if (isArabic) "تقييم" else "Review"),
+                        fontSize = 10.sp
                     )
                 }
             }
@@ -474,14 +598,14 @@ fun launchOrOpenApp(
     return if (launchIntent != null) {
         launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(launchIntent)
-        Toast.makeText(context, if (isArabic) "جاري فتح التطبيق وتسجيل مشاركتك..." else "Launching app and logging test activity...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, if (isArabic) "جاري تشغيل $appName واحتساب وقت التجربة تلقائياً... ⏱️" else "Launching $appName and auto-tracking test duration... ⏱️", Toast.LENGTH_SHORT).show()
         onRecordOpened(packageName, appName.ifBlank { packageName })
         true
     } else {
         // Not installed, open Play Store test link
         val url = if (fallbackUrl.isNotBlank()) fallbackUrl else "https://play.google.com/store/apps/details?id=$packageName"
         openUrl(context, url)
-        Toast.makeText(context, if (isArabic) "جاري فتح صفحة التثبيت والاختبار..." else "Opening Play Store testing page...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, if (isArabic) "جاري فتح صفحة التثبيت والاختبار في متجر Google Play..." else "Opening Play Store testing page...", Toast.LENGTH_SHORT).show()
         onRecordOpened(packageName, appName.ifBlank { packageName })
         false
     }

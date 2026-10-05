@@ -41,24 +41,50 @@ jobs:
               -dname "CN=PlayTesterHub, OU=Dev, O=PlayTester, L=City, S=State, C=US"
           fi
 
+      - name: Calculate and Bump Version for this Build
+        id: versioning
+        run: |
+          BASE_VERSION_CODE=16
+          RUN_NUMBER=${{ github.run_number }}
+          NEW_VERSION_CODE=$((BASE_VERSION_CODE + RUN_NUMBER))
+          NEW_VERSION_NAME="2.5.${RUN_NUMBER}"
+          
+          echo "=========================================================="
+          echo "🚀 Automatically Bumping Version for GitHub Actions Build"
+          echo "   GitHub Run Number : ${RUN_NUMBER}"
+          echo "   New Version Code  : ${NEW_VERSION_CODE}"
+          echo "   New Version Name  : ${NEW_VERSION_NAME}"
+          echo "=========================================================="
+          
+          echo "VERSION_CODE=${NEW_VERSION_CODE}" >> $GITHUB_ENV
+          echo "VERSION_NAME=${NEW_VERSION_NAME}" >> $GITHUB_ENV
+          echo "version_code=${NEW_VERSION_CODE}" >> $GITHUB_OUTPUT
+          echo "version_name=${NEW_VERSION_NAME}" >> $GITHUB_OUTPUT
+
       - name: Build Debug APK & Release Bundle (AAB)
         env:
           STORE_PASSWORD: "android"
           KEY_PASSWORD: "android"
+          VERSION_CODE: ${{ env.VERSION_CODE }}
+          VERSION_NAME: ${{ env.VERSION_NAME }}
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
         run: |
-          ./gradlew :app:assembleDebug :app:bundleRelease --no-daemon --stacktrace
+          ./gradlew :app:assembleDebug :app:bundleRelease \
+            -PversionCode=${{ env.VERSION_CODE }} \
+            -PversionName=${{ env.VERSION_NAME }} \
+            --no-daemon --stacktrace
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: PlayTesterHub-APK
+          name: PlayTesterHub-APK-v${{ env.VERSION_NAME }}
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 14
 
       - name: Upload Release AAB (Google Play)
         uses: actions/upload-artifact@v4
         with:
-          name: PlayTesterHub-AAB
+          name: PlayTesterHub-AAB-v${{ env.VERSION_NAME }}
           path: |
             app/build/outputs/bundle/release/*.aab
             app/build/outputs/mapping/release/mapping.txt

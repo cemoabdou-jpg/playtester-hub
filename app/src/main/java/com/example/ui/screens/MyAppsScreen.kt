@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.GroupAdd
+import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.QrCode2
@@ -51,6 +52,7 @@ import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
+import com.example.ui.components.AppVitalsDialog
 import com.example.ui.components.ChangelogGeneratorDialog
 import com.example.ui.components.ConsoleShortcutsAndBundleHelperDialog
 import com.example.ui.components.DeviceDiversityMatrixDialog
@@ -96,6 +98,8 @@ import com.example.data.model.InvitedTester
 import com.example.data.model.TesterFeedback
 import com.example.data.model.UserApp
 import java.io.File
+import com.example.ui.components.AppIconImage
+import com.example.ui.components.AppIconProcessor
 import com.example.ui.components.AppHealthDiagnosticsCard
 import com.example.ui.components.AppReviewsDialog
 import com.example.ui.components.DailyTestLogsHistoryDialog
@@ -170,6 +174,7 @@ fun MyAppsScreen(
     var appForChangelog by remember { mutableStateOf<UserApp?>(null) }
     var appForPreFlight by remember { mutableStateOf<UserApp?>(null) }
     var appForDiversity by remember { mutableStateOf<UserApp?>(null) }
+    var appForVitals by remember { mutableStateOf<UserApp?>(null) }
     var appForReviews by remember { mutableStateOf<UserApp?>(null) }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -461,30 +466,13 @@ fun MyAppsScreen(
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                if (app.iconUrl.isNotBlank()) {
-                                    AsyncImage(
-                                        model = if (app.iconUrl.startsWith("/")) File(app.iconUrl) else app.iconUrl,
-                                        contentDescription = "أيقونة ${app.name}",
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .clip(RoundedCornerShape(12.dp)),
-                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                                    )
-                                } else {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text(
-                                            text = app.name.take(2).uppercase(),
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = PlayGreen
-                                        )
-                                        Text(
-                                            text = "Play",
-                                            fontSize = 7.sp,
-                                            color = PlayGreen
-                                        )
-                                    }
-                                }
+                                AppIconImage(
+                                    iconUrl = app.iconUrl,
+                                    appName = app.name,
+                                    packageName = app.packageName,
+                                    size = 48.dp,
+                                    shape = RoundedCornerShape(12.dp)
+                                )
                             }
 
                             Column(modifier = Modifier.weight(1f)) {
@@ -1046,40 +1034,51 @@ fun MyAppsScreen(
 
                                     Spacer(modifier = Modifier.height(6.dp))
 
-                                    // Row 4: Changelog, Device Diversity & Privacy Policy
+                                    // Row 4: Changelog, Device Diversity, App Vitals & Privacy Policy
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        OutlinedButton(
-                                            onClick = { appForChangelog = app },
-                                            modifier = Modifier.weight(1f).testTag("btn_changelog_${app.id}"),
-                                            shape = RoundedCornerShape(8.dp),
-                                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
-                                        ) {
-                                            Icon(Icons.Default.Update, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(14.dp))
-                                            Spacer(modifier = Modifier.width(3.dp))
-                                            Text(s.changelogBtn, fontSize = 10.sp)
-                                        }
-
                                         OutlinedButton(
                                             onClick = { appForDiversity = app },
                                             modifier = Modifier.weight(1f).testTag("btn_diversity_${app.id}"),
                                             shape = RoundedCornerShape(8.dp),
                                             contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
                                         ) {
-                                            Icon(Icons.Default.Devices, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(14.dp))
+                                            Icon(Icons.Default.Devices, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(14.dp))
                                             Spacer(modifier = Modifier.width(3.dp))
                                             Text(s.deviceDiversityBtn, fontSize = 10.sp)
                                         }
 
                                         OutlinedButton(
-                                            onClick = { appForPrivacyPolicy = app },
-                                            modifier = Modifier.weight(1f).testTag("btn_policy_gen_${app.id}"),
+                                            onClick = { appForVitals = app },
+                                            modifier = Modifier.weight(1f).testTag("btn_vitals_${app.id}"),
                                             shape = RoundedCornerShape(8.dp),
                                             contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
                                         ) {
-                                            Icon(Icons.Default.Policy, contentDescription = null, tint = AmberGold, modifier = Modifier.size(14.dp))
+                                            Icon(Icons.Default.HealthAndSafety, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(14.dp))
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text("مؤشرات Vitals", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = SuccessGreen)
+                                        }
+
+                                        OutlinedButton(
+                                            onClick = { appForChangelog = app },
+                                            modifier = Modifier.weight(0.9f).testTag("btn_changelog_${app.id}"),
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                                        ) {
+                                            Icon(Icons.Default.Update, contentDescription = null, tint = AmberGold, modifier = Modifier.size(14.dp))
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text(s.changelogBtn, fontSize = 10.sp)
+                                        }
+
+                                        OutlinedButton(
+                                            onClick = { appForPrivacyPolicy = app },
+                                            modifier = Modifier.weight(0.9f).testTag("btn_policy_gen_${app.id}"),
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                                        ) {
+                                            Icon(Icons.Default.Policy, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
                                             Spacer(modifier = Modifier.width(3.dp))
                                             Text(s.privacyPolicyBtn, fontSize = 10.sp)
                                         }
@@ -1255,9 +1254,25 @@ fun MyAppsScreen(
 
     // Device Diversity Matrix dialog
     appForDiversity?.let { app ->
+        val appLogs = allDailyTestLogs.filter { it.packageName == app.packageName }
+        val appFeedbacks = allFeedback.filter { it.packageName == app.packageName }
         DeviceDiversityMatrixDialog(
             app = app,
+            dailyLogs = appLogs,
+            feedbacks = appFeedbacks,
             onDismiss = { appForDiversity = null }
+        )
+    }
+
+    // App Vitals & Stability Monitoring Dialog
+    appForVitals?.let { app ->
+        val appLogs = allDailyTestLogs.filter { it.packageName == app.packageName }
+        val appFeedbacks = allFeedback.filter { it.packageName == app.packageName }
+        AppVitalsDialog(
+            app = app,
+            dailyLogs = appLogs,
+            feedbacks = appFeedbacks,
+            onDismiss = { appForVitals = null }
         )
     }
 

@@ -13,12 +13,28 @@ android {
   namespace = "com.example"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
-    defaultConfig {
+  // Dynamic auto-incremented versioning for GitHub Actions and CI builds
+  val runNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
+  val propVersionCode = findProperty("versionCode")?.toString()?.toIntOrNull()
+  val envVersionCode = System.getenv("VERSION_CODE")?.toIntOrNull()
+  val baseVersionCode = 16
+
+  val calculatedVersionCode = propVersionCode
+    ?: envVersionCode
+    ?: (if (runNumber != null && runNumber > 0) baseVersionCode + runNumber else baseVersionCode)
+
+  val propVersionName = findProperty("versionName")?.toString()
+  val envVersionName = System.getenv("VERSION_NAME")
+  val calculatedVersionName = propVersionName
+    ?: envVersionName
+    ?: (if (runNumber != null && runNumber > 0) "2.5.$runNumber" else "2.5")
+
+  defaultConfig {
     applicationId = "com.playtesterhub.app"
     minSdk = 24
     targetSdk = 36
-    versionCode = 16
-    versionName = "2.5"
+    versionCode = calculatedVersionCode
+    versionName = calculatedVersionName
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

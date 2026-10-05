@@ -108,7 +108,7 @@ fun CommunityScreen(
     onImportApp: ((input: String, appName: String, devName: String, category: String, onComplete: (Boolean, String) -> Unit) -> Unit)? = null,
     onOpenAdmin: (() -> Unit)? = null,
     onReplyToReview: (feedbackId: Int, replyText: String) -> Unit = { _, _ -> },
-    onSubmitReview: (packageName: String, appName: String, content: String, rating: Int, type: String, devModel: String, androidVer: String) -> Unit = { _, _, _, _, _, _, _ -> },
+    onSubmitReview: (packageName: String, appName: String, content: String, rating: Int, type: String, devModel: String, androidVer: String, screenshotUrl: String) -> Unit = { _, _, _, _, _, _, _, _ -> },
     onRecordAppOpened: (packageName: String, appName: String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
@@ -667,8 +667,8 @@ fun CommunityScreen(
             appName = app.name,
             packageName = app.packageName,
             onDismiss = { appForWritingReview = null },
-            onSubmitFeedback = { content, rating, type, devModel, androidVer ->
-                onSubmitReview(app.packageName, app.name, content, rating, type, devModel, androidVer)
+            onSubmitFeedback = { content, rating, type, devModel, androidVer, screenshotUrl ->
+                onSubmitReview(app.packageName, app.name, content, rating, type, devModel, androidVer, screenshotUrl)
                 appForWritingReview = null
             }
         )

@@ -17,6 +17,7 @@ import com.example.data.model.TesterFeedback
 import com.example.data.model.UserApp
 import com.example.data.model.UserWallet
 import com.example.data.repository.TesterRepository
+import com.example.ui.theme.AppColorTheme
 import com.example.ui.theme.ThemeMode
 import com.example.ui.util.AppLanguage
 import com.example.util.AppUpdateHelper
@@ -43,6 +44,21 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         }
     )
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
+
+    private val _colorTheme = MutableStateFlow(
+        try {
+            AppColorTheme.valueOf(prefs.getString("color_theme_mode", AppColorTheme.CALM_BLUE.name) ?: AppColorTheme.CALM_BLUE.name)
+        } catch (e: Exception) {
+            AppColorTheme.CALM_BLUE
+        }
+    )
+    val colorTheme: StateFlow<AppColorTheme> = _colorTheme.asStateFlow()
+
+    fun setColorTheme(palette: AppColorTheme) {
+        prefs.edit().putString("color_theme_mode", palette.name).apply()
+        _colorTheme.value = palette
+        _userMessage.value = if (_language.value == AppLanguage.AR) "تم تغيير نمط الألوان إلى: ${palette.titleAr}" else "Theme palette set to: ${palette.titleEn}"
+    }
 
     private val _language = MutableStateFlow(
         try {
@@ -79,7 +95,7 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         setThemeMode(newMode)
     }
 
-    private val _isOnboardingCompleted = MutableStateFlow(prefs.getBoolean("onboarding_completed", false))
+    private val _isOnboardingCompleted = MutableStateFlow(true)
     val isOnboardingCompleted: StateFlow<Boolean> = _isOnboardingCompleted.asStateFlow()
 
     fun setOnboardingCompleted(completed: Boolean) {
@@ -194,6 +210,9 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
 
     val allFeedback: StateFlow<List<TesterFeedback>> = repository.allFeedback
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val unsyncedItemsCount: StateFlow<Int> = repository.unsyncedItemsCount
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     val allTesterActivities: StateFlow<List<com.example.data.model.AppTesterActivity>> = repository.allTesterActivities
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -577,10 +596,11 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         test: JoinedTest,
         durationMinutes: Int = 10,
         rating: Int = 5,
-        notes: String = ""
+        notes: String = "",
+        proofScreenshotUrl: String = ""
     ) {
         viewModelScope.launch {
-            val result = repository.confirmDailyTest(test, durationMinutes, rating, notes)
+            val result = repository.confirmDailyTest(test, durationMinutes, rating, notes, proofScreenshotUrl)
             result.onSuccess { msg ->
                 _userMessage.value = msg
             }.onFailure { err ->
@@ -609,7 +629,8 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         rating: Int = 5,
         feedbackType: String = "FEEDBACK",
         deviceModel: String = "",
-        androidVersion: String = ""
+        androidVersion: String = "",
+        screenshotUrl: String = ""
     ) {
         viewModelScope.launch {
             val userEmail = currentUser.value?.email ?: "tester@example.com"
@@ -622,7 +643,8 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
                 testerEmail = userEmail,
                 testerName = userName,
                 deviceModel = deviceModel,
-                androidVersion = androidVersion
+                androidVersion = androidVersion,
+                screenshotUrl = screenshotUrl
             )
             res.onSuccess { msg ->
                 _userMessage.value = msg
@@ -639,7 +661,8 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         rating: Int = 5,
         feedbackType: String = "FEEDBACK",
         deviceModel: String = "",
-        androidVersion: String = ""
+        androidVersion: String = "",
+        screenshotUrl: String = ""
     ) {
         viewModelScope.launch {
             val res = repository.submitAppReview(
@@ -649,12 +672,32 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
                 rating = rating,
                 feedbackType = feedbackType,
                 deviceModel = deviceModel,
-                androidVersion = androidVersion
+                androidVersion = androidVersion,
+                screenshotUrl = screenshotUrl
             )
             res.onSuccess { msg ->
                 _userMessage.value = msg
             }.onFailure { err ->
                 _userMessage.value = err.message ?: "فشل إرسال المراجعة"
+            }
+        }
+    }
+
+    fun syncOfflinePendingData(showToast: Boolean = true) {
+        viewModelScope.launch {
+            val res = repository.syncOfflinePendingData()
+            res.onSuccess { (uploaded, fetched) ->
+                if (showToast) {
+                    if (uploaded > 0 || fetched > 0) {
+                        _userMessage.value = "تمت المزامنة السحابية بنجاح ☁️: تم رفع $uploaded واستلام $fetched تقييم جديد."
+                    } else {
+                        _userMessage.value = "جميع الفحوصات والملاحظات متزامنة مع السحاب بالفعل ✓"
+                    }
+                }
+            }.onFailure { err ->
+                if (showToast) {
+                    _userMessage.value = "تعذر إتمام المزامنة السحابية: ${err.message}"
+                }
             }
         }
     }

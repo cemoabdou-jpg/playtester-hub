@@ -18,11 +18,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.FactCheck
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.NotificationAdd
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Verified
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -63,6 +68,7 @@ fun DailyTestLogsHistoryDialog(
 ) {
     val todayStr = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
     val todayLogsCount = logs.count { it.testDate == todayStr }
+    var previewScreenshotUrl by remember { mutableStateOf<String?>(null) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -294,12 +300,126 @@ fun DailyTestLogsHistoryDialog(
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
+
+                                    // Device & OS Telemetry Badge
+                                    if (log.deviceModel.isNotBlank() || log.androidVersion.isNotBlank()) {
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = CyanAccent.copy(alpha = 0.1f)
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Icon(Icons.Default.PhoneAndroid, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(12.dp))
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text(
+                                                        text = "${log.deviceModel} • ${log.androidVersion}".trim().removePrefix("•").removeSuffix("•").trim(),
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontSize = 10.sp,
+                                                        color = CyanAccent,
+                                                        fontWeight = FontWeight.Medium
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Proof Screenshot thumbnail (if provided)
+                                    if (log.proofScreenshotUrl.isNotBlank()) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                            border = BorderStroke(1.dp, PlayGreen.copy(alpha = 0.35f)),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable { previewScreenshotUrl = log.proofScreenshotUrl }
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(6.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(40.dp)
+                                                        .clip(RoundedCornerShape(6.dp))
+                                                        .background(MaterialTheme.colorScheme.surface)
+                                                ) {
+                                                    AppIconImage(
+                                                        iconUrl = log.proofScreenshotUrl,
+                                                        appName = log.appName,
+                                                        packageName = log.packageName,
+                                                        size = 40.dp,
+                                                        shape = RoundedCornerShape(6.dp)
+                                                    )
+                                                }
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = "لقطة شاشة إثبات الفحص 📸",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = PlayGreen
+                                                    )
+                                                    Text(
+                                                        text = "اضغط لعرض وتكبير الصورة المرفقة",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        fontSize = 10.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
+        }
+
+        // Full Screen Screenshot Preview Dialog
+        previewScreenshotUrl?.let { url ->
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { previewScreenshotUrl = null },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Verified, contentDescription = null, tint = PlayGreen)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("معاينة لقطة شاشة إثبات الفحص 📸")
+                    }
+                },
+                text = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(350.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AppIconImage(
+                            iconUrl = url,
+                            appName = app.name,
+                            packageName = app.packageName,
+                            size = 350.dp,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = { previewScreenshotUrl = null }) {
+                        Text("إغلاق")
+                    }
+                }
+            )
         }
     }
 }

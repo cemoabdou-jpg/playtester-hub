@@ -36,7 +36,7 @@ import kotlinx.coroutines.launch
         AppSetting::class,
         AppTesterActivity::class
     ],
-    version = 12,
+    version = 14,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

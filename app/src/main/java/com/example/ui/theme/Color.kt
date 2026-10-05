@@ -2,55 +2,66 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Soothing Eye-Friendly Emerald Teal & Slate Palette (مريحة للعين وهادئة)
-val CrimsonRed = Color(0xFF0D9488)         // Soothing Teal Primary
-val CrimsonRedLight = Color(0xFF14B8A6)    // Soft Bright Teal Accent
-val CrimsonRedDark = Color(0xFF0F766E)     // Deep Forest Teal
+// =========================================================================
+// Soothing Eye-Friendly Material 3 Color Palette (ألوان هادئة ومريحة للعين)
+// =========================================================================
 
-val PlayGreen = Color(0xFF0D9488)          // Soothing Emerald Teal Primary
-val PlayGreenLight = Color(0xFF2DD4BF)     // Soft Mint Teal
-val PlayGreenDark = Color(0xFF115E59)      // Deep Jade
+// Primary Brand Colors (Calm Indigo / Royal Blue - مريح وموثوق)
+val BrandBluePrimary = Color(0xFF2563EB)       // Soothing Royal Blue
+val BrandBlueLight = Color(0xFF60A5FA)         // Soft Sky Blue Accent
+val BrandBlueDark = Color(0xFF1D4ED8)          // Deep Navy Accent
 
-val SlateGray = Color(0xFF64748B)          // Cool Slate Gray
-val SlateGrayLight = Color(0xFF94A3B8)     // Soft Light Slate
-val SilverAccent = Color(0xFF38BDF8)       // Soothing Sky Blue Accent
+// Compatibility aliases for existing components
+val PlayGreen = Color(0xFF2563EB)              // Harmonious Calm Blue
+val PlayGreenLight = Color(0xFF60A5FA)         // Soft Accent Sky Blue
+val PlayGreenDark = Color(0xFF1D4ED8)          // Deep Indigo Slate
 
-val CyanAccent = Color(0xFF06B6D4)         // Soothing Cyan
-val CyanAccentLight = Color(0xFF22D3EE)
+val CrimsonRed = Color(0xFF2563EB)             // Calm Primary
+val CrimsonRedLight = Color(0xFF3B82F6)        // Soft Primary Accent
+val CrimsonRedDark = Color(0xFF1E40AF)         // Deep Slate Blue
 
-val IndigoAccent = Color(0xFF6366F1)       // Soft Indigo
-val AmberGold = Color(0xFFF59E0B)          // Warm Soft Amber
-val AmberGoldLight = Color(0xFFFCD34D)
+// Refined Neutral & Secondary Accents
+val SlateGray = Color(0xFF64748B)              // Gentle Muted Slate
+val SlateGrayLight = Color(0xFF94A3B8)         // Soft Light Slate
+val SilverAccent = Color(0xFF38BDF8)           // Soft Sky Blue
 
-// Dark Theme Surfaces (Soothing Midnight Slate & Slate Blue)
-val DarkNavyBg = Color(0xFF0F172A)         // Soothing Deep Slate Dark Background
-val DarkNavySurface = Color(0xFF1E293B)    // Soft Charcoal Slate Surface
-val DarkNavyCard = Color(0xFF334155)       // Elevated Card Surface
-val DarkNavyBorder = Color(0xFF475569)     // Soft Border
+val CyanAccent = Color(0xFF0284C7)             // Deep Oceanic Blue (gentle, no neon glare)
+val CyanAccentLight = Color(0xFF38BDF8)        // Soft Pastel Cyan
 
-// Light Theme Surfaces (Crisp Off-White Slate & Soft Cards)
-val LightBg = Color(0xFFF8FAFC)            // Soothing Off-White Slate Background
-val LightSurface = Color(0xFFFFFFFF)       // Crisp White Surface
-val LightCard = Color(0xFFF1F5F9)          // Soft Card Fill
-val LightBorder = Color(0xFFE2E8F0)        // Soft Border
+val IndigoAccent = Color(0xFF4F46E5)           // Soft Indigo
+val AmberGold = Color(0xFFD97706)              // Warm Muted Honey Amber (not screaming orange)
+val AmberGoldLight = Color(0xFFFBBF24)         // Soft Golden Accent
+
+// Dark Theme Surfaces (Soothing Midnight Slate - no harsh OLED white-on-black glare)
+val DarkNavyBg = Color(0xFF0F172A)             // Deep Restful Slate Midnight
+val DarkNavySurface = Color(0xFF1E293B)        // Soft Charcoal Slate Surface
+val DarkNavyCard = Color(0xFF27354A)           // Elevated Card Surface (gentle contrast)
+val DarkNavyBorder = Color(0xFF334155)         // Soft Muted Border
+
+// Light Theme Surfaces (Warm Clean Off-White & Soft Paper Cards)
+val LightBg = Color(0xFFF8FAFC)                // Soothing Off-White Slate Background
+val LightSurface = Color(0xFFFFFFFF)           // Crisp Clean White Surface
+val LightCard = Color(0xFFF1F5F9)              // Soft Muted Card Fill
+val LightBorder = Color(0xFFE2E8F0)            // Soft Subtle Border
 val LightBorderVariant = Color(0xFFCBD5E1)
 
-val TextPrimaryDark = Color(0xFFF8FAFC)    // Soft White Text
-val TextSecondaryDark = Color(0xFF94A3B8)  // Soft Slate Text
-val TextPrimaryLight = Color(0xFF0F172A)   // Deep Slate Text
-val TextSecondaryLight = Color(0xFF64748B) // Soft Slate Secondary Text
+// Typography Neutral Tones (High Readability without eye strain)
+val TextPrimaryDark = Color(0xFFF1F5F9)        // Soft Off-White (avoids harsh glare)
+val TextSecondaryDark = Color(0xFF94A3B8)      // Muted Slate Text
+val TextPrimaryLight = Color(0xFF0F172A)       // Deep Slate Dark Text
+val TextSecondaryLight = Color(0xFF64748B)     // Soft Slate Secondary Text
 
-val SuccessGreen = Color(0xFF10B981)       // Positive Emerald
-val WarningOrange = Color(0xFFF59E0B)      // Warm Amber
-val DangerRed = Color(0xFFF43F5E)          // Soft Rose Red
+// Semantic Status Indicators (Refined, not oversaturated)
+val SuccessGreen = Color(0xFF059669)           // Calm Forest Emerald
+val WarningOrange = Color(0xFFD97706)          // Warm Gentle Amber
+val DangerRed = Color(0xFFE11D48)              // Soft Muted Rose Red
 
-// Modern Gradient Tokens
-val EmeraldGradientStart = Color(0xFF0D9488)
-val EmeraldGradientEnd = Color(0xFF14B8A6)
-val AmberGradientStart = Color(0xFFF59E0B)
-val AmberGradientEnd = Color(0xFFFBBF24)
-val CyanGradientStart = Color(0xFF06B6D4)
+// Modern Gradient Tokens (Smooth & Gentle)
+val EmeraldGradientStart = Color(0xFF2563EB)
+val EmeraldGradientEnd = Color(0xFF3B82F6)
+val AmberGradientStart = Color(0xFFD97706)
+val AmberGradientEnd = Color(0xFFF59E0B)
+val CyanGradientStart = Color(0xFF0284C7)
 val CyanGradientEnd = Color(0xFF38BDF8)
-val IndigoGradientStart = Color(0xFF6366F1)
-val IndigoGradientEnd = Color(0xFF818CF8)
-
+val IndigoGradientStart = Color(0xFF4F46E5)
+val IndigoGradientEnd = Color(0xFF6366F1)

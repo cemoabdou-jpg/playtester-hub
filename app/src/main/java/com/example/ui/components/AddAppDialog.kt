@@ -84,7 +84,9 @@ import com.example.ui.util.AppLanguage
 import com.example.ui.util.L
 import com.example.ui.util.LocalAppLanguage
 import com.example.util.GooglePlayScraperHelper
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 @Composable
@@ -125,20 +127,27 @@ fun AddAppDialog(
     val clipboardManager = LocalClipboardManager.current
     var isGroupEmailCopied by remember { mutableStateOf(false) }
 
+    var isProcessingImage by remember { mutableStateOf(false) }
+
     // Standard zero-permission photo picker for app icon
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri: Uri? ->
             if (uri != null) {
-                try {
-                    val inputStream = context.contentResolver.openInputStream(uri)
-                    val outputFile = File(context.filesDir, "app_icon_${System.currentTimeMillis()}.png")
-                    outputFile.outputStream().use { out ->
-                        inputStream?.copyTo(out)
+                isProcessingImage = true
+                coroutineScope.launch(Dispatchers.IO) {
+                    try {
+                        val processed = AppIconProcessor.processPickedImage(context, uri, packageName)
+                        withContext(Dispatchers.Main) {
+                            iconUrl = processed
+                            isProcessingImage = false
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            iconUrl = uri.toString()
+                            isProcessingImage = false
+                        }
                     }
-                    iconUrl = outputFile.absolutePath
-                } catch (e: Exception) {
-                    iconUrl = uri.toString()
                 }
             }
         }
@@ -239,14 +248,18 @@ fun AddAppDialog(
                                     .testTag("btn_pick_app_icon"),
                                 contentAlignment = Alignment.Center
                             ) {
-                                if (iconUrl.isNotBlank()) {
-                                    AsyncImage(
-                                        model = if (iconUrl.startsWith("/")) File(iconUrl) else iconUrl,
-                                        contentDescription = if (isArabic) "أيقونة التطبيق" else "App Icon",
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .clip(RoundedCornerShape(10.dp)),
-                                        contentScale = ContentScale.Crop
+                                if (isProcessingImage) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 2.dp,
+                                        color = PlayGreen
+                                    )
+                                } else if (iconUrl.isNotBlank()) {
+                                    AppIconImage(
+                                        iconUrl = iconUrl,
+                                        appName = name.ifBlank { "App" },
+                                        size = 48.dp,
+                                        shape = RoundedCornerShape(10.dp)
                                     )
                                 } else {
                                     Icon(

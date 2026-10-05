@@ -16,8 +16,10 @@ data class TesterFeedback(
     val content: String,
     val deviceModel: String = "",
     val androidVersion: String = "",
+    val screenshotUrl: String = "",
     val developerReply: String? = null,
     val developerRepliedAt: Long? = null,
     val isVerifiedTester: Boolean = true,
+    val isSyncedToCloud: Boolean = false,
     val submittedAt: Long = System.currentTimeMillis()
 )

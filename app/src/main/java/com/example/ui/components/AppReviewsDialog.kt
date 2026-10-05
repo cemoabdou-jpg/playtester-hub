@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.RateReview
@@ -92,6 +93,7 @@ fun AppReviewsDialog(
     var selectedFilter by remember { mutableStateOf("ALL") } // "ALL", "5", "4", "3", "BUGS"
     var replyingToFeedbackId by remember { mutableStateOf<Int?>(null) }
     var replyText by remember { mutableStateOf("") }
+    var previewScreenshotUrl by remember { mutableStateOf<String?>(null) }
 
     val appReviews = remember(feedbacks, packageName) {
         if (packageName.isBlank()) feedbacks else feedbacks.filter { it.packageName == packageName }
@@ -360,12 +362,50 @@ fun AppReviewsDialog(
                                     replyingToFeedbackId = null
                                     replyText = ""
                                 },
-                                onDelete = { onDeleteReview(review.id) }
+                                onDelete = { onDeleteReview(review.id) },
+                                onPreviewScreenshot = { previewScreenshotUrl = it }
                             )
                         }
                     }
                 }
             }
+        }
+
+        // Full Screen Screenshot Preview Dialog
+        previewScreenshotUrl?.let { url ->
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { previewScreenshotUrl = null },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Image, contentDescription = null, tint = PlayGreen)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(if (isArabic) "معاينة إثبات الفحص 📸" else "Test Proof Screenshot 📸")
+                    }
+                },
+                text = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(350.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AppIconImage(
+                            iconUrl = url,
+                            appName = appName,
+                            packageName = packageName,
+                            size = 350.dp,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = { previewScreenshotUrl = null }) {
+                        Text(if (isArabic) "إغلاق" else "Close")
+                    }
+                }
+            )
         }
     }
 }
@@ -420,7 +460,8 @@ private fun ReviewItemCard(
     onStartReply: () -> Unit,
     onCancelReply: () -> Unit,
     onSubmitReply: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onPreviewScreenshot: (String) -> Unit = {}
 ) {
     val initial = review.testerName.firstOrNull()?.uppercase() ?: "T"
     val dateString = remember(review.submittedAt) { dateFormat.format(Date(review.submittedAt)) }
@@ -566,6 +607,59 @@ private fun ReviewItemCard(
                 color = MaterialTheme.colorScheme.onSurface,
                 lineHeight = 18.sp
             )
+
+            // Attached Proof Screenshot (if present)
+            if (review.screenshotUrl.isNotBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    border = BorderStroke(1.dp, PlayGreen.copy(alpha = 0.35f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onPreviewScreenshot(review.screenshotUrl) }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surface)
+                        ) {
+                            AppIconImage(
+                                iconUrl = review.screenshotUrl,
+                                appName = review.appName,
+                                packageName = review.packageName,
+                                size = 48.dp,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Image, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(13.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (isArabic) "إثبات فحص / لقطة شاشة مرفقة 📸" else "Attached Test Proof Screenshot 📸",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PlayGreen,
+                                    fontSize = 11.sp
+                                )
+                            }
+                            Text(
+                                text = if (isArabic) "اضغط هنا لتكبير ومعاينة الصورة بالحجم الكامل" else "Tap to enlarge and inspect proof",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
 
             // Developer Reply Box (if present)
             if (!review.developerReply.isNullOrBlank()) {

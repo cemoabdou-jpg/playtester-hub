@@ -37,6 +37,7 @@ class TesterRepository(private val dao: AppDao) {
     val unreadNotificationsCount: Flow<Int> = dao.getUnreadNotificationsCount()
     val allDailyTestLogs: Flow<List<DailyTestLog>> = dao.getAllDailyTestLogs()
     val allFeedback: Flow<List<TesterFeedback>> = dao.getAllFeedback()
+    val unsyncedItemsCount: Flow<Int> = dao.getUnsyncedCount()
     val allTesterActivities: Flow<List<com.example.data.model.AppTesterActivity>> = dao.getAllTesterActivities()
 
     val officialGoogleGroupUrl: Flow<String> = dao.getSettingFlow("official_google_group_url")
@@ -498,7 +499,8 @@ class TesterRepository(private val dao: AppDao) {
         test: JoinedTest,
         durationMinutes: Int = 10,
         rating: Int = 5,
-        notes: String = ""
+        notes: String = "",
+        proofScreenshotUrl: String = ""
     ): Result<String> {
         val today = dateFormat.format(Date())
         if (test.lastCheckInDate == today) {
@@ -523,7 +525,10 @@ class TesterRepository(private val dao: AppDao) {
         )
         dao.updateJoinedTest(updatedTest)
 
-        // Record official Daily Test Log entry for Google Play verification compliance
+        val device = "${android.os.Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${android.os.Build.MODEL}".trim()
+        val osVer = "Android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})"
+
+        // Record official Daily Test Log entry with proof screenshot and device telemetry
         val dailyLog = DailyTestLog(
             joinedTestId = test.id,
             appName = test.appName,
@@ -533,9 +538,19 @@ class TesterRepository(private val dao: AppDao) {
             durationMinutes = durationMinutes.coerceAtLeast(1),
             rating = rating.coerceIn(1, 5),
             notes = notes.ifBlank { "تم فتح التطبيق وتجربة الميزات الرئيسية بنجاح لمدة ${durationMinutes} دقائق." },
+            proofScreenshotUrl = proofScreenshotUrl,
+            deviceModel = device,
+            androidVersion = osVer,
+            isSyncedToCloud = false,
             verifiedAt = System.currentTimeMillis()
         )
-        dao.insertDailyTestLog(dailyLog)
+        val insertedLogId = dao.insertDailyTestLog(dailyLog)
+        try {
+            val syncRes = firestoreService.publishDailyLogToFirestore(dailyLog)
+            if (syncRes.isSuccess) {
+                dao.markDailyLogSynced(insertedLogId.toInt())
+            }
+        } catch (_: Exception) {}
 
         // Notify user of successful daily testing verification & push system alert
         addNotification(
@@ -583,7 +598,8 @@ class TesterRepository(private val dao: AppDao) {
         testerEmail: String = "tester@example.com",
         testerName: String = "",
         deviceModel: String = "",
-        androidVersion: String = ""
+        androidVersion: String = "",
+        screenshotUrl: String = ""
     ): Result<String> {
         if (content.isBlank()) {
             return Result.failure(Exception("يرجى كتابة ملاحظتك أو تقرير المشكلة أولاً"))
@@ -591,6 +607,13 @@ class TesterRepository(private val dao: AppDao) {
         val user = dao.getCurrentUserOnce()
         val authorName = testerName.ifBlank { user?.displayName?.ifBlank { null } ?: user?.email?.substringBefore("@") ?: "مختبر معتمد" }
         val authorEmail = testerEmail.ifBlank { user?.email ?: "tester@example.com" }
+
+        val dev = deviceModel.ifBlank {
+            "${android.os.Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${android.os.Build.MODEL}".trim()
+        }
+        val os = androidVersion.ifBlank {
+            "Android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})"
+        }
 
         val feedback = TesterFeedback(
             userAppId = test.communityAppId,
@@ -601,12 +624,20 @@ class TesterRepository(private val dao: AppDao) {
             rating = rating.coerceIn(1, 5),
             feedbackType = feedbackType,
             content = content.trim(),
-            deviceModel = deviceModel,
-            androidVersion = androidVersion,
+            deviceModel = dev,
+            androidVersion = os,
+            screenshotUrl = screenshotUrl,
             isVerifiedTester = true,
+            isSyncedToCloud = false,
             submittedAt = System.currentTimeMillis()
         )
-        dao.insertFeedback(feedback)
+        val insertedFeedbackId = dao.insertFeedback(feedback)
+        try {
+            val syncRes = firestoreService.publishFeedbackToFirestore(feedback)
+            if (syncRes.isSuccess) {
+                dao.markFeedbackSynced(insertedFeedbackId.toInt())
+            }
+        } catch (_: Exception) {}
         dao.updateJoinedTest(test.copy(feedbackSent = true))
 
         // Notify developer of new feedback & push alert
@@ -628,7 +659,8 @@ class TesterRepository(private val dao: AppDao) {
         rating: Int = 5,
         feedbackType: String = "FEEDBACK",
         deviceModel: String = "",
-        androidVersion: String = ""
+        androidVersion: String = "",
+        screenshotUrl: String = ""
     ): Result<String> {
         if (content.isBlank()) {
             return Result.failure(Exception("يرجى كتابة مراجعتك أو تقييمك أولاً"))
@@ -648,10 +680,18 @@ class TesterRepository(private val dao: AppDao) {
             content = content.trim(),
             deviceModel = deviceModel,
             androidVersion = androidVersion,
+            screenshotUrl = screenshotUrl,
             isVerifiedTester = isVerified,
+            isSyncedToCloud = false,
             submittedAt = System.currentTimeMillis()
         )
-        dao.insertFeedback(feedback)
+        val insertedId = dao.insertFeedback(feedback)
+        try {
+            val syncRes = firestoreService.publishFeedbackToFirestore(feedback)
+            if (syncRes.isSuccess) {
+                dao.markFeedbackSynced(insertedId.toInt())
+            }
+        } catch (_: Exception) {}
 
         addNotification(
             title = "⭐ مراجعة وتقييم جديد لتطبيق $appName",
@@ -1121,6 +1161,51 @@ class TesterRepository(private val dao: AppDao) {
         } else {
             val ex = res.exceptionOrNull() ?: Exception("فشل الاتصال بقاعدة بيانات التطبيقات السحابية")
             Result.failure(ex)
+        }
+    }
+
+    suspend fun syncOfflinePendingData(): Result<Pair<Int, Int>> {
+        var uploadedCount = 0
+        var fetchedCount = 0
+        return try {
+            firestoreService.ensureFirebaseAuth()
+            // 1. Upload pending unsynced daily logs
+            val unsyncedLogs = dao.getUnsyncedDailyLogs()
+            for (log in unsyncedLogs) {
+                val res = firestoreService.publishDailyLogToFirestore(log)
+                if (res.isSuccess) {
+                    dao.markDailyLogSynced(log.id)
+                    uploadedCount++
+                }
+            }
+
+            // 2. Upload pending unsynced feedback
+            val unsyncedFeedback = dao.getUnsyncedFeedback()
+            for (fb in unsyncedFeedback) {
+                val res = firestoreService.publishFeedbackToFirestore(fb)
+                if (res.isSuccess) {
+                    dao.markFeedbackSynced(fb.id)
+                    uploadedCount++
+                }
+            }
+
+            // 3. For developer's registered user apps, pull latest remote feedbacks and daily logs
+            val userApps = dao.getAllUserAppsOnce()
+            for (app in userApps) {
+                val remoteFbs = firestoreService.fetchFeedbackForPackage(app.packageName).getOrDefault(emptyList())
+                if (remoteFbs.isNotEmpty()) {
+                    dao.insertFeedbacks(remoteFbs)
+                    fetchedCount += remoteFbs.size
+                }
+                val remoteLogs = firestoreService.fetchDailyLogsForPackage(app.packageName).getOrDefault(emptyList())
+                if (remoteLogs.isNotEmpty()) {
+                    dao.insertDailyTestLogs(remoteLogs)
+                    fetchedCount += remoteLogs.size
+                }
+            }
+            Result.success(Pair(uploadedCount, fetchedCount))
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 

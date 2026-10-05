@@ -80,8 +80,8 @@ fun MyTestingScreen(
     joinedTests: List<JoinedTest>,
     currentStreak: Int = 0,
     onCheckIn: (JoinedTest) -> Unit = {},
-    onConfirmDailyTest: ((JoinedTest, Int, Int, String) -> Unit)? = null,
-    onSendFeedback: (test: JoinedTest, content: String, rating: Int, type: String, devModel: String, androidVer: String) -> Unit,
+    onConfirmDailyTest: ((JoinedTest, Int, Int, String, String) -> Unit)? = null,
+    onSendFeedback: (test: JoinedTest, content: String, rating: Int, type: String, devModel: String, androidVer: String, screenshotUrl: String) -> Unit,
     onDeleteTest: (Int) -> Unit,
     onNavigateToCommunity: () -> Unit,
     onRecordAppOpened: (packageName: String, appName: String) -> Unit = { _, _ -> },
@@ -346,9 +346,9 @@ fun MyTestingScreen(
         DailyTestConfirmationDialog(
             test = test,
             onDismiss = { selectedTestForDailyConfirmation = null },
-            onConfirm = { durationMinutes, rating, notes ->
+            onConfirm = { durationMinutes, rating, notes, proofScreenshotUrl ->
                 if (onConfirmDailyTest != null) {
-                    onConfirmDailyTest(test, durationMinutes, rating, notes)
+                    onConfirmDailyTest(test, durationMinutes, rating, notes, proofScreenshotUrl)
                 } else {
                     onCheckIn(test)
                 }
@@ -362,8 +362,8 @@ fun MyTestingScreen(
         FeedbackDialog(
             test = test,
             onDismiss = { selectedTestForFeedback = null },
-            onSubmitFeedback = { content, rating, type, devModel, androidVer ->
-                onSendFeedback(test, content, rating, type, devModel, androidVer)
+            onSubmitFeedback = { content, rating, type, devModel, androidVer, screenshotUrl ->
+                onSendFeedback(test, content, rating, type, devModel, androidVer, screenshotUrl)
                 selectedTestForFeedback = null
             }
         )

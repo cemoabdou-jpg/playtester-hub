@@ -8,16 +8,25 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.Security
@@ -31,6 +40,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -40,6 +50,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -48,6 +59,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.model.BadgeCalculator
 import com.example.data.model.InvitedTester
@@ -75,6 +87,7 @@ import com.example.ui.screens.MyAppsScreen
 import com.example.ui.screens.MyTestingScreen
 import com.example.ui.screens.OnboardingScreen
 import com.example.ui.screens.ProfileSettingsScreen
+import com.example.ui.theme.AppColorTheme
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.theme.PlayGreen
 import com.example.ui.theme.ThemeMode
@@ -96,15 +109,17 @@ class MainActivity : ComponentActivity() {
         FcmService.initializeFcm(applicationContext)
         setContent {
             val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+            val colorTheme by viewModel.colorTheme.collectAsStateWithLifecycle()
             val isDarkTheme = when (themeMode) {
                 ThemeMode.DARK -> true
                 ThemeMode.LIGHT -> false
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
             }
-            MyApplicationTheme(darkTheme = isDarkTheme) {
+            MyApplicationTheme(darkTheme = isDarkTheme, colorTheme = colorTheme) {
                 PlayTesterApp(
                     viewModel = viewModel,
                     themeMode = themeMode,
+                    colorTheme = colorTheme,
                     isDarkTheme = isDarkTheme
                 )
             }
@@ -116,6 +131,7 @@ class MainActivity : ComponentActivity() {
 fun PlayTesterApp(
     viewModel: TesterViewModel,
     themeMode: ThemeMode = ThemeMode.SYSTEM,
+    colorTheme: AppColorTheme = AppColorTheme.CALM_BLUE,
     isDarkTheme: Boolean = false
 ) {
     val context = LocalContext.current
@@ -124,7 +140,6 @@ fun PlayTesterApp(
     var showNotificationsDialog by remember { mutableStateOf(false) }
     var showBadgesDialog by remember { mutableStateOf(false) }
     var showPointsCenterDialog by remember { mutableStateOf(false) }
-    var showOnboardingExplicitly by remember { mutableStateOf(false) }
     var quickInviteApp by remember { mutableStateOf<UserApp?>(null) }
     var selectedTestForDailyConfirmation by remember { mutableStateOf<JoinedTest?>(null) }
     var testerForTip by remember { mutableStateOf<InvitedTester?>(null) }
@@ -164,6 +179,7 @@ fun PlayTesterApp(
     val showUpdateDialog by viewModel.showUpdateDialog.collectAsStateWithLifecycle()
     val isSyncingApps by viewModel.isSyncingApps.collectAsStateWithLifecycle()
     val syncStatusMessage by viewModel.syncStatusMessage.collectAsStateWithLifecycle()
+    val unsyncedItemsCount by viewModel.unsyncedItemsCount.collectAsStateWithLifecycle()
     val cloudDiagnostic by viewModel.cloudDiagnostic.collectAsStateWithLifecycle()
     val isDiagnosingCloud by viewModel.isDiagnosingCloud.collectAsStateWithLifecycle()
     val isUploadingLocalApps by viewModel.isUploadingLocalApps.collectAsStateWithLifecycle()
@@ -186,6 +202,7 @@ fun PlayTesterApp(
             FcmService.initializeFcm(context)
             viewModel.checkForAppUpdate(context)
             viewModel.syncRemoteAppsNow(showFeedbackToast = false)
+            viewModel.syncOfflinePendingData(showToast = false)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 if (androidx.core.content.ContextCompat.checkSelfPermission(
                         context,
@@ -228,17 +245,6 @@ fun PlayTesterApp(
             return@CompositionLocalProvider
         }
 
-        // If onboarding is not completed or user explicitly reopened it, show OnboardingScreen
-        if (!isOnboardingCompleted || showOnboardingExplicitly) {
-            OnboardingScreen(
-                onFinishOnboarding = {
-                    viewModel.setOnboardingCompleted(true)
-                    showOnboardingExplicitly = false
-                }
-            )
-            return@CompositionLocalProvider
-        }
-
         Scaffold(
             modifier = Modifier
                 .fillMaxSize()
@@ -257,7 +263,6 @@ fun PlayTesterApp(
                     onBadgesClick = { showBadgesDialog = true },
                     onPointsClick = { showPointsCenterDialog = true },
                     onProfileClick = { currentTab = 4 },
-                    onOpenOnboarding = { showOnboardingExplicitly = true },
                     onToggleSimplifiedMode = { viewModel.toggleSimplifiedMode() },
                     onUpgradeGuestClick = { showUpgradeGuestDialog = true },
                     onLogout = { viewModel.logout() }
@@ -400,6 +405,37 @@ fun PlayTesterApp(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            // Offline-First Cache Sync Banner (if there are unsynced offline checks/feedbacks)
+            if (unsyncedItemsCount > 0) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = PlayGreen.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, PlayGreen.copy(alpha = 0.4f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .clickable { viewModel.syncOfflinePendingData(showToast = true) }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.CloudSync, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "💾 لديك $unsyncedItemsCount فحص مسجل دون اتصال - اضغط للمزامنة ☁️",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = PlayGreen,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Text("مزامنة الآن", fontSize = 10.sp, color = PlayGreen, fontWeight = FontWeight.ExtraBold)
+                    }
+                }
+            }
+
             // Screen facilitation: In simplified mode, show the quick action hub on the main market screen
             if (isSimplifiedMode && currentTab == 0) {
                 SimplifiedDashboardCard(
@@ -452,8 +488,8 @@ fun PlayTesterApp(
                         onReplyToReview = { feedbackId, replyText ->
                             viewModel.replyToFeedback(feedbackId, replyText)
                         },
-                        onSubmitReview = { pkg, name, content, rating, type, devModel, androidVer ->
-                            viewModel.submitAppReview(pkg, name, content, rating, type, devModel, androidVer)
+                        onSubmitReview = { pkg, name, content, rating, type, devModel, androidVer, screenshotUrl ->
+                            viewModel.submitAppReview(pkg, name, content, rating, type, devModel, androidVer, screenshotUrl)
                         },
                         onRecordAppOpened = { pkg, name -> viewModel.recordAppOpened(pkg, name) }
                     )
@@ -461,11 +497,11 @@ fun PlayTesterApp(
                         joinedTests = joinedTests,
                         currentStreak = wallet.currentStreak,
                         onCheckIn = { viewModel.checkIn(it) },
-                        onConfirmDailyTest = { test, duration, rating, notes ->
-                            viewModel.confirmDailyTest(test, duration, rating, notes)
+                        onConfirmDailyTest = { test, duration, rating, notes, proofUrl ->
+                            viewModel.confirmDailyTest(test, duration, rating, notes, proofUrl)
                         },
-                        onSendFeedback = { test, content, rating, type, devModel, androidVer ->
-                            viewModel.sendFeedback(test, content, rating, type, devModel, androidVer)
+                        onSendFeedback = { test, content, rating, type, devModel, androidVer, screenshotUrl ->
+                            viewModel.sendFeedback(test, content, rating, type, devModel, androidVer, screenshotUrl)
                         },
                         onDeleteTest = { viewModel.deleteJoinedTest(it) },
                         onNavigateToCommunity = { currentTab = 0 },
@@ -512,9 +548,7 @@ fun PlayTesterApp(
                             viewModel.deleteFeedback(feedbackId)
                         }
                     )
-                    3 -> GuideScreen(
-                        onOpenOnboarding = { showOnboardingExplicitly = true }
-                    )
+                    3 -> GuideScreen()
                     4 -> ProfileSettingsScreen(
                         currentUser = currentUser,
                         wallet = wallet,
@@ -524,9 +558,11 @@ fun PlayTesterApp(
                         hapticEnabled = hapticEnabled,
                         isSimplifiedMode = isSimplifiedMode,
                         themeMode = themeMode,
+                        colorTheme = colorTheme,
                         language = language,
                         onLanguageChange = { viewModel.setLanguage(it) },
                         onThemeModeChange = { viewModel.setThemeMode(it) },
+                        onColorThemeChange = { viewModel.setColorTheme(it) },
                         onUpdateProfile = { viewModel.updateProfile(it) },
                         onChangePassword = { oldPass, newPass ->
                             viewModel.changePassword(oldPass, newPass)
@@ -535,7 +571,6 @@ fun PlayTesterApp(
                             viewModel.updatePreferences(device, androidVer, reminder, haptic)
                         },
                         onToggleSimplifiedMode = { viewModel.toggleSimplifiedMode() },
-                        onOpenOnboarding = { showOnboardingExplicitly = true },
                         onOpenBadges = { showBadgesDialog = true },
                         onOpenPointsCenter = { showPointsCenterDialog = true },
                         onUpgradeGuestClick = { showUpgradeGuestDialog = true },
@@ -704,8 +739,8 @@ fun PlayTesterApp(
         DailyTestConfirmationDialog(
             test = test,
             onDismiss = { selectedTestForDailyConfirmation = null },
-            onConfirm = { durationMinutes, rating, notes ->
-                viewModel.confirmDailyTest(test, durationMinutes, rating, notes)
+            onConfirm = { durationMinutes, rating, notes, proofScreenshotUrl ->
+                viewModel.confirmDailyTest(test, durationMinutes, rating, notes, proofScreenshotUrl)
                 selectedTestForDailyConfirmation = null
             }
         )

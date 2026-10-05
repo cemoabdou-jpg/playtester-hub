@@ -140,23 +140,13 @@ fun TesterCard(
                     contentAlignment = Alignment.Center
                 ) {
                     val displayIcon = effectiveIconUrl.ifBlank { app.iconUrl }
-                    if (displayIcon.isNotBlank()) {
-                        AsyncImage(
-                            model = if (displayIcon.startsWith("/")) File(displayIcon) else displayIcon,
-                            contentDescription = "${app.name} icon",
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(12.dp)),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Text(
-                            text = app.name.take(2).uppercase(),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = PlayGreen
-                        )
-                    }
+                    AppIconImage(
+                        iconUrl = displayIcon,
+                        appName = app.name,
+                        packageName = app.packageName,
+                        size = 48.dp,
+                        shape = RoundedCornerShape(12.dp)
+                    )
 
                     // Little play overlay indicator
                     Surface(

@@ -3,6 +3,8 @@ package com.example.data.remote
 import android.util.Log
 import com.example.data.model.CloudDiagnosticResult
 import com.example.data.model.CommunityApp
+import com.example.data.model.DailyTestLog
+import com.example.data.model.TesterFeedback
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
@@ -275,6 +277,140 @@ class FirestoreService {
                 .await()
         } catch (e: Exception) {
             Log.e("FirestoreService", "Error updating testers count: ${e.message}")
+        }
+    }
+
+    suspend fun publishDailyLogToFirestore(log: DailyTestLog): Result<Boolean> {
+        val db = getFirestore() ?: return Result.failure(Exception("Firestore غير متوفر"))
+        return try {
+            ensureFirebaseAuth()
+            val data = hashMapOf(
+                "packageName" to log.packageName,
+                "appName" to log.appName,
+                "dayNumber" to log.dayNumber,
+                "testDate" to log.testDate,
+                "durationMinutes" to log.durationMinutes,
+                "rating" to log.rating,
+                "notes" to log.notes,
+                "proofScreenshotUrl" to log.proofScreenshotUrl,
+                "deviceModel" to log.deviceModel,
+                "androidVersion" to log.androidVersion,
+                "verifiedAt" to log.verifiedAt
+            )
+            val docId = "${log.packageName}_${log.testDate}_${log.dayNumber}_${log.verifiedAt}"
+            db.collection("daily_test_logs").document(docId).set(data).await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Log.w("FirestoreService", "Error publishing daily log: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    suspend fun fetchDailyLogsForPackage(packageName: String): Result<List<DailyTestLog>> {
+        val db = getFirestore() ?: return Result.failure(Exception("Firestore غير متوفر"))
+        return try {
+            ensureFirebaseAuth()
+            val snapshot = db.collection("daily_test_logs")
+                .whereEqualTo("packageName", packageName)
+                .limit(100)
+                .get()
+                .await()
+            val logs = snapshot.documents.mapNotNull { doc ->
+                try {
+                    DailyTestLog(
+                        id = 0,
+                        joinedTestId = 0,
+                        appName = doc.getString("appName") ?: "",
+                        packageName = doc.getString("packageName") ?: packageName,
+                        dayNumber = (doc.getLong("dayNumber") ?: 1L).toInt(),
+                        testDate = doc.getString("testDate") ?: "",
+                        durationMinutes = (doc.getLong("durationMinutes") ?: 10L).toInt(),
+                        rating = (doc.getLong("rating") ?: 5L).toInt(),
+                        notes = doc.getString("notes") ?: "",
+                        proofScreenshotUrl = doc.getString("proofScreenshotUrl") ?: "",
+                        deviceModel = doc.getString("deviceModel") ?: "",
+                        androidVersion = doc.getString("androidVersion") ?: "",
+                        isSyncedToCloud = true,
+                        verifiedAt = doc.getLong("verifiedAt") ?: System.currentTimeMillis()
+                    )
+                } catch (e: Exception) {
+                    null
+                }
+            }.sortedByDescending { it.verifiedAt }
+            Result.success(logs)
+        } catch (e: Exception) {
+            Log.w("FirestoreService", "Error fetching daily logs: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    suspend fun publishFeedbackToFirestore(feedback: TesterFeedback): Result<Boolean> {
+        val db = getFirestore() ?: return Result.failure(Exception("Firestore غير متوفر"))
+        return try {
+            ensureFirebaseAuth()
+            val data = hashMapOf(
+                "packageName" to feedback.packageName,
+                "appName" to feedback.appName,
+                "testerName" to feedback.testerName,
+                "testerEmail" to feedback.testerEmail,
+                "rating" to feedback.rating,
+                "feedbackType" to feedback.feedbackType,
+                "content" to feedback.content,
+                "deviceModel" to feedback.deviceModel,
+                "androidVersion" to feedback.androidVersion,
+                "screenshotUrl" to feedback.screenshotUrl,
+                "developerReply" to feedback.developerReply,
+                "developerRepliedAt" to feedback.developerRepliedAt,
+                "isVerifiedTester" to feedback.isVerifiedTester,
+                "submittedAt" to feedback.submittedAt
+            )
+            val docId = "${feedback.packageName}_${feedback.submittedAt}"
+            db.collection("tester_feedback").document(docId).set(data).await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Log.w("FirestoreService", "Error publishing feedback: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    suspend fun fetchFeedbackForPackage(packageName: String): Result<List<TesterFeedback>> {
+        val db = getFirestore() ?: return Result.failure(Exception("Firestore غير متوفر"))
+        return try {
+            ensureFirebaseAuth()
+            val snapshot = db.collection("tester_feedback")
+                .whereEqualTo("packageName", packageName)
+                .limit(100)
+                .get()
+                .await()
+            val list = snapshot.documents.mapNotNull { doc ->
+                try {
+                    TesterFeedback(
+                        id = 0,
+                        userAppId = 0,
+                        packageName = doc.getString("packageName") ?: packageName,
+                        appName = doc.getString("appName") ?: "",
+                        testerName = doc.getString("testerName") ?: "مختبر معتمد",
+                        testerEmail = doc.getString("testerEmail") ?: "",
+                        rating = (doc.getLong("rating") ?: 5L).toInt(),
+                        feedbackType = doc.getString("feedbackType") ?: "FEEDBACK",
+                        content = doc.getString("content") ?: "",
+                        deviceModel = doc.getString("deviceModel") ?: "",
+                        androidVersion = doc.getString("androidVersion") ?: "",
+                        screenshotUrl = doc.getString("screenshotUrl") ?: "",
+                        developerReply = doc.getString("developerReply"),
+                        developerRepliedAt = doc.getLong("developerRepliedAt"),
+                        isVerifiedTester = doc.getBoolean("isVerifiedTester") ?: true,
+                        isSyncedToCloud = true,
+                        submittedAt = doc.getLong("submittedAt") ?: System.currentTimeMillis()
+                    )
+                } catch (e: Exception) {
+                    null
+                }
+            }.sortedByDescending { it.submittedAt }
+            Result.success(list)
+        } catch (e: Exception) {
+            Log.w("FirestoreService", "Error fetching feedback: ${e.message}")
+            Result.failure(e)
         }
     }
 

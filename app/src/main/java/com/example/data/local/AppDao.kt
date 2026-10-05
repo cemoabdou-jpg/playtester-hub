@@ -208,6 +208,12 @@ interface AppDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDailyTestLog(log: DailyTestLog): Long
 
+    @Query("SELECT * FROM daily_test_logs WHERE isSyncedToCloud = 0")
+    suspend fun getUnsyncedDailyLogs(): List<DailyTestLog>
+
+    @Query("UPDATE daily_test_logs SET isSyncedToCloud = 1 WHERE id = :id")
+    suspend fun markDailyLogSynced(id: Int)
+
     @Query("SELECT * FROM daily_test_logs WHERE joinedTestId = :joinedTestId ORDER BY dayNumber ASC")
     fun getLogsForJoinedTest(joinedTestId: Int): Flow<List<DailyTestLog>>
 
@@ -223,6 +229,15 @@ interface AppDao {
     // Tester Feedback & Bug Reports
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFeedback(feedback: TesterFeedback): Long
+
+    @Query("SELECT * FROM tester_feedback WHERE isSyncedToCloud = 0")
+    suspend fun getUnsyncedFeedback(): List<TesterFeedback>
+
+    @Query("UPDATE tester_feedback SET isSyncedToCloud = 1 WHERE id = :id")
+    suspend fun markFeedbackSynced(id: Int)
+
+    @Query("SELECT (SELECT COUNT(*) FROM daily_test_logs WHERE isSyncedToCloud = 0) + (SELECT COUNT(*) FROM tester_feedback WHERE isSyncedToCloud = 0)")
+    fun getUnsyncedCount(): Flow<Int>
 
     @Query("SELECT * FROM tester_feedback ORDER BY submittedAt DESC")
     fun getAllFeedback(): Flow<List<TesterFeedback>>

@@ -1,12 +1,17 @@
 package com.example.ui.components
 
+import android.net.Uri
 import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,9 +25,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
@@ -31,9 +40,11 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -44,11 +55,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -60,6 +73,9 @@ import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
 import com.example.ui.util.AppLanguage
 import com.example.ui.util.LocalAppLanguage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun FeedbackDialog(
@@ -67,15 +83,48 @@ fun FeedbackDialog(
     appName: String = test?.appName ?: "",
     packageName: String = test?.packageName ?: "",
     onDismiss: () -> Unit,
-    onSubmitFeedback: (content: String, rating: Int, feedbackType: String, deviceModel: String, androidVersion: String) -> Unit
+    onSubmitFeedback: (content: String, rating: Int, feedbackType: String, deviceModel: String, androidVersion: String, screenshotUrl: String) -> Unit
 ) {
     val language = LocalAppLanguage.current
     val isArabic = language == AppLanguage.AR
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     var feedbackText by remember { mutableStateOf("") }
     var rating by remember { mutableIntStateOf(5) }
     var feedbackType by remember { mutableStateOf("FEEDBACK") } // "FEEDBACK", "BUG_REPORT", "UI_UX", "PERFORMANCE"
     var attachDeviceSpecs by remember { mutableStateOf(true) }
+
+    var screenshotUrl by remember { mutableStateOf("") }
+    var isProcessingScreenshot by remember { mutableStateOf(false) }
+
+    // Standard zero-permission photo picker for attaching proof screenshot or bug report image
+    val screenshotPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri: Uri? ->
+            if (uri != null) {
+                isProcessingScreenshot = true
+                coroutineScope.launch(Dispatchers.IO) {
+                    try {
+                        val processed = AppIconProcessor.processPickedImage(
+                            context,
+                            uri,
+                            packageName.ifBlank { "tester_proof" }
+                        )
+                        withContext(Dispatchers.Main) {
+                            screenshotUrl = processed
+                            isProcessingScreenshot = false
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            screenshotUrl = uri.toString()
+                            isProcessingScreenshot = false
+                        }
+                    }
+                }
+            }
+        }
+    )
 
     val deviceModelName = remember {
         "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL}"
@@ -325,6 +374,152 @@ fun FeedbackDialog(
                     maxLines = 5
                 )
 
+                // Tester Proof Screenshot Attachment
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    border = BorderStroke(1.dp, if (screenshotUrl.isNotBlank()) PlayGreen else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(10.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.AddPhotoAlternate,
+                                    contentDescription = null,
+                                    tint = if (screenshotUrl.isNotBlank()) PlayGreen else CyanAccent,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = if (isArabic) "إرفاق لقطة شاشة كإثبات فحص 📸" else "Attach Proof Screenshot 📸",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            if (screenshotUrl.isNotBlank()) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = PlayGreen.copy(alpha = 0.15f)
+                                ) {
+                                    Text(
+                                        text = if (isArabic) "مرفق ✓" else "Attached ✓",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontSize = 10.sp,
+                                        color = PlayGreen,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = if (isArabic)
+                                "إرفاق لقطة شاشة من شاشات التطبيق أو صورة العطل يعزز مصداقية الاختبار أمام مراجعي Google Play."
+                            else
+                                "Attaching an in-app screenshot or bug proof boosts credibility for Google Play reviewers.",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        if (screenshotUrl.isNotBlank()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(64.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .clickable {
+                                            screenshotPickerLauncher.launch(
+                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                            )
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    AppIconImage(
+                                        iconUrl = screenshotUrl,
+                                        appName = appName,
+                                        packageName = packageName,
+                                        size = 64.dp,
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                }
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = if (isArabic) "تم اختيار لقطة الشاشة بنجاح" else "Screenshot ready",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = PlayGreen
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        OutlinedButton(
+                                            onClick = {
+                                                screenshotPickerLauncher.launch(
+                                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                                )
+                                            },
+                                            modifier = Modifier.height(28.dp),
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                                        ) {
+                                            Text(if (isArabic) "تغيير" else "Change", fontSize = 10.sp)
+                                        }
+                                        OutlinedButton(
+                                            onClick = { screenshotUrl = "" },
+                                            modifier = Modifier.height(28.dp),
+                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed),
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                                        ) {
+                                            Text(if (isArabic) "حذف" else "Remove", fontSize = 10.sp)
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            OutlinedButton(
+                                onClick = {
+                                    screenshotPickerLauncher.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    )
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("attach_screenshot_btn"),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                if (isProcessingScreenshot) {
+                                    CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(if (isArabic) "جاري معالجة الصورة..." else "Processing image...", fontSize = 11.sp)
+                                } else {
+                                    Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = if (isArabic) "اختيار لقطة شاشة من الاستوديو 📸" else "Pick Screenshot from Gallery 📸",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Device Specs Snapshot Checkbox
                 Surface(
                     shape = RoundedCornerShape(8.dp),
@@ -371,7 +566,7 @@ fun FeedbackDialog(
                     }
                     val devModel = if (attachDeviceSpecs) deviceModelName else ""
                     val androidVer = if (attachDeviceSpecs) androidVersionName else ""
-                    onSubmitFeedback(finalContent, rating, feedbackType, devModel, androidVer)
+                    onSubmitFeedback(finalContent, rating, feedbackType, devModel, androidVer, screenshotUrl)
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
                 modifier = Modifier.testTag("submit_feedback_btn")

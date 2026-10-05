@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -27,10 +30,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
@@ -46,6 +53,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -63,6 +71,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -86,13 +95,16 @@ import com.example.ui.theme.PlayGreen
 import com.example.ui.theme.SuccessGreen
 import com.example.ui.util.AppLanguage
 import com.example.ui.util.LocalAppLanguage
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun DailyTestConfirmationDialog(
     test: JoinedTest,
-    onConfirm: (durationMinutes: Int, rating: Int, notes: String) -> Unit,
+    onConfirm: (durationMinutes: Int, rating: Int, notes: String, proofScreenshotUrl: String) -> Unit,
     onDismiss: () -> Unit
 ) {
     val language = LocalAppLanguage.current
@@ -125,6 +137,33 @@ fun DailyTestConfirmationDialog(
     var isTimerCompleted by remember { mutableStateOf(false) }
     var hasConfirmedTesting by remember { mutableStateOf(false) }
     var installErrorMessage by remember { mutableStateOf<String?>(null) }
+
+    val coroutineScope = rememberCoroutineScope()
+    var proofScreenshotUrl by remember { mutableStateOf("") }
+    var isProcessingScreenshot by remember { mutableStateOf(false) }
+
+    val screenshotPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri: Uri? ->
+            if (uri != null) {
+                isProcessingScreenshot = true
+                coroutineScope.launch(Dispatchers.IO) {
+                    try {
+                        val processed = AppIconProcessor.processPickedImage(context, uri, test.packageName)
+                        withContext(Dispatchers.Main) {
+                            proofScreenshotUrl = processed
+                            isProcessingScreenshot = false
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            proofScreenshotUrl = uri.toString()
+                            isProcessingScreenshot = false
+                        }
+                    }
+                }
+            }
+        }
+    )
 
     fun refreshInstallStatus(): Boolean {
         val installed = try {
@@ -815,6 +854,142 @@ fun DailyTestConfirmationDialog(
                     shape = RoundedCornerShape(12.dp)
                 )
 
+                // --- Screenshot Proof Card (Verified Tester Proof for Google Play) ---
+                Spacer(modifier = Modifier.height(12.dp))
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (proofScreenshotUrl.isNotBlank()) SuccessGreen.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    border = BorderStroke(
+                        1.dp,
+                        if (proofScreenshotUrl.isNotBlank()) SuccessGreen.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PhotoCamera,
+                                    contentDescription = null,
+                                    tint = if (proofScreenshotUrl.isNotBlank()) SuccessGreen else CyanAccent,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = if (isArabic) "إثبات الفحص بلقطة شاشة (Screenshot)" else "Testing Proof Screenshot",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            if (proofScreenshotUrl.isNotBlank()) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = SuccessGreen.copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = if (isArabic) "إثبات موثق ✓" else "Verified Proof ✓",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = SuccessGreen,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        Text(
+                            text = if (isArabic) {
+                                "إرفاق لقطة شاشة من داخل التطبيق يرفع مصداقية الفحص لدى مراجعي Google Play بنسبة 100%."
+                            } else {
+                                "Attaching an in-app screenshot provides rock-solid proof for Google Play closed-testing reviewers."
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
+                        )
+
+                        if (proofScreenshotUrl.isNotBlank()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    AppIconImage(
+                                        iconUrl = proofScreenshotUrl,
+                                        appName = "Screenshot",
+                                        size = 54.dp,
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    Column {
+                                        Text(
+                                            text = if (isArabic) "تم إرفاق صورة الإثبات" else "Proof attached",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = SuccessGreen
+                                        )
+                                        Text(
+                                            text = if (isArabic) "جاهز للإرسال مع التقرير" else "Ready to submit",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    IconButton(
+                                        onClick = {
+                                            screenshotPickerLauncher.launch(
+                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                            )
+                                        },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(Icons.Default.Refresh, contentDescription = "تغيير", tint = CyanAccent, modifier = Modifier.size(16.dp))
+                                    }
+                                    IconButton(
+                                        onClick = { proofScreenshotUrl = "" },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(Icons.Default.Delete, contentDescription = "حذف", tint = DangerRed, modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                            }
+                        } else {
+                            OutlinedButton(
+                                onClick = {
+                                    screenshotPickerLauncher.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    )
+                                },
+                                enabled = !isProcessingScreenshot,
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.fillMaxWidth().height(38.dp)
+                            ) {
+                                if (isProcessingScreenshot) {
+                                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = CyanAccent)
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(if (isArabic) "جاري معالجة الصورة..." else "Processing image...", fontSize = 11.sp)
+                                } else {
+                                    Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(if (isArabic) "إرفاق لقطة شاشة من المعرض 📸" else "Pick Screenshot from Gallery 📸", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Mandatory Tester Confirmation Checkbox
@@ -870,7 +1045,7 @@ fun DailyTestConfirmationDialog(
                 Button(
                     onClick = {
                         val finalNotes = if (customNotes.isNotBlank()) customNotes else selectedTag
-                        onConfirm(selectedDuration, selectedRating, finalNotes)
+                        onConfirm(selectedDuration, selectedRating, finalNotes, proofScreenshotUrl)
                     },
                     enabled = isSubmitEnabled,
                     modifier = Modifier

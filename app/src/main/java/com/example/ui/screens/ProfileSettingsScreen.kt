@@ -38,7 +38,9 @@ import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.BrightnessMedium
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
@@ -51,6 +53,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Refresh
@@ -104,6 +107,7 @@ import com.example.data.model.UserWallet
 import com.example.ui.components.JsonBackupDialog
 import com.example.ui.components.ReminderAlarmsDialog
 import com.example.ui.theme.AmberGold
+import com.example.ui.theme.AppColorTheme
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
@@ -129,14 +133,16 @@ fun ProfileSettingsScreen(
     hapticEnabled: Boolean,
     isSimplifiedMode: Boolean,
     themeMode: ThemeMode = ThemeMode.SYSTEM,
+    colorTheme: AppColorTheme = AppColorTheme.CALM_BLUE,
     language: AppLanguage = AppLanguage.AR,
     onLanguageChange: (AppLanguage) -> Unit = {},
     onThemeModeChange: (ThemeMode) -> Unit = {},
+    onColorThemeChange: (AppColorTheme) -> Unit = {},
     onUpdateProfile: (name: String) -> Unit,
     onChangePassword: (oldPass: String, newPass: String) -> Unit,
     onUpdatePreferences: (device: String, androidVer: String, reminder: Boolean, haptic: Boolean) -> Unit,
     onToggleSimplifiedMode: () -> Unit,
-    onOpenOnboarding: () -> Unit,
+    onOpenOnboarding: (() -> Unit)? = null,
     onOpenBadges: () -> Unit,
     onOpenPointsCenter: (() -> Unit)? = null,
     onUpgradeGuestClick: (() -> Unit)? = null,
@@ -922,6 +928,91 @@ fun ProfileSettingsScreen(
                             modifier = Modifier.testTag("switch_dark_mode_quick")
                         )
                     }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    // Color Palette Selector (Eye-Comfort & Custom Vibe)
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Palette,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (isArabic) "درجات الألوان المريحة للعين (Eye Comfort)" else "Eye-Comfort Color Palette",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Text(
+                            text = if (isArabic) "اختر النمط اللوني الأنسب لراحتك البصرية لتقليل إجهاد العين:" else "Select your preferred color mood to eliminate visual glare and eye strain:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        // Palettes Grid / List
+                        AppColorTheme.values().forEach { palette ->
+                            val isSelected = colorTheme == palette
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface,
+                                border = BorderStroke(
+                                    width = if (isSelected) 1.5.dp else 1.dp,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onColorThemeChange(palette) }
+                                    .testTag("palette_${palette.name.lowercase()}")
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .clip(CircleShape)
+                                                .background(palette.previewColor),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            if (isSelected) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = null,
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Column {
+                                            Text(
+                                                text = if (isArabic) palette.titleAr else palette.titleEn,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = if (isArabic) palette.descriptionAr else palette.descriptionEn,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontSize = 11.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -956,17 +1047,19 @@ fun ProfileSettingsScreen(
                         )
                     }
 
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    if (onOpenOnboarding != null) {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-                    SettingsActionRow(
-                        icon = Icons.AutoMirrored.Filled.HelpOutline,
-                        iconTint = CyanAccent,
-                        title = s.replayOnboardingTitle,
-                        subtitle = s.replayOnboardingDesc,
-                        buttonText = s.startTourBtn,
-                        onClick = onOpenOnboarding,
-                        testTag = "btn_reopen_onboarding"
-                    )
+                        SettingsActionRow(
+                            icon = Icons.AutoMirrored.Filled.HelpOutline,
+                            iconTint = CyanAccent,
+                            title = s.replayOnboardingTitle,
+                            subtitle = s.replayOnboardingDesc,
+                            buttonText = s.startTourBtn,
+                            onClick = onOpenOnboarding,
+                            testTag = "btn_reopen_onboarding"
+                        )
+                    }
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
