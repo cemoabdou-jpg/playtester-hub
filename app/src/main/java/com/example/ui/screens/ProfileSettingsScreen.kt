@@ -132,8 +132,8 @@ fun ProfileSettingsScreen(
     dailyReminderEnabled: Boolean,
     hapticEnabled: Boolean,
     isSimplifiedMode: Boolean,
-    themeMode: ThemeMode = ThemeMode.SYSTEM,
-    colorTheme: AppColorTheme = AppColorTheme.CALM_BLUE,
+    themeMode: ThemeMode = ThemeMode.LIGHT,
+    colorTheme: AppColorTheme = AppColorTheme.MINT_BEIGE,
     language: AppLanguage = AppLanguage.AR,
     onLanguageChange: (AppLanguage) -> Unit = {},
     onThemeModeChange: (ThemeMode) -> Unit = {},
@@ -164,6 +164,7 @@ fun ProfileSettingsScreen(
     var showChangePasswordDialog by remember { mutableStateOf(false) }
     var showDeleteAccountDialog by remember { mutableStateOf(false) }
     var showAlarmsDialog by remember { mutableStateOf(false) }
+    var showPrivacyAndDataSafetyDialog by remember { mutableStateOf(false) }
 
     var editDevice by remember(deviceModel) { mutableStateOf(deviceModel) }
     var editAndroidVer by remember(androidVersion) { mutableStateOf(androidVersion) }
@@ -228,24 +229,24 @@ fun ProfileSettingsScreen(
             item {
                 Card(
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = PlayGreen.copy(alpha = 0.12f)),
-                    border = BorderStroke(1.2.dp, PlayGreen.copy(alpha = 0.5f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, PlayGreen.copy(alpha = 0.35f)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("card_guest_upgrade_banner")
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(modifier = Modifier.padding(14.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(CircleShape)
-                                    .background(PlayGreen),
-                                contentAlignment = Alignment.Center
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = PlayGreen.copy(alpha = 0.12f),
+                                modifier = Modifier.size(36.dp)
                             ) {
-                                Icon(Icons.Default.RocketLaunch, contentDescription = null, tint = Color.Black, modifier = Modifier.size(20.dp))
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(Icons.Default.RocketLaunch, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(18.dp))
+                                }
                             }
-                            Spacer(modifier = Modifier.width(12.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = if (isArabic) "ترقية حساب الضيف وحفظ البيانات 🔒" else "Upgrade Guest & Save Data 🔒",
@@ -260,22 +261,26 @@ fun ProfileSettingsScreen(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
                         Button(
                             onClick = { onUpgradeGuestClick?.invoke() },
-                            colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PlayGreen,
+                                contentColor = Color.White
+                            ),
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(44.dp)
+                                .height(40.dp)
                                 .testTag("btn_profile_upgrade_guest")
                         ) {
-                            Icon(Icons.Default.Security, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Security, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = if (isArabic) "ترقية الحساب الآن (بريد أو Google) ➔" else "Upgrade Account Now ➔",
                                 fontWeight = FontWeight.Bold,
-                                color = Color.Black
+                                color = Color.White,
+                                fontSize = 12.sp
                             )
                         }
                     }
@@ -288,18 +293,19 @@ fun ProfileSettingsScreen(
             SettingsSectionHeader(title = s.appLanguageTitle, icon = Icons.Default.Translate)
             Card(
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("card_language_selection")
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(14.dp)) {
                     Text(
                         text = s.appLanguageDesc,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -307,24 +313,24 @@ fun ProfileSettingsScreen(
                         // Arabic Option
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = if (language == AppLanguage.AR) PlayGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(1.5.dp, if (language == AppLanguage.AR) PlayGreen else MaterialTheme.colorScheme.outlineVariant),
+                            color = if (language == AppLanguage.AR) PlayGreen.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(if (language == AppLanguage.AR) 1.5.dp else 1.dp, if (language == AppLanguage.AR) PlayGreen else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                             modifier = Modifier
                                 .weight(1f)
                                 .clickable { onLanguageChange(AppLanguage.AR) }
                                 .testTag("lang_select_ar")
                         ) {
                             Row(
-                                modifier = Modifier.padding(12.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
-                                Text(text = "🇸🇦", fontSize = 18.sp)
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = "🇸🇦", fontSize = 16.sp)
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = "العربية",
                                     style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = if (language == AppLanguage.AR) FontWeight.Bold else FontWeight.Normal,
+                                    fontWeight = if (language == AppLanguage.AR) FontWeight.Bold else FontWeight.Medium,
                                     color = if (language == AppLanguage.AR) PlayGreen else MaterialTheme.colorScheme.onSurface
                                 )
                             }
@@ -333,24 +339,24 @@ fun ProfileSettingsScreen(
                         // English Option
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = if (language == AppLanguage.EN) PlayGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(1.5.dp, if (language == AppLanguage.EN) PlayGreen else MaterialTheme.colorScheme.outlineVariant),
+                            color = if (language == AppLanguage.EN) PlayGreen.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(if (language == AppLanguage.EN) 1.5.dp else 1.dp, if (language == AppLanguage.EN) PlayGreen else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                             modifier = Modifier
                                 .weight(1f)
                                 .clickable { onLanguageChange(AppLanguage.EN) }
                                 .testTag("lang_select_en")
                         ) {
                             Row(
-                                modifier = Modifier.padding(12.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
-                                Text(text = "🇬🇧", fontSize = 18.sp)
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = "🇬🇧", fontSize = 16.sp)
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = "English",
                                     style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = if (language == AppLanguage.EN) FontWeight.Bold else FontWeight.Normal,
+                                    fontWeight = if (language == AppLanguage.EN) FontWeight.Bold else FontWeight.Medium,
                                     color = if (language == AppLanguage.EN) PlayGreen else MaterialTheme.colorScheme.onSurface
                                 )
                             }
@@ -1152,6 +1158,32 @@ fun ProfileSettingsScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    // Google Play Data Safety & Privacy Policy Button
+                    Button(
+                        onClick = { showPrivacyAndDataSafetyDialog = true },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("btn_open_privacy_policy")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Security,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isArabic) "سياسة الخصوصية وأمان البيانات (Data Safety) 🔒" else "Privacy Policy & Data Safety 🔒",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             }
         }
@@ -1384,6 +1416,131 @@ fun ProfileSettingsScreen(
             onDismiss = { showAlarmsDialog = false }
         )
     }
+
+    if (showPrivacyAndDataSafetyDialog) {
+        AlertDialog(
+            onDismissRequest = { showPrivacyAndDataSafetyDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Security,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (isArabic) "سياسة الخصوصية وأمان البيانات 🔒" else "Privacy Policy & Data Safety 🔒",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            text = {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(380.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    item {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = if (isArabic)
+                                    "نلتزم بأعلى معايير الخصوصية وسياسات مطوري Google Play لضمان حماية بياناتك بنسبة 100%."
+                                else
+                                    "We strictly adhere to Google Play Developer Policies and top privacy standards ensuring 100% data protection.",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(10.dp)
+                            )
+                        }
+                    }
+
+                    item {
+                        Text(
+                            text = if (isArabic) "1. البيانات التي نقوم بجمعها (Data Collection):" else "1. Data We Collect:",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = if (isArabic)
+                                "• البريد الإلكتروني والاسم المعروض لإنشاء الحساب ومزامنة نقاط المكافآت.\n• سجل فحوصات التطبيقات اليومية لتوثيق فترة الـ 14 يوماً.\n• نوع وموديل الجهاز وإصدار أندرويد لتقييم مصفوفة تنوع الأجهزة لمراجعي Google Play."
+                            else
+                                "• Email and display name for authentication and points synchronization.\n• Daily testing log timestamps to verify the 14-day testing period.\n• Device model and OS version to calculate device diversity metrics for Google Play reviewers.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    item {
+                        Text(
+                            text = if (isArabic) "2. التشفير والحماية (Security & Encryption):" else "2. Security & Encryption:",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = if (isArabic)
+                                "• تشفير كامل لجميع الاتصالات عبر بروتوكول HTTPS / TLS 1.3.\n• حفظ آمن محلياً عبر قاعدة بيانات SQLite المشفرة وسحابياً عبر Google Cloud Firestore."
+                            else
+                                "• End-to-end HTTPS/TLS 1.3 transit encryption for all communications.\n• Secure local storage via SQLite Room and cloud backend via Google Cloud Firestore.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    item {
+                        Text(
+                            text = if (isArabic) "3. عدم بيع أو مشاركة البيانات (No Third-Party Sharing):" else "3. Zero Third-Party Sharing:",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = if (isArabic)
+                                "• لا نقوم إطلاقاً ببيع أو تأجير أي بيانات شخصية أو تسويقية لأي طرف ثالث."
+                            else
+                                "• We never sell, rent, or monetize your personal or testing data to any third party.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    item {
+                        Text(
+                            text = if (isArabic) "4. حق الحذف والنسخ الاحتياطي (Right to Erasure & Backup):" else "4. Data Erasure & Export:",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = if (isArabic)
+                                "• يمكنك تصدير نسخة احتياطية من كافة بياناتك بصيغة JSON بضغطة زر واحدة.\n• يمكنك حذف حسابك وكافة سجلاتك نهائياً وفورياً من خيار (حذف الحساب) في هذه الشاشة."
+                            else
+                                "• You can export your full data in portable JSON format anytime.\n• You can permanently and immediately delete your account and all records via the Delete Account option.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showPrivacyAndDataSafetyDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text(if (isArabic) "فهمت وموافق ✓" else "I Understand ✓", fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
 }
 
 // --- Sub-components for Settings ---
@@ -1399,7 +1556,8 @@ private fun ProfileHeroCard(
     Card(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -1522,7 +1680,8 @@ private fun UserStatsOverviewCard(
 ) {
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -1690,10 +1849,10 @@ private fun ThemeOptionCard(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
-        color = if (isSelected) PlayGreen.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface,
+        color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface,
         border = BorderStroke(
             width = if (isSelected) 1.5.dp else 1.dp,
-            color = if (isSelected) PlayGreen else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
         ),
         modifier = modifier
     ) {
@@ -1705,7 +1864,7 @@ private fun ThemeOptionCard(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (isSelected) PlayGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.height(4.dp))
@@ -1713,7 +1872,7 @@ private fun ThemeOptionCard(
                 text = title,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                color = if (isSelected) PlayGreen else MaterialTheme.colorScheme.onSurface
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = subtitle,

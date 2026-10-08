@@ -131,7 +131,7 @@ class MainActivity : ComponentActivity() {
 fun PlayTesterApp(
     viewModel: TesterViewModel,
     themeMode: ThemeMode = ThemeMode.SYSTEM,
-    colorTheme: AppColorTheme = AppColorTheme.CALM_BLUE,
+    colorTheme: AppColorTheme = AppColorTheme.MINT_BEIGE,
     isDarkTheme: Boolean = false
 ) {
     val context = LocalContext.current
@@ -249,6 +249,7 @@ fun PlayTesterApp(
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding(),
+            containerColor = MaterialTheme.colorScheme.background,
             topBar = {
                 AppHeader(
                     wallet = wallet,
@@ -271,6 +272,7 @@ fun PlayTesterApp(
             bottomBar = {
                 NavigationBar(
                     modifier = Modifier.testTag("bottom_navigation"),
+                    containerColor = MaterialTheme.colorScheme.surface,
                     tonalElevation = 4.dp
                 ) {
                     val navItemColors = NavigationBarItemDefaults.colors(
@@ -541,6 +543,7 @@ fun PlayTesterApp(
                         isUploadingLocalApps = isUploadingLocalApps,
                         onUpdateGroupUrl = { appId, url -> viewModel.updateUserAppGroupUrl(appId, url) },
                         onSyncPlayIcon = { pkg, appId -> viewModel.syncAppIconFromGooglePlay(pkg, appId) },
+                        onUpdateAppIcon = { pkg, iconUrl, appId -> viewModel.updateAppIcon(pkg, iconUrl, appId) },
                         onReplyToReview = { feedbackId, replyText ->
                             viewModel.replyToFeedback(feedbackId, replyText)
                         },

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
@@ -53,6 +54,7 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import com.example.ui.components.AppVitalsDialog
+import com.example.ui.components.ChangeAppIconDialog
 import com.example.ui.components.ChangelogGeneratorDialog
 import com.example.ui.components.ConsoleShortcutsAndBundleHelperDialog
 import com.example.ui.components.DeviceDiversityMatrixDialog
@@ -115,7 +117,9 @@ import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
 import com.example.ui.theme.SuccessGreen
+import com.example.ui.util.AppLanguage
 import com.example.ui.util.L
+import com.example.ui.util.LocalAppLanguage
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -150,15 +154,19 @@ fun MyAppsScreen(
     isUploadingLocalApps: Boolean = false,
     onUpdateGroupUrl: (appId: Int, groupUrl: String) -> Unit = { _, _ -> },
     onSyncPlayIcon: ((packageName: String, appId: Int) -> Unit)? = null,
+    onUpdateAppIcon: ((packageName: String, iconUrl: String, appId: Int) -> Unit)? = null,
     onReplyToReview: (feedbackId: Int, replyText: String) -> Unit = { _, _ -> },
     onDeleteFeedback: (feedbackId: Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val language = LocalAppLanguage.current
+    val isArabic = (language == AppLanguage.AR)
     val s = L.strings()
     val todayStr = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
     var uploadStatusMsg by remember { mutableStateOf<String?>(null) }
     var appToShare by remember { mutableStateOf<UserApp?>(null) }
+    var appForIconChange by remember { mutableStateOf<UserApp?>(null) }
     var appForVersions by remember { mutableStateOf<UserApp?>(null) }
     var appForTesters by remember { mutableStateOf<UserApp?>(null) }
     var appForDailyLogs by remember { mutableStateOf<UserApp?>(null) }
@@ -198,9 +206,12 @@ fun MyAppsScreen(
                             .weight(1.3f)
                             .height(36.dp)
                             .testTag("btn_add_my_app"),
-                        colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PlayGreen,
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp)
                     ) {
                         Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
@@ -215,8 +226,8 @@ fun MyAppsScreen(
 
                     // Play Approval Secrets Pill
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = AmberGold.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surface,
                         border = BorderStroke(1.dp, AmberGold.copy(alpha = 0.35f)),
                         modifier = Modifier
                             .height(36.dp)
@@ -224,12 +235,12 @@ fun MyAppsScreen(
                             .testTag("banner_play_approval_secrets")
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Star, contentDescription = null, tint = AmberGold, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(s.viewSecretsBtn, style = MaterialTheme.typography.labelSmall, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Icon(Icons.Default.Star, contentDescription = null, tint = AmberGold, modifier = Modifier.size(15.dp))
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(s.viewSecretsBtn, style = MaterialTheme.typography.labelSmall, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
 
@@ -242,8 +253,8 @@ fun MyAppsScreen(
                                 }
                             },
                             enabled = !isUploadingLocalApps,
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
                             modifier = Modifier.height(36.dp).testTag("btn_my_apps_upload_cloud")
                         ) {
                             if (isUploadingLocalApps) {
@@ -253,11 +264,11 @@ fun MyAppsScreen(
                                     imageVector = Icons.Default.CloudSync,
                                     contentDescription = "رفع للسحابة",
                                     tint = PlayGreen,
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier.size(15.dp)
                                 )
                             }
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("مزامنة ☁️", fontSize = 11.sp, color = PlayGreen)
+                            Text("مزامنة ☁️", fontSize = 11.5.sp, color = PlayGreen, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -458,21 +469,40 @@ fun MyAppsScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(48.dp)
+                                    .size(52.dp)
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(MaterialTheme.colorScheme.surfaceVariant)
                                     .clickable {
-                                        onSyncPlayIcon?.invoke(app.packageName, app.id)
-                                    },
+                                        appForIconChange = app
+                                    }
+                                    .testTag("app_icon_edit_${app.id}"),
                                 contentAlignment = Alignment.Center
                             ) {
                                 AppIconImage(
                                     iconUrl = app.iconUrl,
                                     appName = app.name,
                                     packageName = app.packageName,
-                                    size = 48.dp,
+                                    size = 52.dp,
                                     shape = RoundedCornerShape(12.dp)
                                 )
+
+                                // Edit badge overlay so developers immediately know they can customize their icon
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .size(18.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = if (isArabic) "تغيير الأيقونة" else "Change Icon",
+                                        tint = Color.White,
+                                        modifier = Modifier
+                                            .size(10.dp)
+                                            .padding(2.dp)
+                                    )
+                                }
                             }
 
                             Column(modifier = Modifier.weight(1f)) {
@@ -570,45 +600,48 @@ fun MyAppsScreen(
                         ) {
                             OutlinedButton(
                                 onClick = { appForVersions = app },
-                                modifier = Modifier.weight(1f).height(32.dp).testTag("manage_versions_btn_${app.id}"),
-                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f).height(34.dp).testTag("manage_versions_btn_${app.id}"),
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
                                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
                             ) {
-                                Icon(Icons.Default.Layers, contentDescription = null, modifier = Modifier.size(13.dp))
+                                Icon(Icons.Default.Layers, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(13.dp))
                                 Spacer(modifier = Modifier.width(3.dp))
-                                Text("الحزم (${appArtifacts.size})", fontSize = 10.5.sp, maxLines = 1)
+                                Text("الحزم (${appArtifacts.size})", fontSize = 10.5.sp, maxLines = 1, color = MaterialTheme.colorScheme.onSurface)
                             }
 
                             OutlinedButton(
                                 onClick = { appForTesters = app },
-                                modifier = Modifier.weight(1f).height(32.dp).testTag("manage_testers_btn_${app.id}"),
-                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f).height(34.dp).testTag("manage_testers_btn_${app.id}"),
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
                                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
                             ) {
-                                Icon(Icons.Default.GroupAdd, contentDescription = null, modifier = Modifier.size(13.dp))
+                                Icon(Icons.Default.GroupAdd, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(13.dp))
                                 Spacer(modifier = Modifier.width(3.dp))
-                                Text("دعوة (${appTesters.size})", fontSize = 10.5.sp, maxLines = 1)
+                                Text("دعوة (${appTesters.size})", fontSize = 10.5.sp, maxLines = 1, color = MaterialTheme.colorScheme.onSurface)
                             }
 
                             OutlinedButton(
                                 onClick = { appForDailyLogs = app },
-                                modifier = Modifier.weight(1.1f).height(32.dp).testTag("btn_view_daily_logs_${app.id}"),
-                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1.1f).height(34.dp).testTag("btn_view_daily_logs_${app.id}"),
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
                                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.FactCheck, contentDescription = null, modifier = Modifier.size(13.dp))
+                                Icon(Icons.AutoMirrored.Filled.FactCheck, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(13.dp))
                                 Spacer(modifier = Modifier.width(3.dp))
-                                Text("التوثيق (${todayLogsCount})", fontSize = 10.5.sp, maxLines = 1)
+                                Text("التوثيق (${todayLogsCount})", fontSize = 10.5.sp, maxLines = 1, color = MaterialTheme.colorScheme.onSurface)
                             }
 
                             Button(
                                 onClick = { appToShare = app },
-                                modifier = Modifier.height(32.dp).testTag("share_app_btn_${app.id}"),
-                                colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                modifier = Modifier.height(34.dp).testTag("share_app_btn_${app.id}"),
+                                colors = ButtonDefaults.buttonColors(containerColor = PlayGreen, contentColor = Color.White),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
                             ) {
-                                Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(13.dp))
+                                Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(14.dp))
                             }
                         }
 
@@ -1397,6 +1430,23 @@ fun MyAppsScreen(
                 onDeleteFeedback(feedbackId)
             },
             onDismiss = { appForReviews = null }
+        )
+    }
+
+    // Change App Icon Dialog
+    appForIconChange?.let { app ->
+        ChangeAppIconDialog(
+            app = app,
+            isArabic = isArabic,
+            onDismiss = { appForIconChange = null },
+            onSaveIcon = { newIconUrl ->
+                onUpdateAppIcon?.invoke(app.packageName, newIconUrl, app.id)
+                appForIconChange = null
+            },
+            onPullFromGooglePlay = {
+                onSyncPlayIcon?.invoke(app.packageName, app.id)
+                appForIconChange = null
+            }
         )
     }
 }

@@ -50,19 +50,23 @@ object NotificationHelper {
         val saved = prefs.getString(KEY_REMINDER_HOURS, null)
         if (saved.isNullOrBlank()) {
             val single = prefs.getInt(KEY_REMINDER_HOUR, 20)
-            return setOf(9, 14, single)
+            return setOf(single)
         }
         return saved.split(",")
             .mapNotNull { it.trim().toIntOrNull() }
             .filter { it in 0..23 }
             .toSet()
-            .ifEmpty { setOf(20) }
+            .ifEmpty { setOf(prefs.getInt(KEY_REMINDER_HOUR, 20)) }
     }
 
     fun setReminderHours(context: Context, hours: Set<Int>) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val joined = hours.joinToString(",")
-        prefs.edit().putString(KEY_REMINDER_HOURS, joined).apply()
+        val primary = hours.firstOrNull() ?: 20
+        prefs.edit()
+            .putString(KEY_REMINDER_HOURS, joined)
+            .putInt(KEY_REMINDER_HOUR, primary)
+            .apply()
         if (isDailyReminderEnabled(context)) {
             scheduleAllDailyReminderAlarms(context)
         }
@@ -82,14 +86,19 @@ object NotificationHelper {
     }
 
     fun getReminderHour(context: Context): Int {
-        val hours = getReminderHours(context)
-        return hours.maxOrNull() ?: 20
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getInt(KEY_REMINDER_HOUR, 20)
     }
 
     fun setReminderHour(context: Context, hour: Int) {
-        val current = getReminderHours(context).toMutableSet()
-        current.add(hour)
-        setReminderHours(context, current)
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit()
+            .putInt(KEY_REMINDER_HOUR, hour)
+            .putString(KEY_REMINDER_HOURS, hour.toString())
+            .apply()
+        if (isDailyReminderEnabled(context)) {
+            scheduleAllDailyReminderAlarms(context)
+        }
     }
 
     fun scheduleAllDailyReminderAlarms(context: Context) {

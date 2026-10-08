@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import com.example.ui.components.PlayApprovalGuideDialog
+import com.example.ui.components.openUrl
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
@@ -442,8 +443,9 @@ fun GuideScreen(
         item {
             Card(
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)),
-                border = BorderStroke(1.dp, PlayGreen.copy(alpha = 0.3f)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, PlayGreen.copy(alpha = 0.25f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -455,7 +457,7 @@ fun GuideScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Surface(
                                 shape = CircleShape,
-                                color = PlayGreen.copy(alpha = 0.15f),
+                                color = PlayGreen.copy(alpha = 0.12f),
                                 modifier = Modifier.size(36.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
@@ -472,21 +474,22 @@ fun GuideScreen(
                                 Text(
                                     text = if (isArabic) "دليل اجتياز شروط Google Play" else "Google Play Closed Testing Guide",
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.ExtraBold,
+                                    fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = if (isArabic) "خارطة طريق كاملة للإنتاج والقبول الرسمي" else "Complete roadmap to production & approval",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = PlayGreen,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.SemiBold
                                 )
                             }
                         }
 
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = PlayGreen.copy(alpha = 0.15f)
+                            color = PlayGreen.copy(alpha = 0.12f),
+                            border = BorderStroke(0.8.dp, PlayGreen.copy(alpha = 0.25f))
                         ) {
                             Text(
                                 text = if (isArabic) "إصدار 2.4" else "v2.4",
@@ -498,67 +501,42 @@ fun GuideScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
                         text = if (isArabic)
-                            "مرجع شامل ومفصل لمطوري تطبيقات أندرويد لاجتياز شرط الـ 14 يوماً و20 مختبراً وتجهيز تقارير وملاحظات الاختبار لضمان القبول وتفادي الرفض."
+                            "مرجع تفصيلي لمطوري أندرويد لاجتياز شرط الـ 14 يوماً و20 مختبراً وتجهيز متطلبات القبول وتفادي الرفض."
                         else
-                            "Comprehensive reference for Android developers to satisfy 20 testers & 14 consecutive days, with verified guidelines and testing logs.",
+                            "Step-by-step roadmap for Android developers to satisfy 20 testers & 14 consecutive days smoothly.",
                         style = MaterialTheme.typography.bodySmall,
-                        lineHeight = 20.sp,
+                        lineHeight = 18.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    // Actions Row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    // Single, sleek action button to avoid dual-button visual clash
+                    Button(
+                        onClick = { showApprovalGuide = true },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AmberGold,
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(40.dp)
+                            .testTag("btn_open_approval_secrets")
                     ) {
-                        if (onOpenOnboarding != null) {
-                            Button(
-                                onClick = onOpenOnboarding,
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(44.dp)
-                                    .testTag("btn_reopen_onboarding")
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(imageVector = Icons.Default.RocketLaunch, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = if (isArabic) "الجولة المصورة 🚀" else "Interactive Tour 🚀",
-                                        color = Color.Black,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp
-                                    )
-                                }
-                            }
-                        }
-
-                        Button(
-                            onClick = { showApprovalGuide = true },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = AmberGold),
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(44.dp)
-                                .testTag("btn_open_approval_secrets")
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = if (isArabic) "أسرار القبول 🌟" else "Approval Secrets 🌟",
-                                    color = Color.Black,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
-                                )
-                            }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (isArabic) "أسرار القبول واعتماد الإنتاج 🌟" else "Approval Secrets & Tips 🌟",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.5.sp
+                            )
                         }
                     }
                 }
@@ -569,8 +547,8 @@ fun GuideScreen(
         item {
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = CyanAccent.copy(alpha = 0.08f),
-                border = BorderStroke(1.dp, CyanAccent.copy(alpha = 0.35f)),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
@@ -580,10 +558,18 @@ fun GuideScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.Groups, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(20.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = CyanAccent.copy(alpha = 0.12f),
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(imageVector = Icons.Default.Groups, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(16.dp))
+                                }
+                            }
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = if (isArabic) "خيارات إضافة المختبرين في Google Play Console" else "Tester Recruitment Methods in Play Console",
+                                text = if (isArabic) "طرق إضافة المختبرين في Play Console" else "Tester Recruitment Options",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -594,15 +580,13 @@ fun GuideScreen(
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = if (isArabic)
-                            "يمكنك في المسار المغلق اختيار الطريقة الأنسب لك:\n" +
-                                    "1️⃣ إضافة قائمة بريدية مخصصة (Email List) وإدخال إيميلات المختبرين مباشرة.\n" +
-                                    "2️⃣ أو استخدام مجموعة Google Groups (مجموعتك الخاصة، أو الاستعانة ببريد المجموعة المشتركة الجاهزة):"
+                            "1️⃣ قائمة بريدية (Email List) وإدخال إيميلات المختبرين مباشرة.\n" +
+                            "2️⃣ أو مجموعة Google Groups (مجموعتك الخاصة أو المجموعة المشتركة):"
                         else
-                            "In your Closed Testing track, you can choose either official method:\n" +
-                                    "1️⃣ Custom Email List: Add testers' email addresses directly.\n" +
-                                    "2️⃣ Google Groups: Select your private group or use the ready-made shared group:",
+                            "1️⃣ Custom Email List: Add tester emails directly.\n" +
+                            "2️⃣ Google Groups: Use your own group or the shared group:",
                         style = MaterialTheme.typography.bodySmall,
-                        lineHeight = 20.sp,
+                        lineHeight = 18.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -707,10 +691,20 @@ fun GuideScreen(
                             Icon(imageVector = tab.icon, contentDescription = null, modifier = Modifier.size(16.dp))
                         },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = PlayGreen.copy(alpha = 0.2f),
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            selectedContainerColor = PlayGreen.copy(alpha = 0.15f),
+                            labelColor = MaterialTheme.colorScheme.onSurface,
                             selectedLabelColor = PlayGreen,
+                            iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             selectedLeadingIconColor = PlayGreen
                         ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = isSelected,
+                            borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                            selectedBorderColor = PlayGreen.copy(alpha = 0.45f)
+                        ),
+                        shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.testTag("chip_tab_${tab.name}")
                     )
                 }
@@ -1152,7 +1146,9 @@ fun GuideScreen(
             item {
                 Card(
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -1164,8 +1160,7 @@ fun GuideScreen(
                             subtitle = if (isArabic) "لوحة تحكم كونسول المطور الرسمية" else "Official Developer Console Dashboard",
                             icon = Icons.Default.RocketLaunch,
                             onClick = {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/console"))
-                                context.startActivity(intent)
+                                openUrl(context, "https://play.google.com/console")
                             }
                         )
 
@@ -1176,8 +1171,7 @@ fun GuideScreen(
                             subtitle = if (isArabic) "شروط حسابات الأفراد و20 مختبراً" else "Personal accounts requirement & 20 testers",
                             icon = Icons.Default.Security,
                             onClick = {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://support.google.com/googleplay/android-developer/answer/9845334"))
-                                context.startActivity(intent)
+                                openUrl(context, "https://support.google.com/googleplay/android-developer/answer/9845334")
                             }
                         )
 
@@ -1188,8 +1182,7 @@ fun GuideScreen(
                             subtitle = if (isArabic) "متطلبات الخصوصية والأمان وحماية البيانات" else "Privacy, safety and data protection guidelines",
                             icon = Icons.Default.Info,
                             onClick = {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/about/developer-content-policy/"))
-                                context.startActivity(intent)
+                                openUrl(context, "https://play.google.com/about/developer-content-policy/")
                             }
                         )
                     }

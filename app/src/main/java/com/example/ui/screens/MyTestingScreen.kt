@@ -66,6 +66,7 @@ import com.example.ui.components.TestingHeatmapCard
 import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.PlayGreen
+import com.example.ui.theme.PlayGreenLight
 import com.example.ui.theme.SuccessGreen
 import com.example.ui.util.AppLanguage
 import com.example.ui.util.LocalAppLanguage
@@ -122,18 +123,18 @@ fun MyTestingScreen(
                     Surface(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
-                        color = CyanAccent.copy(alpha = 0.12f),
-                        border = BorderStroke(1.dp, CyanAccent.copy(alpha = 0.3f))
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, PlayGreen.copy(alpha = 0.35f))
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Icon(Icons.Default.Schedule, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Schedule, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(16.dp))
                             Column {
-                                Text(text = "$activeCount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = CyanAccent)
-                                Text(text = s.testingActiveCount, style = MaterialTheme.typography.labelSmall, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                                Text(text = "$activeCount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = PlayGreen)
+                                Text(text = s.testingActiveCount, style = MaterialTheme.typography.labelSmall, fontSize = 9.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                             }
                         }
                     }
@@ -142,18 +143,18 @@ fun MyTestingScreen(
                     Surface(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
-                        color = SuccessGreen.copy(alpha = 0.12f),
-                        border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.3f))
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, PlayGreenLight.copy(alpha = 0.45f))
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(16.dp))
                             Column {
-                                Text(text = "$completedCount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = SuccessGreen)
-                                Text(text = s.testingCompletedCount, style = MaterialTheme.typography.labelSmall, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                                Text(text = "$completedCount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = PlayGreen)
+                                Text(text = s.testingCompletedCount, style = MaterialTheme.typography.labelSmall, fontSize = 9.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                             }
                         }
                     }
@@ -165,11 +166,11 @@ fun MyTestingScreen(
                             .clickable { showReminderAlarmsDialog = true }
                             .testTag("card_testing_reminders_bar"),
                         shape = RoundedCornerShape(12.dp),
-                        color = AmberGold.copy(alpha = 0.12f),
+                        color = MaterialTheme.colorScheme.surface,
                         border = BorderStroke(1.dp, AmberGold.copy(alpha = 0.35f))
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
@@ -191,7 +192,7 @@ fun MyTestingScreen(
                                 Text(
                                     text = if (isReminderActive) "مفعل (انقر للضبط)" else "انقر للتفعيل",
                                     style = MaterialTheme.typography.labelSmall,
-                                    fontSize = 9.sp,
+                                    fontSize = 9.5.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1
                                 )

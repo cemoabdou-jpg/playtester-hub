@@ -2,6 +2,7 @@ package com.example
 
 import android.app.Application
 import android.util.Log
+import com.example.util.AppCrashProtector
 import com.example.util.NotificationHelper
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
@@ -11,6 +12,7 @@ class PlayTesterApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        AppCrashProtector.install(this)
         initializeFirebaseSafely()
         NotificationHelper.createNotificationChannel(this)
     }

@@ -47,6 +47,9 @@ interface AppDao {
     @Query("DELETE FROM community_apps WHERE id = :id")
     suspend fun deleteCommunityApp(id: Int)
 
+    @Query("DELETE FROM community_apps WHERE packageName = :packageName")
+    suspend fun deleteCommunityAppByPackage(packageName: String)
+
     @Query("UPDATE community_apps SET priorityScore = :score WHERE id = :appId")
     suspend fun updateAppPriority(appId: Int, score: Int)
 
@@ -78,6 +81,9 @@ interface AppDao {
     @Query("DELETE FROM joined_tests WHERE id = :id")
     suspend fun deleteJoinedTest(id: Int)
 
+    @Query("DELETE FROM joined_tests WHERE packageName = :packageName")
+    suspend fun deleteJoinedTestByPackage(packageName: String)
+
     // User Published Apps
     @Query("SELECT * FROM user_apps ORDER BY id DESC")
     fun getAllUserApps(): Flow<List<UserApp>>
@@ -108,6 +114,9 @@ interface AppDao {
 
     @Query("DELETE FROM user_apps WHERE id = :id")
     suspend fun deleteUserApp(id: Int)
+
+    @Query("DELETE FROM user_apps WHERE packageName = :packageName")
+    suspend fun deleteUserAppByPackage(packageName: String)
 
     // User Wallet & Stats
     @Query("SELECT * FROM user_wallet WHERE id = 1 LIMIT 1")

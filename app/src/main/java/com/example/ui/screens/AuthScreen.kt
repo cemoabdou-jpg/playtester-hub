@@ -254,7 +254,8 @@ fun AuthScreen(
                     .fillMaxWidth()
                     .padding(bottom = 16.dp),
                 shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                color = PlayGreen.copy(alpha = 0.08f),
+                border = BorderStroke(1.dp, PlayGreen.copy(alpha = 0.25f))
             ) {
                 Row(
                     modifier = Modifier.padding(14.dp),
@@ -263,8 +264,8 @@ fun AuthScreen(
                     Icon(
                         imageVector = Icons.Default.VpnKey,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
+                        tint = PlayGreen,
+                        modifier = Modifier.size(22.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
@@ -272,12 +273,12 @@ fun AuthScreen(
                             text = if (isArabic) "تسجيل الدخول أو الاستمرار كضيف" else "Sign in or Continue as Guest",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = if (isArabic) "يمكنك إنشاء حساب لحفظ نقاطك وتطبيقاتك، أو الدخول كضيف للتصفح بدون تسجيل." else "Create an account to keep your apps & rewards, or explore as a guest with no sign-in.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -292,7 +293,8 @@ fun AuthScreen(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -713,10 +715,11 @@ fun AuthScreen(
                             .testTag("btn_guest_login_main"),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            containerColor = MaterialTheme.colorScheme.surface,
                             contentColor = MaterialTheme.colorScheme.onSurface
                         ),
-                        border = BorderStroke(1.2.dp, PlayGreen.copy(alpha = 0.6f))
+                        border = BorderStroke(1.dp, PlayGreen.copy(alpha = 0.4f)),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.AccountCircle,

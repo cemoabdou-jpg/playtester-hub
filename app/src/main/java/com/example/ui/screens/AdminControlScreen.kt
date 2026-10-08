@@ -326,19 +326,28 @@ fun AdminControlScreen(
                     item {
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = if (isAdmin) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f) else PlayGreen.copy(alpha = 0.1f),
+                            color = MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
                                 modifier = Modifier.padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    imageVector = if (isAdmin) Icons.Default.Star else Icons.Default.Info,
-                                    contentDescription = null,
-                                    tint = if (isAdmin) AmberGold else PlayGreen,
-                                    modifier = Modifier.size(20.dp)
-                                )
+                                Surface(
+                                    shape = CircleShape,
+                                    color = (if (isAdmin) AmberGold else PlayGreen).copy(alpha = 0.12f),
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = if (isAdmin) Icons.Default.Star else Icons.Default.Info,
+                                            contentDescription = null,
+                                            tint = if (isAdmin) AmberGold else PlayGreen,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Text(
                                     text = if (isArabic) {
@@ -773,7 +782,8 @@ private fun AdminAppItemCard(
         colors = CardDefaults.cardColors(
             containerColor = if (app.isHidden) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        border = BorderStroke(1.dp, if (app.isFeatured) AmberGold.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
             modifier = Modifier

@@ -465,6 +465,7 @@ class TesterRepository(private val dao: AppDao) {
             appName = app.name,
             packageName = app.packageName,
             category = app.category,
+            iconUrl = if (app.iconUrl.startsWith("preset://")) "" else app.iconUrl.trim(),
             googleGroupUrl = app.googleGroupUrl,
             webOptInUrl = app.webOptInUrl,
             androidOptInUrl = app.androidOptInUrl,
@@ -770,7 +771,11 @@ class TesterRepository(private val dao: AppDao) {
     suspend fun publishApp(app: UserApp, featureWithPoints: Boolean): Result<String> {
         val cleanPackage = app.packageName.trim()
         val groupUrl = if (app.googleGroupUrl.isNotBlank()) app.googleGroupUrl else getEffectiveOfficialGroupUrl()
-        val appToInsert = (if (app.googleGroupUrl.isBlank()) app.copy(googleGroupUrl = groupUrl) else app).copy(packageName = cleanPackage)
+        val resolvedIcon = if (app.iconUrl.startsWith("preset://")) "" else app.iconUrl.trim()
+        val appToInsert = (if (app.googleGroupUrl.isBlank()) app.copy(googleGroupUrl = groupUrl) else app).copy(
+            packageName = cleanPackage,
+            iconUrl = resolvedIcon
+        )
 
         dao.insertUserApp(appToInsert)
 
@@ -789,7 +794,7 @@ class TesterRepository(private val dao: AppDao) {
             packageName = cleanPackage,
             description = if (app.instructions.isNotEmpty()) app.instructions else "تطبيق قيد الاختبار المغلق لـ 14 يوماً",
             category = app.category,
-            iconUrl = app.iconUrl,
+            iconUrl = resolvedIcon,
             googleGroupUrl = groupUrl,
             webOptInUrl = app.webOptInUrl,
             androidOptInUrl = app.androidOptInUrl,
@@ -912,6 +917,29 @@ class TesterRepository(private val dao: AppDao) {
         }
 
         return Result.success("تم سحب أيقونة التطبيق من متجر Google Play وتطبيقها بنجاح! 🎨")
+    }
+
+    suspend fun updateAppIconDirectly(packageName: String, iconUrl: String, userAppId: Int? = null): Result<String> {
+        val cleanPackage = packageName.trim()
+        if (cleanPackage.isBlank()) return Result.failure(Exception("اسم الحزمة فارغ"))
+        if (iconUrl.isBlank()) return Result.failure(Exception("رابط أو صورة الأيقونة فارغة"))
+
+        if (userAppId != null) {
+            dao.updateUserAppIcon(userAppId, iconUrl)
+        } else {
+            dao.updateUserAppIconByPackage(cleanPackage, iconUrl)
+        }
+        dao.updateCommunityAppIcon(cleanPackage, iconUrl)
+        dao.updateJoinedTestIcon(cleanPackage, iconUrl)
+
+        val commApp = dao.getCommunityAppByPackage(cleanPackage)
+        if (commApp != null) {
+            try {
+                firestoreService.publishAppToFirestore(commApp.copy(iconUrl = iconUrl))
+            } catch (_: Exception) {}
+        }
+
+        return Result.success("تم تحديث أيقونة التطبيق بنجاح! 🎨")
     }
 
     suspend fun syncTesterActivitiesForPackage(packageName: String) {
@@ -1116,6 +1144,7 @@ class TesterRepository(private val dao: AppDao) {
             ?: "مطور معتمد"
 
         val communityAppsToUpload = userAppsList.map { app ->
+            val resolvedIcon = if (app.iconUrl.startsWith("preset://")) "" else app.iconUrl.trim()
             CommunityApp(
                 id = 0,
                 name = app.name,
@@ -1123,6 +1152,7 @@ class TesterRepository(private val dao: AppDao) {
                 packageName = app.packageName,
                 description = if (app.instructions.isNotEmpty()) app.instructions else "تطبيق قيد الاختبار المغلق لـ 14 يوماً",
                 category = app.category,
+                iconUrl = resolvedIcon,
                 googleGroupUrl = if (app.googleGroupUrl.isNotBlank()) app.googleGroupUrl else groupUrl,
                 webOptInUrl = app.webOptInUrl,
                 androidOptInUrl = app.androidOptInUrl,
@@ -1141,7 +1171,13 @@ class TesterRepository(private val dao: AppDao) {
             firestoreService.ensureFirebaseAuth()
             firestoreService.observeRemoteCommunityApps().collect { remoteApps ->
                 remoteApps.forEach { remoteApp ->
-                    insertOrUpdateCommunityApp(remoteApp)
+                    val cleanIcon = if (remoteApp.iconUrl.startsWith("preset://")) "" else remoteApp.iconUrl.trim()
+                    val appToSave = if (cleanIcon.isBlank()) {
+                        val existing = dao.getCommunityAppByPackage(remoteApp.packageName)
+                        val icon = existing?.iconUrl?.takeIf { it.isNotBlank() && !it.startsWith("preset://") } ?: ""
+                        remoteApp.copy(iconUrl = icon)
+                    } else remoteApp.copy(iconUrl = cleanIcon)
+                    insertOrUpdateCommunityApp(appToSave)
                 }
             }
         } catch (_: Exception) {}
@@ -1153,7 +1189,13 @@ class TesterRepository(private val dao: AppDao) {
             val apps = res.getOrDefault(emptyList())
             var count = 0
             apps.forEach { remoteApp ->
-                insertOrUpdateCommunityApp(remoteApp)
+                val cleanIcon = if (remoteApp.iconUrl.startsWith("preset://")) "" else remoteApp.iconUrl.trim()
+                val appToSave = if (cleanIcon.isBlank()) {
+                    val existing = dao.getCommunityAppByPackage(remoteApp.packageName)
+                    val icon = existing?.iconUrl?.takeIf { it.isNotBlank() && !it.startsWith("preset://") } ?: ""
+                    remoteApp.copy(iconUrl = icon)
+                } else remoteApp.copy(iconUrl = cleanIcon)
+                insertOrUpdateCommunityApp(appToSave)
                 count++
             }
             cleanDuplicateCommunityApps()
@@ -1235,6 +1277,8 @@ class TesterRepository(private val dao: AppDao) {
         val appName = if (customName.isNotBlank()) customName else if (existing != null) existing.name else "تطبيق $pkg"
         val devName = if (developerName.isNotBlank()) developerName else if (existing != null) existing.developerName else "مطور من المجتمع"
 
+        val resolvedIcon = existing?.iconUrl?.takeIf { it.isNotBlank() && !it.startsWith("preset://") } ?: ""
+
         val imported = CommunityApp(
             id = existing?.id ?: 0,
             name = appName,
@@ -1242,6 +1286,7 @@ class TesterRepository(private val dao: AppDao) {
             packageName = pkg,
             description = "تطبيق تمت إضافته مباشرة لاختبار الـ 14 يوماً عبر الرابط",
             category = category.ifBlank { "أدوات" },
+            iconUrl = resolvedIcon,
             googleGroupUrl = officialGroupUrl,
             webOptInUrl = webOptIn,
             androidOptInUrl = androidOptIn,
@@ -1260,6 +1305,67 @@ class TesterRepository(private val dao: AppDao) {
         } catch (_: Exception) {}
 
         return Result.success(finalApp)
+    }
+
+    suspend fun backfillMissingAppIcons() {
+        try {
+            // 1. Purge any random preset URLs from local database
+            val userApps = dao.getAllUserAppsOnce()
+            userApps.forEach { app ->
+                if (app.iconUrl.startsWith("preset://")) {
+                    dao.updateUserAppIcon(app.id, "")
+                    dao.updateCommunityAppIcon(app.packageName, "")
+                    dao.updateJoinedTestIcon(app.packageName, "")
+                }
+            }
+
+            // Purge known mock/sample apps if present in local DB
+            val mockPackages = listOf(
+                "com.smart.expense.tracker",
+                "com.fitness.dailyworkout.pro",
+                "com.quicktasks.notes.manager"
+            )
+            mockPackages.forEach { pkg ->
+                dao.deleteCommunityAppByPackage(pkg)
+                dao.deleteJoinedTestByPackage(pkg)
+                dao.deleteUserAppByPackage(pkg)
+            }
+
+            val commApps = dao.getAllCommunityAppsOnce()
+            commApps.forEach { app ->
+                if (app.iconUrl.startsWith("preset://")) {
+                    dao.updateCommunityAppIcon(app.packageName, "")
+                    dao.updateJoinedTestIcon(app.packageName, "")
+                }
+            }
+
+            // 2. For apps without icons, attempt to fetch REAL icon from Google Play
+            val allCommApps = dao.getAllCommunityAppsOnce()
+            allCommApps.forEach { app ->
+                if (app.iconUrl.isBlank() && app.packageName.isNotBlank()) {
+                    try {
+                        val info = com.example.util.GooglePlayScraperHelper.fetchAppInfo(app.packageName)
+                        if (info != null && info.iconUrl.isNotBlank()) {
+                            dao.updateCommunityAppIcon(app.packageName, info.iconUrl)
+                            dao.updateJoinedTestIcon(app.packageName, info.iconUrl)
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+
+            val joinedTests = dao.getJoinedTestsOnce()
+            joinedTests.forEach { test ->
+                if (test.iconUrl.startsWith("preset://")) {
+                    dao.updateJoinedTestIcon(test.packageName, "")
+                } else if (test.iconUrl.isBlank()) {
+                    val matchingComm = dao.getCommunityAppByPackage(test.packageName)
+                    val icon = matchingComm?.iconUrl?.takeIf { it.isNotBlank() && !it.startsWith("preset://") } ?: ""
+                    if (icon.isNotBlank()) {
+                        dao.updateJoinedTestIcon(test.packageName, icon)
+                    }
+                }
+            }
+        } catch (_: Exception) {}
     }
 
     suspend fun exportBackupJson(): String {

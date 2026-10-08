@@ -75,6 +75,8 @@ import com.example.ui.theme.AmberGold
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.PlayGreen
+import com.example.ui.theme.PlayGreenLight
+import com.example.ui.theme.SlateGray
 import com.example.ui.theme.SuccessGreen
 import com.example.ui.util.AppLanguage
 import com.example.ui.util.L
@@ -230,63 +232,66 @@ fun CommunityScreen(
                     // Publish Button
                     Button(
                         onClick = onPublishClick,
-                        colors = ButtonDefaults.buttonColors(containerColor = PlayGreen),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        modifier = Modifier.height(34.dp).testTag("btn_quick_publish")
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PlayGreen,
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                        modifier = Modifier.height(36.dp).testTag("btn_quick_publish")
                     ) {
                         Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(15.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(s.publishNewAppBtn, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(s.publishNewAppBtn, fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
                     }
 
                     // Reciprocal 1-on-1 Matching
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = AmberGold.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surface,
                         border = BorderStroke(1.dp, AmberGold.copy(alpha = 0.35f)),
                         modifier = Modifier
-                            .height(34.dp)
+                            .height(36.dp)
                             .clickable { showReciprocalDialog = true }
                             .testTag("chip_reciprocal_matching")
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Handshake, contentDescription = null, tint = AmberGold, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(s.reciprocalTitle, style = MaterialTheme.typography.labelSmall, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Icon(Icons.Default.Handshake, contentDescription = null, tint = AmberGold, modifier = Modifier.size(15.dp))
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(s.reciprocalTitle, style = MaterialTheme.typography.labelSmall, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
 
                     // Import direct link
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = CyanAccent.copy(alpha = 0.12f),
-                        border = BorderStroke(1.dp, CyanAccent.copy(alpha = 0.35f)),
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, PlayGreen.copy(alpha = 0.35f)),
                         modifier = Modifier
-                            .height(34.dp)
+                            .height(36.dp)
                             .clickable { showImportAppDialog = true }
                             .testTag("chip_import_app")
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.AddLink, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(s.importAppBtn, style = MaterialTheme.typography.labelSmall, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Icon(Icons.Default.AddLink, contentDescription = null, tint = PlayGreen, modifier = Modifier.size(15.dp))
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(s.importAppBtn, style = MaterialTheme.typography.labelSmall, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
 
                     // Cloud Health / Sync
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
                         modifier = Modifier
-                            .height(34.dp)
+                            .height(36.dp)
                             .clickable {
                                 showCloudDiagnosticsDialog = true
                                 onRunCloudDiagnostics()
@@ -294,12 +299,12 @@ fun CommunityScreen(
                             .testTag("chip_cloud_diagnostics")
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.CloudSync, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(s.cloudSyncTitle, style = MaterialTheme.typography.labelSmall, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+                            Icon(Icons.Default.CloudSync, contentDescription = null, tint = SlateGray, modifier = Modifier.size(15.dp))
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(s.cloudSyncTitle, style = MaterialTheme.typography.labelSmall, fontSize = 11.5.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
@@ -340,7 +345,7 @@ fun CommunityScreen(
                 )
             }
 
-            // Sorting Options Row (Sleek Pills)
+            // Sorting Options Row (Sleek Calm Pills)
             item {
                 Row(
                     modifier = Modifier
@@ -358,7 +363,7 @@ fun CommunityScreen(
 
                     Surface(
                         shape = RoundedCornerShape(16.dp),
-                        color = if (sortBy == "PRIORITY") PlayGreen.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surfaceVariant,
+                        color = if (sortBy == "PRIORITY") PlayGreen.copy(alpha = 0.14f) else MaterialTheme.colorScheme.surface,
                         border = BorderStroke(1.dp, if (sortBy == "PRIORITY") PlayGreen else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                         modifier = Modifier
                             .testTag("sort_chip_priority")
@@ -369,13 +374,13 @@ fun CommunityScreen(
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = if (sortBy == "PRIORITY") FontWeight.Bold else FontWeight.Normal,
                             color = if (sortBy == "PRIORITY") PlayGreen else MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                         )
                     }
 
                     Surface(
                         shape = RoundedCornerShape(16.dp),
-                        color = if (sortBy == "URGENT") AmberGold.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surfaceVariant,
+                        color = if (sortBy == "URGENT") AmberGold.copy(alpha = 0.14f) else MaterialTheme.colorScheme.surface,
                         border = BorderStroke(1.dp, if (sortBy == "URGENT") AmberGold else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                         modifier = Modifier
                             .testTag("sort_chip_urgent")
@@ -386,14 +391,14 @@ fun CommunityScreen(
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = if (sortBy == "URGENT") FontWeight.Bold else FontWeight.Normal,
                             color = if (sortBy == "URGENT") AmberGold else MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                         )
                     }
 
                     Surface(
                         shape = RoundedCornerShape(16.dp),
-                        color = if (sortBy == "REWARD") CyanAccent.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surfaceVariant,
-                        border = BorderStroke(1.dp, if (sortBy == "REWARD") CyanAccent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        color = if (sortBy == "REWARD") PlayGreenLight.copy(alpha = 0.20f) else MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, if (sortBy == "REWARD") PlayGreen else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                         modifier = Modifier
                             .testTag("sort_chip_reward")
                             .clickable { sortBy = "REWARD" }
@@ -402,8 +407,8 @@ fun CommunityScreen(
                             text = s.sortReward,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = if (sortBy == "REWARD") FontWeight.Bold else FontWeight.Normal,
-                            color = if (sortBy == "REWARD") CyanAccent else MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                            color = if (sortBy == "REWARD") PlayGreen else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                         )
                     }
                 }
@@ -428,24 +433,6 @@ fun CommunityScreen(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Cloud Diagnostics / Fix Button
-                            IconButton(
-                                onClick = {
-                                    showCloudDiagnosticsDialog = true
-                                    onRunCloudDiagnostics()
-                                },
-                                modifier = Modifier
-                                    .size(34.dp)
-                                    .testTag("btn_open_cloud_diagnostics")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CloudSync,
-                                    contentDescription = if (isArabic) "حالة السحابة" else "Cloud Status",
-                                    tint = AmberGold,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-
                             // Manual Cloud Sync Button
                             OutlinedButton(
                                 onClick = onSyncClick,
@@ -453,12 +440,12 @@ fun CommunityScreen(
                                 shape = RoundedCornerShape(8.dp),
                                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                                 modifier = Modifier
-                                    .height(34.dp)
+                                    .height(32.dp)
                                     .testTag("btn_sync_community_apps")
                             ) {
                                 if (isSyncing) {
                                     CircularProgressIndicator(
-                                        modifier = Modifier.size(14.dp),
+                                        modifier = Modifier.size(13.dp),
                                         strokeWidth = 2.dp,
                                         color = PlayGreen
                                     )
@@ -467,9 +454,9 @@ fun CommunityScreen(
                                 } else {
                                     Icon(
                                         imageVector = Icons.Default.Refresh,
-                                        contentDescription = if (isArabic) "مزامنة السحابة" else "Cloud Sync",
+                                        contentDescription = if (isArabic) "تحديث السحابة" else "Cloud Sync",
                                         tint = PlayGreen,
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(15.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(if (isArabic) "تحديث" else "Refresh", fontSize = 11.sp, color = PlayGreen, fontWeight = FontWeight.SemiBold)
@@ -478,38 +465,38 @@ fun CommunityScreen(
                         }
                     }
 
-                    // Sync status note if available
+                    // Sync status note if available (Only shown when there is an error or notice to keep screen clean)
                     syncStatusMessage?.let { msg ->
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    showCloudDiagnosticsDialog = true
-                                    onRunCloudDiagnostics()
-                                }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                        if (msg.contains("تنبيه") || msg.contains("Error") || msg.contains("فشل") || msg.contains("Permission")) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        showCloudDiagnosticsDialog = true
+                                        onRunCloudDiagnostics()
+                                    }
                             ) {
-                                Icon(
-                                    imageVector = if (msg.contains("نجاح") || msg.contains("Success") || msg.contains("up to date")) Icons.Default.CloudDone else Icons.Default.CloudSync,
-                                    contentDescription = null,
-                                    tint = if (msg.contains("نجاح") || msg.contains("Success")) SuccessGreen else if (msg.contains("تنبيه") || msg.contains("Error") || msg.contains("fail")) DangerRed else PlayGreen,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = msg,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 10.sp,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                if (msg.contains("تنبيه") || msg.contains("فشل") || msg.contains("Error") || msg.contains("Permission")) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CloudSync,
+                                        contentDescription = null,
+                                        tint = DangerRed,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = msg,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 10.sp,
+                                        modifier = Modifier.weight(1f)
+                                    )
                                     Text(
                                         text = if (isArabic) "عرض الحل 🛠️" else "View Fix 🛠️",
                                         style = MaterialTheme.typography.labelSmall,
@@ -615,26 +602,6 @@ fun CommunityScreen(
                     onViewReviewsClick = { appForReviews = app },
                     onRecordOpened = onRecordAppOpened
                 )
-            }
-        }
-
-        // Floating Action Button to add app
-        FloatingActionButton(
-            onClick = onPublishClick,
-            containerColor = PlayGreen,
-            contentColor = Color.White,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(20.dp)
-                .testTag("fab_publish_app")
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Default.Add, contentDescription = if (isArabic) "أضف تطبيقك" else "Add Your App")
-                Spacer(modifier = Modifier.size(6.dp))
-                Text(if (isArabic) "أضف تطبيقك" else "Add App", fontWeight = FontWeight.Bold)
             }
         }
     }

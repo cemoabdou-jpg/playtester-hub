@@ -326,8 +326,7 @@ private fun PlayConsoleShortcutRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                context.startActivity(intent)
+                openUrl(context, url)
             }
     ) {
         Row(

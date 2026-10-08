@@ -326,10 +326,20 @@ fun ProductionReadinessReportDialog(
 }
 
 private fun shareReport(context: Context, appName: String, reportText: String) {
-    val intent = Intent(Intent.ACTION_SEND).apply {
-        type = "text/plain"
-        putExtra(Intent.EXTRA_SUBJECT, "تقرير جاهزية متجر Google Play - $appName")
-        putExtra(Intent.EXTRA_TEXT, reportText)
+    try {
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, "تقرير جاهزية متجر Google Play - $appName")
+            putExtra(Intent.EXTRA_TEXT, reportText)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        val chooser = Intent.createChooser(intent, "تصدير ومشاركة تقرير الجاهزية").apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(chooser)
+    } catch (e: Exception) {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+        clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("PlayReport", reportText))
+        android.widget.Toast.makeText(context, "تم نسخ التقرير إلى الحافظة بنجاح 📋", android.widget.Toast.LENGTH_SHORT).show()
     }
-    context.startActivity(Intent.createChooser(intent, "تصدير ومشاركة تقرير الجاهزية"))
 }

@@ -38,18 +38,18 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _themeMode = MutableStateFlow(
         try {
-            ThemeMode.valueOf(prefs.getString("theme_mode", ThemeMode.SYSTEM.name) ?: ThemeMode.SYSTEM.name)
+            ThemeMode.valueOf(prefs.getString("theme_mode", ThemeMode.LIGHT.name) ?: ThemeMode.LIGHT.name)
         } catch (e: Exception) {
-            ThemeMode.SYSTEM
+            ThemeMode.LIGHT
         }
     )
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
 
     private val _colorTheme = MutableStateFlow(
         try {
-            AppColorTheme.valueOf(prefs.getString("color_theme_mode", AppColorTheme.CALM_BLUE.name) ?: AppColorTheme.CALM_BLUE.name)
+            AppColorTheme.valueOf(prefs.getString("color_theme_mode", AppColorTheme.MINT_BEIGE.name) ?: AppColorTheme.MINT_BEIGE.name)
         } catch (e: Exception) {
-            AppColorTheme.CALM_BLUE
+            AppColorTheme.MINT_BEIGE
         }
     )
     val colorTheme: StateFlow<AppColorTheme> = _colorTheme.asStateFlow()
@@ -121,8 +121,10 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
             // 2. Automatic one-time fetch & automatic background upload of local apps
             launch {
                 try {
+                    repository.backfillMissingAppIcons()
                     repository.syncRemoteAppsNow()
                     repository.reuploadAllUserAppsToCloud()
+                    repository.backfillMissingAppIcons()
                 } catch (e: Exception) {
                     android.util.Log.w("TesterViewModel", "Auto startup sync note: ${e.message}")
                 }
@@ -793,6 +795,13 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
             }.onFailure { err ->
                 _userMessage.value = err.message ?: "فشل سحب أيقونة التطبيق"
             }
+        }
+    }
+
+    fun updateAppIcon(packageName: String, iconUrl: String, userAppId: Int? = null) {
+        viewModelScope.launch {
+            val res = repository.updateAppIconDirectly(packageName, iconUrl, userAppId)
+            _userMessage.value = if (res.isSuccess) res.getOrNull() ?: "تم حفظ وتحديث الأيقونة بنجاح" else res.exceptionOrNull()?.message ?: "فشل تحديث الأيقونة"
         }
     }
 
