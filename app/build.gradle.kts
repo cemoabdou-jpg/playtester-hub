@@ -84,3 +84,46 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 }
+
+// Auto-provision fallback google-services.json for CI/CD environments (e.g. GitHub Actions) if not committed
+tasks.matching { it.name.startsWith("process") && it.name.contains("GoogleServices") }.configureEach {
+    doFirst {
+        val gServices = file("google-services.json")
+        if (!gServices.exists() || gServices.length() == 0L) {
+            gServices.writeText(
+                """
+                {
+                  "project_info": {
+                    "project_number": "170455936881",
+                    "project_id": "playtester-hub-61bd6",
+                    "storage_bucket": "playtester-hub-61bd6.appspot.com"
+                  },
+                  "client": [
+                    {
+                      "client_info": {
+                        "mobilesdk_app_id": "1:170455936881:android:29bcec6a7e7d0f03c410d0",
+                        "android_client_info": {
+                          "package_name": "com.playtesterhub.app"
+                        }
+                      },
+                      "oauth_client": [],
+                      "api_key": [
+                        {
+                          "current_key": "AIzaSyDummyKeyForCIBuildConfigOnly12345678"
+                        }
+                      ],
+                      "services": {
+                        "appinvite_service": {
+                          "other_platform_oauth_client": []
+                        }
+                      }
+                    }
+                  ],
+                  "configuration_version": "1"
+                }
+                """.trimIndent()
+            )
+        }
+    }
+}
+

@@ -42,6 +42,48 @@ jobs:
             keytool -genkeypair -v -keystore debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
           fi
 
+      - name: Setup Google Services Configuration
+        env:
+          GOOGLE_SERVICES_SECRET: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_SECRET" ]; then
+            echo "Writing google-services.json from GitHub Secrets..."
+            echo "$GOOGLE_SERVICES_SECRET" > app/google-services.json
+          elif [ ! -f app/google-services.json ]; then
+            echo "Creating fallback google-services.json for CI build..."
+            cat << 'EOF' > app/google-services.json
+          {
+            "project_info": {
+              "project_number": "170455936881",
+              "project_id": "playtester-hub-61bd6",
+              "storage_bucket": "playtester-hub-61bd6.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:170455936881:android:29bcec6a7e7d0f03c410d0",
+                  "android_client_info": {
+                    "package_name": "com.playtesterhub.app"
+                  }
+                },
+                "oauth_client": [],
+                "api_key": [
+                  {
+                    "current_key": "AIzaSyDummyKeyForCIBuildConfigOnly12345678"
+                  }
+                ],
+                "services": {
+                  "appinvite_service": {
+                    "other_platform_oauth_client": []
+                  }
+                }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
+          fi
+
       - name: Grant Execute Permission to gradlew
         run: chmod +x gradlew
 
