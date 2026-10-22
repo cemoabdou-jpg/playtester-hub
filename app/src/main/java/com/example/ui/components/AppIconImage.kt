@@ -1,353 +1,257 @@
 package com.example.ui.components
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Canvas
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.Drawable
-import android.net.Uri
 import android.util.Base64
-import androidx.compose.foundation.BorderStroke
+import android.util.LruCache
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import coil.request.CachePolicy
+import coil.compose.AsyncImagePainter
 import coil.request.ImageRequest
-import com.example.util.GooglePlayScraperHelper
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.FileOutputStream
-import java.io.InputStream
+import kotlin.math.absoluteValue
 
-/**
- * Universal, high-performance app icon and screenshot image component.
- * Displays with multi-layer fallback:
- * 1. Native app icon from Android device if installed (PackageManager)
- * 2. Cached local image file from app_icons folder
- * 3. Base64 Data URIs (data:image/...;base64,...) via direct native Bitmap decoding
- * 4. Raw Base64 image strings
- * 5. Local file paths (/data/user/... or file://...)
- * 6. Content URIs (content://...)
- * 7. Web URLs (https://... / http://...) via Coil
- * 8. Auto-fetch from Google Play if package name provided
- * 9. Clean, authentic Material 3 initial letter monogram badge (no random icons)
- */
+// In-memory cache for decoded Base64 and local bitmaps so they don't re-decode on every recomposition
+private val bitmapMemoryCache = LruCache<String, Bitmap>(50)
+
+// Vibrant dynamic palettes for icons when image is not present
+private val GRADIENT_PALETTES = listOf(
+    listOf(Color(0xFF4F46E5), Color(0xFF7C3AED)), // Indigo -> Purple
+    listOf(Color(0xFF059669), Color(0xFF10B981)), // Emerald -> Teal
+    listOf(Color(0xFFD97706), Color(0xFFF59E0B)), // Amber -> Orange
+    listOf(Color(0xFFDC2626), Color(0xFFF43F5E)), // Crimson -> Rose
+    listOf(Color(0xFF2563EB), Color(0xFF06B6D4)), // Blue -> Cyan
+    listOf(Color(0xFF7C3AED), Color(0xFFEC4899)), // Violet -> Pink
+    listOf(Color(0xFF0891B2), Color(0xFF14B8A6)), // Cyan -> Teal
+    listOf(Color(0xFFEA580C), Color(0xFFF97316)), // Orange -> Amber
+    listOf(Color(0xFF475569), Color(0xFF64748B))  // Slate
+)
+
 @Composable
 fun AppIconImage(
-    iconUrl: String,
+    iconUrl: String?,
     appName: String,
-    modifier: Modifier = Modifier,
-    packageName: String = "",
-    shape: Shape = RoundedCornerShape(12.dp),
-    size: Dp = 48.dp,
-    contentScale: ContentScale = ContentScale.Crop
+    category: String = "",
+    modifier: Modifier = Modifier.size(46.dp),
+    shape: Shape = RoundedCornerShape(12.dp)
 ) {
-    val context = LocalContext.current
-    val cleanUrl = iconUrl.trim().let { if (it.startsWith("preset://")) "" else it }
-    var scrapedIconUrl by remember(cleanUrl, packageName) { mutableStateOf<String?>(null) }
-    var isCoilFailed by remember(cleanUrl, scrapedIconUrl) { mutableStateOf(false) }
+    val raw = iconUrl?.trim().orEmpty()
+    var isImageError by remember(raw) { mutableStateOf(false) }
 
-    // If icon is blank but package name exists, attempt background scrape from Google Play
-    LaunchedEffect(cleanUrl, packageName) {
-        if (cleanUrl.isBlank() && packageName.isNotBlank()) {
-            withContext(Dispatchers.IO) {
-                try {
-                    val info = GooglePlayScraperHelper.fetchAppInfo(packageName)
-                    if (info != null && info.iconUrl.isNotBlank()) {
-                        scrapedIconUrl = info.iconUrl
-                    }
-                } catch (_: Exception) {}
-            }
+    // Normalize and transform any URL format
+    val cleanUrl = remember(raw) {
+        normalizeImageUrl(raw)
+    }
+
+    // Try decoding Base64 if image is embedded (data:image/... or raw Base64)
+    val base64Bitmap: Bitmap? = remember(cleanUrl) {
+        if (cleanUrl.isBlank() || isLikelyHttpUrl(cleanUrl)) {
+            null
+        } else {
+            decodeBase64Safely(cleanUrl)
         }
     }
 
-    val effectiveUrl = when {
-        cleanUrl.isNotBlank() -> cleanUrl
-        !scrapedIconUrl.isNullOrBlank() -> scrapedIconUrl!!
-        else -> ""
-    }
-
-    // Bitmap resolution:
-    // 1. Direct Base64 / Local File / Content URI
-    // 2. Installed App on Device (PackageManager)
-    // 3. Local app_icons directory cache matching packageName
-    val decodedBitmap: Bitmap? = remember(effectiveUrl, packageName) {
-        when {
-            // Case A: Base64 string (from gallery picker or database)
-            effectiveUrl.startsWith("data:image") || effectiveUrl.contains("base64,") || isLikelyRawBase64(effectiveUrl) -> {
-                decodeBase64String(effectiveUrl)
-            }
-            // Case B: Local file path
-            effectiveUrl.startsWith("/") || effectiveUrl.startsWith("file://") -> {
-                val filePath = if (effectiveUrl.startsWith("file://")) effectiveUrl.removePrefix("file://") else effectiveUrl
-                val file = File(filePath)
-                if (file.exists() && file.isFile && file.length() > 0) {
-                    try {
-                        BitmapFactory.decodeFile(file.absolutePath)
-                    } catch (_: Exception) { null }
-                } else null
-            }
-            // Case C: Content URI
-            effectiveUrl.startsWith("content://") -> {
-                try {
-                    context.contentResolver.openInputStream(Uri.parse(effectiveUrl))?.use {
-                        BitmapFactory.decodeStream(it)
-                    }
-                } catch (_: Exception) { null }
-            }
-            // Case D: If URL is blank, check if app is installed on this device or cached in app_icons
-            effectiveUrl.isBlank() && packageName.isNotBlank() -> {
-                loadInstalledAppBitmap(context, packageName) ?: loadCachedIconFile(context, packageName)
-            }
-            else -> null
-        }
-    }
+    val paletteIndex = (appName.hashCode().absoluteValue) % GRADIENT_PALETTES.size
+    val gradientColors = GRADIENT_PALETTES[paletteIndex]
+    val categoryIcon = getCategoryIcon(category, appName)
 
     Box(
         modifier = modifier
-            .size(size)
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceVariant),
-        contentAlignment = Alignment.Center
-    ) {
-        when {
-            // Priority 1: Successfully decoded Bitmap (Base64, Local File, Installed app, or Local Cache)
-            decodedBitmap != null -> {
-                Image(
-                    bitmap = decodedBitmap.asImageBitmap(),
-                    contentDescription = "$appName icon",
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(shape),
-                    contentScale = contentScale
-                )
-            }
-
-            // Priority 2: Web URL loaded via Coil
-            (effectiveUrl.startsWith("http://") || effectiveUrl.startsWith("https://")) && !isCoilFailed -> {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(effectiveUrl)
-                        .crossfade(true)
-                        .diskCachePolicy(CachePolicy.ENABLED)
-                        .memoryCachePolicy(CachePolicy.ENABLED)
-                        .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36")
-                        .listener(onError = { _, _ -> isCoilFailed = true })
-                        .build(),
-                    contentDescription = "$appName icon",
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(shape),
-                    contentScale = contentScale,
-                    onError = { isCoilFailed = true }
-                )
-            }
-
-            // Priority 3: Clean, authentic default app monogram badge (NO random icons)
-            else -> {
-                DefaultAppBadge(
-                    appName = appName,
-                    size = size,
-                    shape = shape
-                )
-            }
-        }
-    }
-}
-
-/**
- * Professional, clean default app badge.
- * Displays the initial letter of the app or a standard app symbol.
- * NO random icons (no pizza, rocket, headphones, games, etc.) are ever used.
- */
-@Composable
-fun DefaultAppBadge(
-    appName: String,
-    size: Dp,
-    shape: Shape = RoundedCornerShape(12.dp)
-) {
-    val initial = remember(appName) {
-        val trimmed = appName.trim()
-        val firstLetterOrDigit = trimmed.firstOrNull { it.isLetterOrDigit() }
-        firstLetterOrDigit?.toString()?.uppercase() ?: ""
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.primaryContainer)
             .border(
-                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                width = 0.5.dp,
+                color = Color.White.copy(alpha = 0.25f),
                 shape = shape
             ),
         contentAlignment = Alignment.Center
     ) {
-        if (initial.isNotEmpty()) {
-            Text(
-                text = initial,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = (size.value * 0.44f).coerceIn(12f, 48f).sp
-            )
-        } else {
-            Icon(
-                imageVector = Icons.Default.Apps,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size((size * 0.5f).coerceAtLeast(16.dp))
-            )
-        }
-    }
-}
-
-private fun loadInstalledAppBitmap(context: Context, packageName: String): Bitmap? {
-    if (packageName.isBlank()) return null
-    return try {
-        val pm = context.packageManager
-        val appInfo = pm.getApplicationInfo(packageName, 0)
-        val drawable = appInfo.loadIcon(pm)
-        drawableToBitmap(drawable)
-    } catch (_: Exception) {
-        null
-    }
-}
-
-private fun loadCachedIconFile(context: Context, packageName: String): Bitmap? {
-    if (packageName.isBlank()) return null
-    return try {
-        val cleanPkg = packageName.replace("[^a-zA-Z0-9._]".toRegex(), "_")
-        val iconsDir = File(context.filesDir, "app_icons")
-        if (iconsDir.exists()) {
-            val files = iconsDir.listFiles { _, name -> name.contains(cleanPkg) && (name.endsWith(".png") || name.endsWith(".jpg")) }
-            files?.maxByOrNull { it.lastModified() }?.let { file ->
-                BitmapFactory.decodeFile(file.absolutePath)
+        when {
+            // 1. Decoded Base64 / Local Bitmap
+            base64Bitmap != null && !isImageError -> {
+                Image(
+                    bitmap = base64Bitmap.asImageBitmap(),
+                    contentDescription = appName,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
             }
-        } else null
-    } catch (_: Exception) {
-        null
-    }
-}
 
-private fun drawableToBitmap(drawable: Drawable): Bitmap {
-    if (drawable is BitmapDrawable && drawable.bitmap != null) {
-        return drawable.bitmap
-    }
-    val width = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth else 128
-    val height = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight else 128
-    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-    drawable.setBounds(0, 0, canvas.width, canvas.height)
-    drawable.draw(canvas)
-    return bitmap
-}
+            // 2. Web URL, Local File URI, or Android Content URI via Coil
+            cleanUrl.isNotBlank() && isLoadableViaCoil(cleanUrl) && !isImageError -> {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(cleanUrl)
+                        .crossfade(true)
+                        .allowHardware(true)
+                        .build(),
+                    contentDescription = appName,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                    onState = { state ->
+                        if (state is AsyncImagePainter.State.Error) {
+                            isImageError = true
+                        }
+                    }
+                )
+            }
 
-private fun decodeBase64String(input: String): Bitmap? {
-    return try {
-        val cleanData = if (input.contains(",")) {
-            input.substringAfter(",")
-        } else {
-            input
-        }.trim()
-        val bytes = Base64.decode(cleanData, Base64.DEFAULT)
-        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-    } catch (_: Exception) {
-        null
-    }
-}
-
-private fun isLikelyRawBase64(input: String): Boolean {
-    val trimmed = input.trim()
-    if (trimmed.length < 80) return false
-    if (trimmed.startsWith("http") || trimmed.startsWith("/") || trimmed.startsWith("content:")) return false
-    return trimmed.take(50).all { c ->
-        c in 'A'..'Z' || c in 'a'..'z' || c in '0'..'9' || c == '+' || c == '/' || c == '='
+            // 3. Fallback: Dynamic Stylish App Store Tile with App Initial / Category Icon
+            else -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Brush.linearGradient(gradientColors)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val firstChar = appName.trim().firstOrNull()
+                    if (firstChar != null && (firstChar.isLetter() || firstChar.isDigit())) {
+                        Text(
+                            text = firstChar.uppercaseChar().toString(),
+                            color = Color.White,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 20.sp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = categoryIcon,
+                            contentDescription = appName,
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
 /**
- * Utility functions for processing app icon images and screenshot proofs picked by users.
+ * Normalizes image URLs from Google Drive, Dropbox, Play Store, or missing protocols.
  */
-object AppIconProcessor {
+private fun normalizeImageUrl(raw: String): String {
+    if (raw.isBlank()) return ""
+    var url = raw.trim()
 
-    fun processPickedImage(context: Context, uri: Uri, packageName: String = ""): String {
-        return try {
-            val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
-            if (inputStream == null) return uri.toString()
-
-            val originalBitmap = BitmapFactory.decodeStream(inputStream)
-            inputStream.close()
-            if (originalBitmap == null) return uri.toString()
-
-            // Scale to standard high-resolution icon/proof size (max 384x384)
-            val maxDimension = 384
-            val width = originalBitmap.width
-            val height = originalBitmap.height
-            val scale = minOf(maxDimension.toFloat() / width, maxDimension.toFloat() / height, 1.0f)
-            val targetWidth = (width * scale).toInt().coerceAtLeast(1)
-            val targetHeight = (height * scale).toInt().coerceAtLeast(1)
-
-            val scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, targetWidth, targetHeight, true)
-
-            // 1. Save locally for instant, permanent offline loading without URI expiration
-            val iconsDir = File(context.filesDir, "app_icons").apply { mkdirs() }
-            val cleanPkg = packageName.ifBlank { "app" }.replace("[^a-zA-Z0-9._]".toRegex(), "_")
-            val localFile = File(iconsDir, "icon_${cleanPkg}_${System.currentTimeMillis()}.png")
-            FileOutputStream(localFile).use { out ->
-                scaledBitmap.compress(Bitmap.CompressFormat.PNG, 95, out)
-            }
-
-            // 2. Generate a compact Base64 data string for Cloud sync (< 35KB)
-            val byteStream = ByteArrayOutputStream()
-            scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 85, byteStream)
-            val base64Bytes = Base64.encodeToString(byteStream.toByteArray(), Base64.NO_WRAP)
-            "data:image/jpeg;base64,$base64Bytes"
-        } catch (e: Exception) {
-            // Fallback: Copy raw file directly so it doesn't fail due to ephemeral permission
-            try {
-                val iconsDir = File(context.filesDir, "app_icons").apply { mkdirs() }
-                val fallbackFile = File(iconsDir, "fallback_${System.currentTimeMillis()}.png")
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    FileOutputStream(fallbackFile).use { output ->
-                        input.copyTo(output)
-                    }
-                }
-                fallbackFile.absolutePath
-            } catch (_: Exception) {
-                uri.toString()
-            }
+    // 1. Google Drive view link -> direct download link
+    if (url.contains("drive.google.com")) {
+        val fileId = extractGoogleDriveFileId(url)
+        if (fileId != null) {
+            return "https://drive.google.com/uc?export=view&id=$fileId"
         }
+    }
+
+    // 2. Dropbox share link -> raw link
+    if (url.contains("dropbox.com") && url.contains("dl=0")) {
+        url = url.replace("dl=0", "raw=1")
+    }
+
+    // 3. Protocol normalizations
+    return when {
+        url.startsWith("data:image", ignoreCase = true) -> url
+        url.startsWith("file://", ignoreCase = true) -> url
+        url.startsWith("content://", ignoreCase = true) -> url
+        url.startsWith("http://", ignoreCase = true) -> url
+        url.startsWith("https://", ignoreCase = true) -> url
+        url.startsWith("//") -> "https:$url"
+        url.startsWith("www.") -> "https://$url"
+        // Domain name like play-lh.googleusercontent.com/xyz or imgur.com/xyz
+        url.contains(".") && !url.contains(" ") && url.indexOf(".") < url.indexOf("/").let { if (it == -1) url.length else it } -> {
+            "https://$url"
+        }
+        else -> url
+    }
+}
+
+private fun isLikelyHttpUrl(url: String): Boolean {
+    return url.startsWith("http://", ignoreCase = true) ||
+           url.startsWith("https://", ignoreCase = true) ||
+           url.startsWith("file://", ignoreCase = true) ||
+           url.startsWith("content://", ignoreCase = true)
+}
+
+private fun isLoadableViaCoil(url: String): Boolean {
+    return isLikelyHttpUrl(url)
+}
+
+/**
+ * Safely decodes Base64 data with caching and sanitization.
+ */
+private fun decodeBase64Safely(raw: String): Bitmap? {
+    try {
+        val cacheKey = if (raw.length > 100) raw.take(50) + raw.takeLast(50) else raw
+        bitmapMemoryCache.get(cacheKey)?.let { return it }
+
+        val isDataUri = raw.startsWith("data:image", ignoreCase = true)
+        val base64Data = if (isDataUri && raw.contains(",")) {
+            raw.substringAfter(",")
+        } else {
+            raw
+        }
+
+        // Sanitize newlines and spaces that often appear in Base64
+        val sanitized = base64Data.replace("\n", "").replace("\r", "").replace(" ", "").trim()
+        if (sanitized.length < 50) return null
+
+        val decodedBytes = Base64.decode(sanitized, Base64.DEFAULT)
+        val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+        if (bitmap != null) {
+            bitmapMemoryCache.put(cacheKey, bitmap)
+        }
+        return bitmap
+    } catch (_: Throwable) {
+        return null
+    }
+}
+
+private fun extractGoogleDriveFileId(url: String): String? {
+    return try {
+        if (url.contains("/file/d/")) {
+            url.substringAfter("/file/d/").substringBefore("/")
+        } else if (url.contains("id=")) {
+            url.substringAfter("id=").substringBefore("&")
+        } else {
+            null
+        }
+    } catch (_: Exception) {
+        null
+    }
+}
+
+private fun getCategoryIcon(category: String, appName: String): ImageVector {
+    val combined = "$category $appName".lowercase()
+    return when {
+        combined.contains("لعب") || combined.contains("game") -> Icons.Default.SportsEsports
+        combined.contains("أدوات") || combined.contains("tool") -> Icons.Default.Build
+        combined.contains("إنتاج") || combined.contains("product") || combined.contains("عمل") -> Icons.Default.TaskAlt
+        combined.contains("تعليم") || combined.contains("edu") || combined.contains("كتاب") -> Icons.Default.School
+        combined.contains("تواصل") || combined.contains("chat") || combined.contains("social") -> Icons.Default.Forum
+        combined.contains("مال") || combined.contains("finance") || combined.contains("pay") -> Icons.Default.AccountBalance
+        combined.contains("صحة") || combined.contains("health") || combined.contains("fit") -> Icons.Default.Favorite
+        combined.contains("تسوق") || combined.contains("shop") || combined.contains("store") -> Icons.Default.ShoppingBag
+        else -> Icons.Default.Smartphone
     }
 }

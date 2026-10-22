@@ -1,43 +1,52 @@
 package com.example
 
 import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.os.Build
 import android.util.Log
-import com.example.util.AppCrashProtector
-import com.example.util.NotificationHelper
-import com.google.firebase.FirebaseApp
-import com.google.firebase.FirebaseOptions
 
 class PlayTesterApplication : Application() {
-
     override fun onCreate() {
         super.onCreate()
-        instance = this
-        AppCrashProtector.install(this)
-        initializeFirebaseSafely()
-        NotificationHelper.createNotificationChannel(this)
-    }
 
-    private fun initializeFirebaseSafely() {
-        try {
-            if (FirebaseApp.getApps(this).isEmpty()) {
-                val options = FirebaseOptions.Builder()
-                    .setProjectId("playtester-hub-61bd6")
-                    .setApplicationId("1:170455936881:android:29bcec6a7e7d0f03c410d0")
-                    .setApiKey("AIzaSyCAjx_Z-syoM_CfDnlQqzdgYcAvmqe7Y0o")
-                    .setStorageBucket("playtester-hub-61bd6.firebasestorage.app")
-                    .build()
-                FirebaseApp.initializeApp(this, options)
-                Log.d("PlayTesterApp", "FirebaseApp initialized successfully with explicit options.")
-            } else {
-                Log.d("PlayTesterApp", "FirebaseApp already initialized automatically.")
-            }
-        } catch (e: Exception) {
-            Log.e("PlayTesterApp", "Error initializing Firebase: ${e.message}", e)
+        // Global uncaught crash logging
+        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            Log.e("PLAYTESTER_CRASH", "FATAL CRASH on thread ${thread.name}: ${throwable.message}", throwable)
+            defaultHandler?.uncaughtException(thread, throwable)
         }
-    }
 
-    companion object {
-        lateinit var instance: PlayTesterApplication
-            private set
+        // Initialize Firebase
+        try {
+            com.google.firebase.FirebaseApp.initializeApp(this)
+        } catch (e: Throwable) {
+            Log.e("PLAYTESTER_APP", "FirebaseApp init: ${e.message}")
+        }
+
+
+        // Initialize Theme Manager
+        try {
+            com.example.ui.theme.ThemeManager.init(this)
+        } catch (e: Throwable) {
+            Log.e("PLAYTESTER_APP", "ThemeManager init error: ${e.message}")
+        }
+
+        // Notifications channel
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val channel = NotificationChannel(
+                    "playtester_channel",
+                    "PlayTester Notifications",
+                    NotificationManager.IMPORTANCE_DEFAULT
+                ).apply {
+                    description = "Daily reminders and testing updates"
+                }
+                val manager = getSystemService(NotificationManager::class.java)
+                manager?.createNotificationChannel(channel)
+            }
+        } catch (e: Throwable) {
+            Log.e("PLAYTESTER_APP", "Notification channel error: ${e.message}")
+        }
     }
 }

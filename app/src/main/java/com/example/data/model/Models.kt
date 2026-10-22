@@ -3,168 +3,129 @@ package com.example.data.model
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "auth_users")
-data class AuthUser(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val email: String,
-    val passwordHash: String = "",
-    val displayName: String,
-    val authProvider: String = "EMAIL", // "EMAIL", "GOOGLE", "GITHUB"
-    val avatarUrl: String = "",
-    val role: String = "DEVELOPER", // "ADMIN" (صاحب التطبيق), "DEVELOPER"
-    val isLoggedIn: Boolean = false,
-    val registeredAt: Long = System.currentTimeMillis()
-)
-
-@Entity(tableName = "app_build_artifacts")
-data class AppBuildArtifact(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val userAppId: Int,
-    val versionName: String,
-    val versionCode: Int,
-    val artifactType: String, // "AAB" or "APK"
-    val fileName: String,
-    val fileSizeMb: Double,
-    val releaseNotes: String = "",
-    val uploadedAt: Long = System.currentTimeMillis(),
-    val isActiveForTesting: Boolean = false,
-    val track: String = "CLOSED_TESTING" // "CLOSED_TESTING", "INTERNAL"
-)
-
-@Entity(tableName = "invited_testers")
-data class InvitedTester(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val userAppId: Int,
-    val email: String,
-    val status: String = "INVITED", // "INVITED", "ACCEPTED", "TESTING", "DECLINED"
-    val invitedAt: Long = System.currentTimeMillis(),
-    val acceptedAt: Long? = null,
-    val notes: String = ""
+@Entity(tableName = "user_apps")
+data class UserApp(
+    @PrimaryKey val id: String,
+    val name: String,
+    val packageName: String,
+    val iconUrl: String = "",
+    val playStoreUrl: String = "",
+    val webOptInUrl: String = "",
+    val androidOptInUrl: String = "",
+    val googleGroupUrl: String = "",
+    val targetTesters: Int = 20,
+    val currentTesters: Int = 0,
+    val targetDays: Int = 14,
+    val completedDays: Int = 1,
+    val status: String = "TESTING",
+    val isVip: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis(),
+    val appCategory: String = "Productivity",
+    val description: String = ""
 )
 
 @Entity(tableName = "community_apps")
 data class CommunityApp(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    @PrimaryKey val id: String,
     val name: String,
-    val developerName: String,
     val packageName: String,
-    val description: String,
-    val category: String = "تطبيق",
     val iconUrl: String = "",
-    val googleGroupUrl: String,
-    val webOptInUrl: String,
-    val androidOptInUrl: String,
-    val testersCurrent: Int = 12,
-    val testersTarget: Int = 20,
-    val rewardPoints: Int = 50,
+    val developerName: String = "",
+    val category: String = "General",
+    val pointsReward: Int = 50,
+    val requiredDays: Int = 14,
+    val currentTesters: Int = 0,
+    val targetTesters: Int = 20,
+    val webOptInUrl: String = "",
+    val androidOptInUrl: String = "",
+    val googleGroupUrl: String = "",
     val isFeatured: Boolean = false,
-    val priorityScore: Int = 0, // 0 = standard, positive = higher rank/top display
-    val isHidden: Boolean = false, // Owner can hide/disable an app
-    val createdAt: Long = System.currentTimeMillis()
+    val description: String = ""
 )
 
 @Entity(tableName = "joined_tests")
 data class JoinedTest(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val communityAppId: Int,
+    @PrimaryKey val id: String,
+    val appId: String,
     val appName: String,
     val packageName: String,
-    val category: String = "تطبيق",
     val iconUrl: String = "",
-    val googleGroupUrl: String,
-    val webOptInUrl: String,
-    val androidOptInUrl: String,
-    val joinTimestamp: Long = System.currentTimeMillis(),
+    val joinedAt: Long = System.currentTimeMillis(),
     val daysCompleted: Int = 0,
-    val lastCheckInDate: String = "",
-    val checkedDaysCsv: String = "",
-    val isCompleted: Boolean = false,
-    val feedbackSent: Boolean = false
+    val lastTestDate: Long = 0,
+    val status: String = "TESTING"
 )
 
-@Entity(tableName = "user_apps")
-data class UserApp(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val name: String,
-    val packageName: String,
-    val category: String = "تطبيق",
-    val iconUrl: String = "",
-    val googleGroupUrl: String,
-    val webOptInUrl: String,
-    val androidOptInUrl: String,
-    val instructions: String = "",
-    val testersCount: Int = 1,
-    val targetTesters: Int = 20,
-    val daysElapsed: Int = 1,
-    val targetDays: Int = 14,
-    val createdAt: Long = System.currentTimeMillis(),
-    val status: String = "TESTING" // "TESTING", "READY_FOR_PRODUCTION", "PAUSED"
-)
-
-@Entity(tableName = "app_tester_activities")
-data class AppTesterActivity(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val packageName: String,
-    val appName: String,
-    val testerName: String,
-    val testerEmail: String = "",
-    val action: String = "OPENED_APP", // "OPENED_APP", "TESTED_DAILY"
-    val timestamp: Long = System.currentTimeMillis()
-)
-
-@Entity(tableName = "user_wallet")
-data class UserWallet(
-    @PrimaryKey val id: Int = 1,
-    val points: Int = 150,
-    val testsCompleted: Int = 2,
-    val currentStreak: Int = 4,
-    val lastActiveDate: String = ""
-)
-
-@Entity(tableName = "app_notifications")
-data class AppNotification(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+@Entity(tableName = "crash_reports")
+data class CrashReport(
+    @PrimaryKey val id: String,
+    val appId: String,
     val title: String,
-    val message: String,
-    val type: String = "INFO", // "TESTER_JOINED", "DAILY_REMINDER", "MILESTONE", "INFO"
-    val timestamp: Long = System.currentTimeMillis(),
-    val isRead: Boolean = false,
-    val actionRoute: String = ""
+    val stackTrace: String,
+    val deviceModel: String,
+    val osVersion: String,
+    val appVersion: String,
+    val occurrences: Int = 1,
+    val status: String = "RESOLVED",
+    val reportedAt: Long = System.currentTimeMillis(),
+    val resolvedAt: Long? = null,
+    val resolutionNote: String = ""
+)
+
+@Entity(tableName = "tester_feedback")
+data class TesterFeedback(
+    @PrimaryKey val id: String,
+    val appId: String,
+    val testerName: String,
+    val rating: Int,
+    val comment: String,
+    val category: String = "UX",
+    val createdAt: Long = System.currentTimeMillis()
 )
 
 @Entity(tableName = "daily_test_logs")
 data class DailyTestLog(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val joinedTestId: Int,
-    val appName: String,
-    val packageName: String,
+    @PrimaryKey val id: String,
+    val appId: String,
+    val testerName: String,
+    val testerEmail: String,
+    val deviceModel: String,
+    val osVersion: String,
     val dayNumber: Int,
-    val testDate: String, // "yyyy-MM-dd"
-    val durationMinutes: Int = 10,
-    val rating: Int = 5,
-    val notes: String = "",
-    val proofScreenshotUrl: String = "",
-    val deviceModel: String = "",
-    val androidVersion: String = "",
-    val isSyncedToCloud: Boolean = false,
-    val verifiedAt: Long = System.currentTimeMillis()
+    val checkInTimestamp: Long,
+    val sessionDurationMinutes: Int = 15,
+    val notes: String = "جلسة اختبار تفاعلية ناجحة"
 )
 
-@Entity(tableName = "app_settings")
-data class AppSetting(
-    @PrimaryKey val key: String,
-    val value: String
+data class AuthUser(
+    val uid: String = "dev_guest_01",
+    val email: String = "cemoabdou@gmail.com",
+    val displayName: String = "المطور المعتمد",
+    val points: Int = 750,
+    val isVip: Boolean = true,
+    val isEmailVerified: Boolean = false,
+    val appsCount: Int = 1,
+    val testsCount: Int = 3
 )
 
-data class CloudDiagnosticResult(
-    val isInitialized: Boolean,
-    val authStatus: String, // "AUTHENTICATED", "ANONYMOUS_FAILED", "SKIPPED"
-    val authMessage: String,
-    val canRead: Boolean,
-    val readError: String? = null,
-    val remoteAppsCount: Int = 0,
-    val canWrite: Boolean,
-    val writeError: String? = null,
-    val suggestedFix: String = ""
+data class AchievementBadge(
+    val id: String,
+    val title: String,
+    val description: String,
+    val emoji: String,
+    val coinReward: Int,
+    val currentProgress: Int,
+    val targetProgress: Int,
+    val isUnlocked: Boolean,
+    val isClaimed: Boolean
 )
 
+data class LeaderboardUser(
+    val rank: Int,
+    val name: String,
+    val email: String,
+    val testsCompleted: Int,
+    val points: Int,
+    val badgeTitle: String,
+    val isCurrentUser: Boolean = false
+)
