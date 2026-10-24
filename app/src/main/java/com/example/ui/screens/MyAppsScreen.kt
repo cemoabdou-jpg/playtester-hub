@@ -9,8 +9,12 @@ import com.example.util.AdMobConfig
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -20,6 +24,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -27,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.UserApp
 import com.example.ui.components.AppIconImage
+import com.example.ui.components.PRESET_APP_ICONS
 import com.example.ui.viewmodel.TesterViewModel
 import java.io.ByteArrayOutputStream
 
@@ -38,7 +44,7 @@ fun MyAppsScreen(
     val userApps by viewModel.userApps.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
     var showAddAppDialog by remember { mutableStateOf(false) }
-    var showInsufficientCoinsDialog by remember { mutableStateOf(false) }
+    var appToPromote by remember { mutableStateOf<UserApp?>(null) }
 
     LazyColumn(
         modifier = Modifier
@@ -141,16 +147,7 @@ fun MyAppsScreen(
                         Toast.makeText(context, "تم تحديث بيانات المختبرين بنجاح", Toast.LENGTH_SHORT).show()
                     },
                     onPromote = {
-                        val success = viewModel.promoteApp(app, cost = 100)
-                        if (success) {
-                            Toast.makeText(
-                                context,
-                                "🌟 تهانينا! تم تمييز تطبيق ${app.name} ووضعه في صدارة قائمة المجتمع لجذب المختبرين بسرعة!",
-                                Toast.LENGTH_LONG
-                            ).show()
-                        } else {
-                            showInsufficientCoinsDialog = true
-                        }
+                        appToPromote = app
                     },
                     onUnpromote = {
                         viewModel.unpromoteApp(app)
@@ -168,79 +165,68 @@ fun MyAppsScreen(
     if (showAddAppDialog) {
         AddAppSimpleDialog(
             onDismiss = { showAddAppDialog = false },
-            onAdd = { name, pkg, optIn, grp, cat, desc, iconUrl, testersCount, daysCount ->
+            onAdd = { name, pkg, optIn, grp, cat, desc, iconUrl, testersCount, daysCount, shouldPromote ->
                 viewModel.addUserApp(name, pkg, optIn, grp, cat, desc, iconUrl, testersCount, daysCount)
+                if (shouldPromote) {
+                    viewModel.promoteAppByPackage(pkg, true)
+                    Toast.makeText(context, "🌟 تمت إضافة $name وترقيته إلى صدارة المجتمع!", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(context, "تمت إضافة $name بنجاح!", Toast.LENGTH_SHORT).show()
+                }
                 showAddAppDialog = false
-                Toast.makeText(context, "تمت إضافة $name بنجاح!", Toast.LENGTH_SHORT).show()
             }
         )
     }
 
-    if (showInsufficientCoinsDialog) {
-        AlertDialog(
-            onDismissRequest = { showInsufficientCoinsDialog = false },
-            icon = {
-                Icon(
-                    Icons.Default.MonetizationOn,
-                    contentDescription = null,
-                    tint = Color(0xFFFF8F00),
-                    modifier = Modifier.size(36.dp)
-                )
-            },
-            title = {
-                Text("رصيد العملات غير كافٍ", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        "تحتاج إلى 100 عملة لترقية تطبيقك إلى تطبيق مميز مثبت في صدارة المجتمع لجذب 20 مختبراً بأسرع وقت.",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                    ) {
-                        Text(
-                            "رصيدك الحالي: ${currentUser.points} عملة (ينقصك ${maxOf(0, 100 - currentUser.points)} عملة)",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            color = Color(0xFFFF8F00),
-                            modifier = Modifier.padding(8.dp)
-                        )
-                    }
-                    Text("💡 كيف تكسب عملات إضافية مجاناً؟", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    Text("1. مشاهدة إعلان فيديو سريع (+50 عملة فوراً)", fontSize = 11.sp)
-                    Text("2. فتح واختبار تطبيقات المطورين الآخرين (+25 عملة يومياً لكل تطبيق)", fontSize = 11.sp)
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showInsufficientCoinsDialog = false
-                        val activity = context as? Activity
-                        if (activity != null) {
-                            AdMobConfig.showRewardedAd(
-                                activity = activity,
-                                onRewardEarned = { coins ->
-                                    viewModel.earnAdReward(coins)
-                                }
-                            )
-                        } else {
-                            viewModel.earnAdReward(50)
+    if (appToPromote != null) {
+        val targetApp = appToPromote!!
+        PromoteAppFeaturedDialog(
+            app = targetApp,
+            currentCoins = currentUser.points,
+            onDismiss = { appToPromote = null },
+            onWatchAdToPromote = {
+                val activity = context as? Activity
+                if (activity != null) {
+                    AdMobConfig.showRewardedAd(
+                        activity = activity,
+                        onRewardEarned = {
+                            viewModel.promoteAppWithAd(targetApp)
+                            Toast.makeText(
+                                context,
+                                "🌟 تهانينا! تمت ترقية تطبيق ${targetApp.name} إلى صدارة المجتمع بنجاح!",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            appToPromote = null
                         }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00875A))
-                ) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("مشاهدة إعلان مكافأة (+50 عملة)")
+                    )
+                } else {
+                    viewModel.promoteAppWithAd(targetApp)
+                    Toast.makeText(context, "🌟 تمت ترقية التطبيق بنجاح!", Toast.LENGTH_SHORT).show()
+                    appToPromote = null
                 }
             },
-            dismissButton = {
-                OutlinedButton(onClick = { showInsufficientCoinsDialog = false }) {
-                    Text("إغلاق")
+            onPayCoinsToPromote = {
+                val success = viewModel.promoteApp(targetApp, cost = 100)
+                if (success) {
+                    Toast.makeText(
+                        context,
+                        "🌟 تهانينا! تم تمييز تطبيق ${targetApp.name} وخصم 100 عملة!",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    appToPromote = null
+                }
+            },
+            onWatchAdForCoins = {
+                val activity = context as? Activity
+                if (activity != null) {
+                    AdMobConfig.showRewardedAd(
+                        activity = activity,
+                        onRewardEarned = { coins ->
+                            viewModel.earnAdReward(coins)
+                        }
+                    )
+                } else {
+                    viewModel.earnAdReward(50)
                 }
             }
         )
@@ -608,19 +594,151 @@ private fun CompactMetricItem(value: String, label: String, color: Color) {
 }
 
 @Composable
+private fun PromoteAppFeaturedDialog(
+    app: UserApp,
+    currentCoins: Int,
+    onDismiss: () -> Unit,
+    onWatchAdToPromote: () -> Unit,
+    onPayCoinsToPromote: () -> Unit,
+    onWatchAdForCoins: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.Star,
+                    contentDescription = null,
+                    tint = Color(0xFFFFB300),
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("ترقية لتطبيق مميز (Spotlight ⭐)", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                // App Preview Header
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        AppIconImage(
+                            iconUrl = app.iconUrl,
+                            appName = app.name,
+                            category = app.appCategory,
+                            modifier = Modifier.size(46.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(app.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(
+                                "سيتم تثبيت التطبيق في الواجهة العلوية لصفحة المجتمع لجذب 20 مختبراً",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                // Spotlight Benefits
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFFFF8E1), RoundedCornerShape(10.dp))
+                        .padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text("✨ مميزات التطبيق المميز:", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFB78103))
+                    Text("• تثبيت في شريط Spotlight الدائري في صدارة المجتمع", fontSize = 11.sp, color = Color(0xFF5D4037))
+                    Text("• إشارة نجمة ذهبية تلفت انتباه جميع المطورين والمختبرين", fontSize = 11.sp, color = Color(0xFF5D4037))
+                    Text("• جمع الـ 20 مختبراً بأضعاف السرعة لاجتياز شرط الـ 14 يوماً", fontSize = 11.sp, color = Color(0xFF5D4037))
+                }
+
+                Spacer(modifier = Modifier.height(2.dp))
+                Text("اختر طريقة الترقية:", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+
+                // Option 1: Rewarded Ad (Free for developer, profits app owner)
+                Button(
+                    onClick = onWatchAdToPromote,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00875A)),
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(vertical = 10.dp)
+                ) {
+                    Icon(Icons.Default.PlayCircle, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("مشاهدة إعلان وترقية مجاناً 🎬", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("مشاهدة فيديو سريع لترقية تطبيقك فوراً في الصدارة", fontSize = 10.sp, color = Color.White.copy(alpha = 0.9f))
+                    }
+                }
+
+                // Option 2: Pay Coins
+                if (currentCoins >= 100) {
+                    OutlinedButton(
+                        onClick = onPayCoinsToPromote,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
+                        Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = Color(0xFFFF8F00), modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("ترقية مقابل 100 عملة (رصيدك: $currentCoins 🪙)", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    }
+                } else {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("رصيدك الحالي: $currentCoins عملة", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF8F00))
+                                Text("ينقصك ${100 - currentCoins} عملة للترقية بالعملات", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            TextButton(onClick = onWatchAdForCoins) {
+                                Text("+50 عملة 🎬", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) {
+                Text("إلغاء")
+            }
+        }
+    )
+}
+
+@Composable
 private fun AddAppSimpleDialog(
     onDismiss: () -> Unit,
-    onAdd: (String, String, String, String, String, String, String, Int, Int) -> Unit
+    onAdd: (String, String, String, String, String, String, String, Int, Int, Boolean) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var pkg by remember { mutableStateOf("") }
-    var iconUrl by remember { mutableStateOf("") }
+    var iconUrl by remember { mutableStateOf("preset:tools") }
     var optIn by remember { mutableStateOf("") }
     var grp by remember { mutableStateOf("") }
-    var cat by remember { mutableStateOf("إنتاجية") }
+    var cat by remember { mutableStateOf("أدوات") }
     var desc by remember { mutableStateOf("") }
     var initialTesters by remember { mutableStateOf("0") }
     var initialDays by remember { mutableStateOf("1") }
+    var promoteWithAd by remember { mutableStateOf(false) }
     var errorText by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val photoPickerLauncher = rememberLauncherForActivityResult(
@@ -676,7 +794,7 @@ private fun AddAppSimpleDialog(
                         iconUrl = iconUrl,
                         appName = if (name.isNotBlank()) name else "تطبيقي",
                         category = cat,
-                        modifier = Modifier.size(52.dp),
+                        modifier = Modifier.size(54.dp),
                         shape = RoundedCornerShape(14.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
@@ -687,6 +805,57 @@ private fun AddAppSimpleDialog(
                         singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
+                }
+
+                // 3D Store Icon Presets Carousel
+                Text("اختر أيقونة متجر جاهزة ثلاثية الأبعاد (3D):", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    contentPadding = PaddingValues(vertical = 2.dp)
+                ) {
+                    items(PRESET_APP_ICONS) { presetItem ->
+                        val isSelected = iconUrl == presetItem.id
+                        Surface(
+                            onClick = {
+                                iconUrl = presetItem.id
+                                cat = presetItem.title
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(
+                                            Brush.linearGradient(
+                                                colors = listOf(presetItem.gradient[0], presetItem.gradient[1])
+                                            )
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        presetItem.icon,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    presetItem.title,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
                 }
 
                 // Photo Selection Row: Gallery Picker + Clear Button
@@ -707,27 +876,18 @@ private fun AddAppSimpleDialog(
                     ) {
                         Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("اختيار صورة من المعرض", fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                        Text("أو ارفع صورتك من المعرض", fontSize = 11.sp, fontWeight = FontWeight.Medium)
                     }
 
-                    if (iconUrl.isNotBlank()) {
+                    if (iconUrl.startsWith("data:") || iconUrl.startsWith("http")) {
                         IconButton(
-                            onClick = { iconUrl = "" },
+                            onClick = { iconUrl = "preset:tools" },
                             modifier = Modifier.size(36.dp)
                         ) {
-                            Icon(Icons.Default.DeleteOutline, contentDescription = "مسح الصورة", tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Default.DeleteOutline, contentDescription = "استعادة الأيقونة الافتراضية", tint = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
-
-                OutlinedTextField(
-                    value = iconUrl,
-                    onValueChange = { iconUrl = it },
-                    label = { Text("أو أدخل رابط صورة / أيقونة (URL)") },
-                    placeholder = { Text("https://example.com/icon.png") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
 
                 OutlinedTextField(
                     value = pkg,
@@ -775,6 +935,30 @@ private fun AddAppSimpleDialog(
                     )
                 }
 
+                // Promote Instantly Checkbox with Rewarded Video Ad
+                Surface(
+                    color = if (promoteWithAd) Color(0xFFFFF8E1) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                    shape = RoundedCornerShape(12.dp),
+                    border = if (promoteWithAd) androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFB300)) else null,
+                    modifier = Modifier.fillMaxWidth().clickable { promoteWithAd = !promoteWithAd }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = promoteWithAd,
+                            onCheckedChange = { promoteWithAd = it },
+                            colors = CheckboxDefaults.colors(checkedColor = Color(0xFFFF8F00))
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Column {
+                            Text("ترقية مميزة فورية في صدارة المجتمع ⭐", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (promoteWithAd) Color(0xFFE65100) else MaterialTheme.colorScheme.onSurface)
+                            Text("مشاهدة إعلان فيديو سريع لدعم المنصة وتثبيت تطبيقك في الصدارة فور النشر 🎬", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+
                 if (errorText != null) {
                     Text(errorText!!, color = MaterialTheme.colorScheme.error, fontSize = 11.sp)
                 }
@@ -790,10 +974,32 @@ private fun AddAppSimpleDialog(
                     val formattedOptIn = if (optIn.isNotBlank()) optIn.trim() else "https://play.google.com/apps/testing/${pkg.trim()}"
                     val realCount = initialTesters.toIntOrNull()?.coerceIn(0, 50) ?: 0
                     val realDays = initialDays.toIntOrNull()?.coerceIn(1, 14) ?: 1
-                    onAdd(name.trim(), pkg.trim(), formattedOptIn, grp.trim(), cat, desc.trim(), iconUrl.trim(), realCount, realDays)
+                    val resolvedIcon = if (iconUrl.isNotBlank()) iconUrl.trim() else "preset:tools"
+
+                    if (promoteWithAd) {
+                        val activity = context as? Activity
+                        if (activity != null) {
+                            AdMobConfig.showRewardedAd(
+                                activity = activity,
+                                onRewardEarned = {
+                                    onAdd(name.trim(), pkg.trim(), formattedOptIn, grp.trim(), cat, desc.trim(), resolvedIcon, realCount, realDays, true)
+                                }
+                            )
+                        } else {
+                            onAdd(name.trim(), pkg.trim(), formattedOptIn, grp.trim(), cat, desc.trim(), resolvedIcon, realCount, realDays, true)
+                        }
+                    } else {
+                        onAdd(name.trim(), pkg.trim(), formattedOptIn, grp.trim(), cat, desc.trim(), resolvedIcon, realCount, realDays, false)
+                    }
                 }
             ) {
-                Text("إضافة ومزامنة السيرفر")
+                if (promoteWithAd) {
+                    Icon(Icons.Default.PlayCircle, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("نشر مع إعلان وترقية مميزة 🎬")
+                } else {
+                    Text("إضافة ومزامنة السيرفر")
+                }
             }
         },
         dismissButton = {

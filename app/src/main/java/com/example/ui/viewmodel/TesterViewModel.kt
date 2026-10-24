@@ -55,6 +55,15 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
     private val _showLeaderboardDialog = MutableStateFlow(false)
     val showLeaderboardDialog: StateFlow<Boolean> = _showLeaderboardDialog.asStateFlow()
 
+    private val _showLuckySpinDialog = MutableStateFlow(false)
+    val showLuckySpinDialog: StateFlow<Boolean> = _showLuckySpinDialog.asStateFlow()
+
+    private val _streakDays = MutableStateFlow(3)
+    val streakDays: StateFlow<Int> = _streakDays.asStateFlow()
+
+    private val _isDailyCheckInDoneToday = MutableStateFlow(false)
+    val isDailyCheckInDoneToday: StateFlow<Boolean> = _isDailyCheckInDoneToday.asStateFlow()
+
     private val _claimedBadgeIds = MutableStateFlow<Set<String>>(emptySet())
     val claimedBadgeIds: StateFlow<Set<String>> = _claimedBadgeIds.asStateFlow()
 
@@ -273,13 +282,27 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
 
     fun promoteApp(app: UserApp, cost: Int = 100): Boolean {
         if (_currentUser.value.points >= cost) {
-            _currentUser.update { it.copy(points = it.points - cost) }
+            if (cost > 0) {
+                _currentUser.update { it.copy(points = it.points - cost) }
+            }
             viewModelScope.launch {
                 repository.promoteApp(app.packageName, true)
             }
             return true
         }
         return false
+    }
+
+    fun promoteAppWithAd(app: UserApp) {
+        viewModelScope.launch {
+            repository.promoteApp(app.packageName, true)
+        }
+    }
+
+    fun promoteAppByPackage(packageName: String, isFeatured: Boolean = true) {
+        viewModelScope.launch {
+            repository.promoteApp(packageName, isFeatured)
+        }
     }
 
     fun unpromoteApp(app: UserApp) {
@@ -463,6 +486,39 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         )
         return baseUsers.sortedByDescending { it.points }.mapIndexed { index, user ->
             user.copy(rank = index + 1)
+        }
+    }
+
+    fun openLuckySpin() {
+        _showLuckySpinDialog.value = true
+    }
+
+    fun closeLuckySpin() {
+        _showLuckySpinDialog.value = false
+    }
+
+    fun dailyCheckIn(): Boolean {
+        if (!_isDailyCheckInDoneToday.value) {
+            _isDailyCheckInDoneToday.value = true
+            _streakDays.update { it + 1 }
+            _currentUser.update { it.copy(points = it.points + 20) }
+            return true
+        }
+        return false
+    }
+
+    fun claimSpinReward(coins: Int) {
+        _currentUser.update { it.copy(points = it.points + coins) }
+    }
+
+    fun doubleTestReward(reward: Int = 25) {
+        _currentUser.update { it.copy(points = it.points + reward) }
+    }
+
+    fun submitFeedback(appId: String, rating: Int, comment: String) {
+        viewModelScope.launch {
+            repository.addFeedback(appId, rating, comment)
+            _currentUser.update { it.copy(points = it.points + 15) }
         }
     }
 }

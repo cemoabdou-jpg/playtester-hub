@@ -7,18 +7,19 @@ import android.util.LruCache
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -34,20 +35,27 @@ import coil.compose.AsyncImagePainter
 import coil.request.ImageRequest
 import kotlin.math.absoluteValue
 
-// In-memory cache for decoded Base64 and local bitmaps so they don't re-decode on every recomposition
-private val bitmapMemoryCache = LruCache<String, Bitmap>(50)
+// In-memory cache for decoded Base64 and local bitmaps
+private val bitmapMemoryCache = LruCache<String, Bitmap>(60)
 
-// Vibrant dynamic palettes for icons when image is not present
-private val GRADIENT_PALETTES = listOf(
-    listOf(Color(0xFF4F46E5), Color(0xFF7C3AED)), // Indigo -> Purple
-    listOf(Color(0xFF059669), Color(0xFF10B981)), // Emerald -> Teal
-    listOf(Color(0xFFD97706), Color(0xFFF59E0B)), // Amber -> Orange
-    listOf(Color(0xFFDC2626), Color(0xFFF43F5E)), // Crimson -> Rose
-    listOf(Color(0xFF2563EB), Color(0xFF06B6D4)), // Blue -> Cyan
-    listOf(Color(0xFF7C3AED), Color(0xFFEC4899)), // Violet -> Pink
-    listOf(Color(0xFF0891B2), Color(0xFF14B8A6)), // Cyan -> Teal
-    listOf(Color(0xFFEA580C), Color(0xFFF97316)), // Orange -> Amber
-    listOf(Color(0xFF475569), Color(0xFF64748B))  // Slate
+data class PresetIconOption(
+    val id: String,
+    val title: String,
+    val icon: ImageVector,
+    val gradient: List<Color>
+)
+
+val PRESET_APP_ICONS = listOf(
+    PresetIconOption("preset:games", "ألعاب", Icons.Default.SportsEsports, listOf(Color(0xFF8B5CF6), Color(0xFF6D28D9))),
+    PresetIconOption("preset:tools", "أدوات", Icons.Default.Build, listOf(Color(0xFF3B82F6), Color(0xFF1D4ED8))),
+    PresetIconOption("preset:productivity", "إنتاجية", Icons.Default.TaskAlt, listOf(Color(0xFF10B981), Color(0xFF047857))),
+    PresetIconOption("preset:social", "تواصل", Icons.Default.Forum, listOf(Color(0xFFEC4899), Color(0xFFBE185D))),
+    PresetIconOption("preset:education", "تعليم", Icons.Default.School, listOf(Color(0xFFF59E0B), Color(0xFFD97706))),
+    PresetIconOption("preset:finance", "مال وأعمال", Icons.Default.AccountBalance, listOf(Color(0xFF059669), Color(0xFF065F46))),
+    PresetIconOption("preset:health", "صحة ورياضة", Icons.Default.Favorite, listOf(Color(0xFFEF4444), Color(0xFFB91C1C))),
+    PresetIconOption("preset:shopping", "تسوق ومتاجر", Icons.Default.ShoppingBag, listOf(Color(0xFFF97316), Color(0xFFC2410C))),
+    PresetIconOption("preset:media", "ميديا وفيديو", Icons.Default.PlayCircle, listOf(Color(0xFF06B6D4), Color(0xFF0E7490))),
+    PresetIconOption("preset:code", "تطوير وبرمجة", Icons.Default.Code, listOf(Color(0xFF475569), Color(0xFF1E293B)))
 )
 
 @Composable
@@ -55,18 +63,25 @@ fun AppIconImage(
     iconUrl: String?,
     appName: String,
     category: String = "",
-    modifier: Modifier = Modifier.size(46.dp),
-    shape: Shape = RoundedCornerShape(12.dp)
+    modifier: Modifier = Modifier.size(50.dp),
+    shape: Shape = RoundedCornerShape(14.dp)
 ) {
     val raw = iconUrl?.trim().orEmpty()
     var isImageError by remember(raw) { mutableStateOf(false) }
 
-    // Normalize and transform any URL format
-    val cleanUrl = remember(raw) {
-        normalizeImageUrl(raw)
+    // Check if user selected one of our preset icons
+    val preset = remember(raw) {
+        if (raw.startsWith("preset:")) {
+            PRESET_APP_ICONS.firstOrNull { it.id == raw }
+        } else null
     }
 
-    // Try decoding Base64 if image is embedded (data:image/... or raw Base64)
+    // Normalize and transform any URL format
+    val cleanUrl = remember(raw) {
+        if (preset != null) "" else normalizeImageUrl(raw)
+    }
+
+    // Try decoding Base64 if image is embedded
     val base64Bitmap: Bitmap? = remember(cleanUrl) {
         if (cleanUrl.isBlank() || isLikelyHttpUrl(cleanUrl)) {
             null
@@ -75,22 +90,62 @@ fun AppIconImage(
         }
     }
 
-    val paletteIndex = (appName.hashCode().absoluteValue) % GRADIENT_PALETTES.size
-    val gradientColors = GRADIENT_PALETTES[paletteIndex]
-    val categoryIcon = getCategoryIcon(category, appName)
+    val paletteIndex = (appName.hashCode().absoluteValue) % PRESET_APP_ICONS.size
+    val fallbackPreset = PRESET_APP_ICONS[paletteIndex]
+    val activePreset = preset ?: fallbackPreset
+    val activeIcon = getCategoryIcon(category, appName)
 
     Box(
         modifier = modifier
             .clip(shape)
             .border(
-                width = 0.5.dp,
-                color = Color.White.copy(alpha = 0.25f),
+                width = 1.dp,
+                color = Color.White.copy(alpha = 0.2f),
                 shape = shape
             ),
         contentAlignment = Alignment.Center
     ) {
         when {
-            // 1. Decoded Base64 / Local Bitmap
+            // 1. Preset Icon selected by developer
+            preset != null -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    preset.gradient[0],
+                                    preset.gradient[1]
+                                )
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Subtle glossy highlight
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(0.45f)
+                            .align(Alignment.TopCenter)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.White.copy(alpha = 0.25f),
+                                        Color.Transparent
+                                    )
+                                )
+                            )
+                    )
+                    Icon(
+                        imageVector = preset.icon,
+                        contentDescription = appName,
+                        tint = Color.White,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+            }
+
+            // 2. Decoded Base64 / Local Bitmap
             base64Bitmap != null && !isImageError -> {
                 Image(
                     bitmap = base64Bitmap.asImageBitmap(),
@@ -100,7 +155,7 @@ fun AppIconImage(
                 )
             }
 
-            // 2. Web URL, Local File URI, or Android Content URI via Coil
+            // 3. Web URL, Local File URI, or Android Content URI via Coil
             cleanUrl.isNotBlank() && isLoadableViaCoil(cleanUrl) && !isImageError -> {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
@@ -119,29 +174,57 @@ fun AppIconImage(
                 )
             }
 
-            // 3. Fallback: Dynamic Stylish App Store Tile with App Initial / Category Icon
+            // 4. Fallback: High-Quality 3D Play Store Stylized Emblem
             else -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Brush.linearGradient(gradientColors)),
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(
+                                    activePreset.gradient[0],
+                                    activePreset.gradient[1]
+                                )
+                            )
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
-                    val firstChar = appName.trim().firstOrNull()
-                    if (firstChar != null && (firstChar.isLetter() || firstChar.isDigit())) {
-                        Text(
-                            text = firstChar.uppercaseChar().toString(),
-                            color = Color.White,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 20.sp
-                        )
-                    } else {
+                    // Glossy shine overlay
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(0.45f)
+                            .align(Alignment.TopCenter)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.White.copy(alpha = 0.3f),
+                                        Color.Transparent
+                                    )
+                                )
+                            )
+                    )
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
                         Icon(
-                            imageVector = categoryIcon,
+                            imageVector = activeIcon,
                             contentDescription = appName,
                             tint = Color.White,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(22.dp)
                         )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        val initial = appName.trim().take(1).uppercase()
+                        if (initial.isNotBlank()) {
+                            Text(
+                                text = initial,
+                                color = Color.White.copy(alpha = 0.95f),
+                                fontWeight = FontWeight.Black,
+                                fontSize = 11.sp
+                            )
+                        }
                     }
                 }
             }
@@ -156,7 +239,6 @@ private fun normalizeImageUrl(raw: String): String {
     if (raw.isBlank()) return ""
     var url = raw.trim()
 
-    // 1. Google Drive view link -> direct download link
     if (url.contains("drive.google.com")) {
         val fileId = extractGoogleDriveFileId(url)
         if (fileId != null) {
@@ -164,12 +246,10 @@ private fun normalizeImageUrl(raw: String): String {
         }
     }
 
-    // 2. Dropbox share link -> raw link
     if (url.contains("dropbox.com") && url.contains("dl=0")) {
         url = url.replace("dl=0", "raw=1")
     }
 
-    // 3. Protocol normalizations
     return when {
         url.startsWith("data:image", ignoreCase = true) -> url
         url.startsWith("file://", ignoreCase = true) -> url
@@ -178,7 +258,6 @@ private fun normalizeImageUrl(raw: String): String {
         url.startsWith("https://", ignoreCase = true) -> url
         url.startsWith("//") -> "https:$url"
         url.startsWith("www.") -> "https://$url"
-        // Domain name like play-lh.googleusercontent.com/xyz or imgur.com/xyz
         url.contains(".") && !url.contains(" ") && url.indexOf(".") < url.indexOf("/").let { if (it == -1) url.length else it } -> {
             "https://$url"
         }
@@ -197,9 +276,6 @@ private fun isLoadableViaCoil(url: String): Boolean {
     return isLikelyHttpUrl(url)
 }
 
-/**
- * Safely decodes Base64 data with caching and sanitization.
- */
 private fun decodeBase64Safely(raw: String): Bitmap? {
     try {
         val cacheKey = if (raw.length > 100) raw.take(50) + raw.takeLast(50) else raw
@@ -212,7 +288,6 @@ private fun decodeBase64Safely(raw: String): Bitmap? {
             raw
         }
 
-        // Sanitize newlines and spaces that often appear in Base64
         val sanitized = base64Data.replace("\n", "").replace("\r", "").replace(" ", "").trim()
         if (sanitized.length < 50) return null
 
@@ -252,6 +327,7 @@ private fun getCategoryIcon(category: String, appName: String): ImageVector {
         combined.contains("مال") || combined.contains("finance") || combined.contains("pay") -> Icons.Default.AccountBalance
         combined.contains("صحة") || combined.contains("health") || combined.contains("fit") -> Icons.Default.Favorite
         combined.contains("تسوق") || combined.contains("shop") || combined.contains("store") -> Icons.Default.ShoppingBag
+        combined.contains("ميديا") || combined.contains("media") || combined.contains("فيديو") || combined.contains("صوت") -> Icons.Default.PlayCircle
         else -> Icons.Default.Smartphone
     }
 }

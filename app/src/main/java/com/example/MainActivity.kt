@@ -94,7 +94,8 @@ fun MainScreen(viewModel: TesterViewModel) {
                 onOpenGrowth = { viewModel.openDeveloperGrowth() },
                 onOpenAudit = { viewModel.openAuditReport() },
                 onOpenLeaderboard = { viewModel.openLeaderboard() },
-                onOpenTheme = { showThemeDialog = true }
+                onOpenTheme = { showThemeDialog = true },
+                onOpenLuckySpin = { viewModel.openLuckySpin() }
             )
         },
         bottomBar = {
@@ -224,6 +225,16 @@ fun MainScreen(viewModel: TesterViewModel) {
     if (showThemeDialog) {
         ThemeSelectionDialog(
             onDismissRequest = { showThemeDialog = false }
+        )
+    }
+
+    val showLuckySpin by viewModel.showLuckySpinDialog.collectAsState()
+    if (showLuckySpin) {
+        DailyLuckySpinDialog(
+            onDismiss = { viewModel.closeLuckySpin() },
+            onRewardWon = { coins ->
+                viewModel.claimSpinReward(coins)
+            }
         )
     }
 }

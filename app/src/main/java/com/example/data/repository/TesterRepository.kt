@@ -217,4 +217,16 @@ class TesterRepository(
         appDao.insertDailyTestLogs(listOf(log))
         return newDays
     }
+
+    suspend fun addFeedback(appId: String, rating: Int, comment: String) {
+        val item = TesterFeedback(
+            id = "fb_${appId}_${System.currentTimeMillis()}",
+            appId = appId,
+            testerName = "مختبر معتمد",
+            rating = rating,
+            comment = comment,
+            createdAt = System.currentTimeMillis()
+        )
+        appDao.insertFeedback(listOf(item))
+    }
 }

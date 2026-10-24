@@ -22,7 +22,8 @@ fun AppHeader(
     onOpenGrowth: () -> Unit,
     onOpenAudit: () -> Unit,
     onOpenLeaderboard: () -> Unit,
-    onOpenTheme: () -> Unit = {}
+    onOpenTheme: () -> Unit = {},
+    onOpenLuckySpin: () -> Unit = {}
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -111,6 +112,15 @@ fun AppHeader(
                     modifier = Modifier.size(36.dp)
                 ) {
                     Text("🏆", fontSize = 18.sp)
+                }
+
+                Spacer(modifier = Modifier.width(4.dp))
+
+                IconButton(
+                    onClick = onOpenLuckySpin,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Text("🎡", fontSize = 18.sp)
                 }
 
                 Spacer(modifier = Modifier.width(4.dp))
