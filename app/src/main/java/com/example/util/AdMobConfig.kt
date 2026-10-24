@@ -42,15 +42,15 @@ import kotlinx.coroutines.delay
 object AdMobConfig {
     private const val TAG = "AdMobConfig"
 
-    // Official Google AdMob sample test IDs (safe for testing & Google Play store review)
-    // Developers can replace these with their live AdMob Unit IDs for production revenue.
-    const val DEFAULT_BANNER_ID = "ca-app-pub-3940256099942544/6300978111"
-    const val DEFAULT_REWARDED_ID = "ca-app-pub-3940256099942544/5224354917"
+    // Production AdMob IDs (Publisher: pub-4457316141776318)
+    const val LIVE_APP_ID = "ca-app-pub-4457316141776318~5453365517"
+    const val LIVE_BANNER_ID = "ca-app-pub-4457316141776318/9790768606"
+    const val LIVE_REWARDED_ID = "ca-app-pub-4457316141776318/3740540584"
     const val DEFAULT_INTERSTITIAL_ID = "ca-app-pub-3940256099942544/1033173712"
 
-    // Custom live IDs (if configured by developer directly)
-    var customBannerId: String? = null
-    var customRewardedId: String? = null
+    // Custom live IDs (defaults to developer's verified production AdMob IDs)
+    var customBannerId: String? = LIVE_BANNER_ID
+    var customRewardedId: String? = LIVE_REWARDED_ID
     var customInterstitialId: String? = null
 
     private var isInitialized = false
@@ -67,8 +67,8 @@ object AdMobConfig {
         }
     }
 
-    fun getBannerAdUnitId(): String = customBannerId?.takeIf { it.isNotBlank() } ?: DEFAULT_BANNER_ID
-    fun getRewardedAdUnitId(): String = customRewardedId?.takeIf { it.isNotBlank() } ?: DEFAULT_REWARDED_ID
+    fun getBannerAdUnitId(): String = customBannerId?.takeIf { it.isNotBlank() } ?: LIVE_BANNER_ID
+    fun getRewardedAdUnitId(): String = customRewardedId?.takeIf { it.isNotBlank() } ?: LIVE_REWARDED_ID
     fun getInterstitialAdUnitId(): String = customInterstitialId?.takeIf { it.isNotBlank() } ?: DEFAULT_INTERSTITIAL_ID
 
     fun isRunningInEmulator(): Boolean {
