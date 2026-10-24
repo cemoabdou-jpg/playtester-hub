@@ -13,24 +13,37 @@ android {
         applicationId = "com.playtesterhub.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 16
-        versionName = "2.5"
+        versionCode = 17
+        versionName = "2.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    val uploadKeystoreFile = listOf(
+        file("../upload-keystore.jks"),
+        file("upload-keystore.jks")
+    ).firstOrNull { it.exists() }
+
+    val defaultKeystore = file("../debug.keystore")
+    val isUploadKeystoreActive = uploadKeystoreFile != null || System.getenv("KEYSTORE_PASSWORD") != null
+
+    val signingFile = uploadKeystoreFile ?: defaultKeystore
+    val storePass = System.getenv("KEYSTORE_PASSWORD") ?: if (uploadKeystoreFile != null) "NnBkgyAhj1sG0FZkLD9x" else "android"
+    val aliasName = System.getenv("KEY_ALIAS") ?: if (uploadKeystoreFile != null) "upload" else "androiddebugkey"
+    val keyPass = System.getenv("KEY_PASSWORD") ?: storePass
+
     signingConfigs {
         create("release") {
-            storeFile = file("../debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+            storeFile = signingFile
+            storePassword = storePass
+            keyAlias = aliasName
+            keyPassword = keyPass
         }
         getByName("debug") {
-            storeFile = file("../debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+            storeFile = if (isUploadKeystoreActive) signingFile else defaultKeystore
+            storePassword = if (isUploadKeystoreActive) storePass else "android"
+            keyAlias = if (isUploadKeystoreActive) aliasName else "androiddebugkey"
+            keyPassword = if (isUploadKeystoreActive) keyPass else "android"
         }
     }
 

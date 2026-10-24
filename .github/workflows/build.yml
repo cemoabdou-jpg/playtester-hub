@@ -35,23 +35,40 @@ jobs:
       - name: Prepare Signing Keystore
         env:
           CUSTOM_KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'NnBkgyAhj1sG0FZkLD9x' }}
         run: |
           if [ -n "$CUSTOM_KEYSTORE_BASE64" ]; then
             echo "Using custom keystore from GitHub Secrets (KEYSTORE_BASE64)..."
-            echo "$CUSTOM_KEYSTORE_BASE64" | base64 -d > debug.keystore
+            echo "$CUSTOM_KEYSTORE_BASE64" | base64 -d > upload-keystore.jks
+            cp upload-keystore.jks debug.keystore
+          elif [ -f upload-keystore.jks ]; then
+            echo "Found upload-keystore.jks in repository..."
+            cp upload-keystore.jks debug.keystore
           elif [ -f debug.keystore.base64 ] && [ ! -f debug.keystore ]; then
             echo "Decoding debug.keystore from project base64..."
             base64 -d debug.keystore.base64 > debug.keystore
           elif [ ! -f debug.keystore ]; then
             echo "Generating fallback debug keystore..."
-            keytool -genkeypair -v -keystore debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
+            keytool -genkeypair -v -keystore debug.keystore -alias upload -keyalg RSA -keysize 2048 -validity 10000 -storepass "$KEYSTORE_PASSWORD" -keypass "$KEYSTORE_PASSWORD" -dname "CN=Android Debug,O=Android,C=US"
           fi
 
+          TARGET_KS="debug.keystore"
+          if [ -f "upload-keystore.jks" ]; then
+            TARGET_KS="upload-keystore.jks"
+          fi
+
+          DETECTED_ALIAS=$(keytool -list -v -keystore "$TARGET_KS" -storepass "$KEYSTORE_PASSWORD" 2>/dev/null | grep "Alias name:" | head -n 1 | awk '{print $3}' || echo "upload")
+          if [ -z "$DETECTED_ALIAS" ]; then
+            DETECTED_ALIAS="upload"
+          fi
+          echo "Detected Keystore Alias: $DETECTED_ALIAS"
+          echo "KEY_ALIAS=$DETECTED_ALIAS" >> $GITHUB_ENV
+
           echo "Exporting public certificate (.pem) for Google Play upload key reset..."
-          keytool -exportcert -rfc -keystore debug.keystore -alias androiddebugkey -storepass android -file upload_certificate.pem || true
+          keytool -exportcert -rfc -keystore "$TARGET_KS" -alias "$DETECTED_ALIAS" -storepass "$KEYSTORE_PASSWORD" -file upload_certificate.pem || true
 
           echo "Current Signing Certificate SHA-1:"
-          keytool -list -v -keystore debug.keystore -storepass android | grep "SHA1:" || true
+          keytool -list -v -keystore "$TARGET_KS" -storepass "$KEYSTORE_PASSWORD" | grep "SHA1:" || true
 
       - name: Setup Google Services Configuration
         env:
@@ -99,9 +116,17 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build Android APKs
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'NnBkgyAhj1sG0FZkLD9x' }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'upload' }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || secrets.KEYSTORE_PASSWORD || 'NnBkgyAhj1sG0FZkLD9x' }}
         run: ./gradlew assembleDebug assembleRelease --no-daemon
 
       - name: Build Android App Bundle (AAB for Google Play)
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'NnBkgyAhj1sG0FZkLD9x' }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'upload' }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || secrets.KEYSTORE_PASSWORD || 'NnBkgyAhj1sG0FZkLD9x' }}
         run: ./gradlew bundleRelease --no-daemon
 
       - name: Upload Release APK
