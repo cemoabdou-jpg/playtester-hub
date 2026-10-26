@@ -120,14 +120,14 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'NnBkgyAhj1sG0FZkLD9x' }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'upload' }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || secrets.KEYSTORE_PASSWORD || 'NnBkgyAhj1sG0FZkLD9x' }}
-        run: ./gradlew assembleDebug assembleRelease --no-daemon
+        run: ./gradlew assembleDebug assembleRelease -PappVersionCode=${{ github.run_number }} --no-daemon
 
       - name: Build Android App Bundle (AAB for Google Play)
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'NnBkgyAhj1sG0FZkLD9x' }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'upload' }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || secrets.KEYSTORE_PASSWORD || 'NnBkgyAhj1sG0FZkLD9x' }}
-        run: ./gradlew bundleRelease --no-daemon
+        run: ./gradlew bundleRelease -PappVersionCode=${{ github.run_number }} --no-daemon
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
@@ -156,4 +156,3 @@ jobs:
           name: google-play-upload-certificate
           path: upload_certificate.pem
           retention-days: 14
-
