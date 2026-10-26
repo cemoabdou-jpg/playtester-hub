@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import android.app.Activity
+import android.content.Context
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -32,7 +33,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.util.AdMobConfig
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -53,6 +56,10 @@ val SPIN_SLICES = listOf(
     SpinSlice(150, "💎 150", Color(0xFFDC2626))
 )
 
+// مدة الانتظار بين اللفات المجانية (24 ساعة)
+private const val COOLDOWN_HOURS = 24L
+private const val COOLDOWN_MILLIS = COOLDOWN_HOURS * 60 * 60 * 1000L
+
 @Composable
 fun DailyLuckySpinDialog(
     onDismiss: () -> Unit,
@@ -60,11 +67,45 @@ fun DailyLuckySpinDialog(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    var freeSpins by remember { mutableStateOf(1) }
+    val prefs = remember { context.getSharedPreferences("lucky_wheel_prefs", Context.MODE_PRIVATE) }
+
+    fun checkCanSpinFree(): Boolean {
+        val lastSpin = prefs.getLong("last_free_spin_time", 0L)
+        return (System.currentTimeMillis() - lastSpin) >= COOLDOWN_MILLIS
+    }
+
+    fun getRemainingCooldown(): Long {
+        val lastSpin = prefs.getLong("last_free_spin_time", 0L)
+        val passed = System.currentTimeMillis() - lastSpin
+        return (COOLDOWN_MILLIS - passed).coerceAtLeast(0L)
+    }
+
+    var canSpinFree by remember { mutableStateOf(checkCanSpinFree()) }
+    var remainingTimeMs by remember { mutableLongStateOf(getRemainingCooldown()) }
     var isSpinning by remember { mutableStateOf(false) }
     var lastWonCoins by remember { mutableStateOf<Int?>(null) }
     var showWonSheet by remember { mutableStateOf(false) }
     val rotation = remember { Animatable(0f) }
+
+    // تحديث العداد التنازلي كل ثانية إذا كانت اللفة المجانية غير متاحة
+    LaunchedEffect(canSpinFree) {
+        while (!canSpinFree) {
+            val remaining = getRemainingCooldown()
+            remainingTimeMs = remaining
+            if (remaining <= 0L) {
+                canSpinFree = true
+                break
+            }
+            delay(1000L)
+        }
+    }
+
+    fun formatRemaining(ms: Long): String {
+        val hours = TimeUnit.MILLISECONDS.toHours(ms)
+        val minutes = TimeUnit.MILLISECONDS.toMinutes(ms) % 60
+        val seconds = TimeUnit.MILLISECONDS.toSeconds(ms) % 60
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds)
+    }
 
     fun executeSpin(targetSliceIndex: Int, earnedCoins: Int) {
         if (isSpinning) return
@@ -74,10 +115,8 @@ fun DailyLuckySpinDialog(
 
         coroutineScope.launch {
             val sliceAngle = 360f / SPIN_SLICES.size
-            // Pointer is at the top (-90 degrees / 270 degrees)
             val currentRotation = rotation.value
             val extraRotations = (5 + Random.nextInt(3)) * 360f
-            // Target angle to align targetSliceIndex with top pointer
             val targetOffset = (SPIN_SLICES.size - targetSliceIndex) * sliceAngle - (sliceAngle / 2f)
             val destinationAngle = currentRotation + extraRotations + targetOffset - (currentRotation % 360f)
 
@@ -125,24 +164,22 @@ fun DailyLuckySpinDialog(
                         Icon(Icons.Default.Close, contentDescription = "إغلاق")
                     }
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            "عجلة الحظ اليومية 🎡",
-                            fontWeight = FontWeight.Black,
-                            fontSize = 18.sp,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
+                    Text(
+                        "عجلة الحظ اليومية 🎡",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 18.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
 
                     Surface(
-                        color = Color(0xFFFFB300).copy(alpha = 0.2f),
+                        color = if (canSpinFree) Color(0xFFFFB300).copy(alpha = 0.2f) else Color.Gray.copy(alpha = 0.15f),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            "$freeSpins لفة مجانية",
+                            text = if (canSpinFree) "1 لفة مجانية" else formatRemaining(remainingTimeMs),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFE65100),
+                            color = if (canSpinFree) Color(0xFFE65100) else Color.Gray,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
@@ -150,7 +187,11 @@ fun DailyLuckySpinDialog(
 
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    "لف العجلة يومياً مجاناً، أو شاهد إعلاناً للحصول على لفات إضافية غير محدودة!",
+                    text = if (canSpinFree) {
+                        "لف العجلة يومياً مجاناً، أو شاهد إعلاناً للحصول على لفات إضافية غير محدودة!"
+                    } else {
+                        "استهلكت اللفة اليومية المجانية! شاهد إعلاناً للّف الآن أو انتظر انتهاء الوقت."
+                    },
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -161,8 +202,7 @@ fun DailyLuckySpinDialog(
 
                 // The Spinning Wheel Container
                 Box(
-                    modifier = Modifier
-                        .size(230.dp),
+                    modifier = Modifier.size(230.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     // Outer Glow Ring
@@ -303,7 +343,6 @@ fun DailyLuckySpinDialog(
                                 )
                             }
 
-                            // 2x Double Reward Button with Ad
                             Button(
                                 onClick = {
                                     val activity = context as? Activity
@@ -335,10 +374,14 @@ fun DailyLuckySpinDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (freeSpins > 0) {
+                    if (canSpinFree) {
                         Button(
                             onClick = {
-                                freeSpins = maxOf(0, freeSpins - 1)
+                                // تسجيل وقت التدوير فورياً لحفظه في الهاتف
+                                prefs.edit().putLong("last_free_spin_time", System.currentTimeMillis()).apply()
+                                canSpinFree = false
+                                remainingTimeMs = COOLDOWN_MILLIS
+
                                 val picked = Random.nextInt(SPIN_SLICES.size)
                                 executeSpin(picked, SPIN_SLICES[picked].coins)
                             },
@@ -352,7 +395,7 @@ fun DailyLuckySpinDialog(
                         }
                     }
 
-                    // Watch Ad for Extra Spin (Unlimited Monetization!)
+                    // Watch Ad for Extra Spin (متاح دائماً)
                     Button(
                         onClick = {
                             val activity = context as? Activity
