@@ -13,8 +13,8 @@ android {
         applicationId = "com.playtesterhub.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 56
-        versionName = "3.2"
+        versionCode = 57
+        versionName = "3.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
