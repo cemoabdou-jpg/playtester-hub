@@ -9,6 +9,15 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
 
+    <!-- دعم جميع مقاسات وكثافات الشاشات -->
+    <supports-screens
+        android:smallScreens="true"
+        android:normalScreens="true"
+        android:largeScreens="true"
+        android:xlargeScreens="true"
+        android:anyDensity="true"
+        android:resizeable="true" />
+
     <queries>
         <intent>
             <action android:name="android.intent.action.MAIN" />
@@ -24,6 +33,11 @@
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
         android:theme="@style/Theme.MyApplication">
+
+        <!-- دعم الأبعاد الطويلة والشاشات الحديثة لمنع الأشرطة السوداء -->
+        <meta-data
+            android:name="android.max_aspect"
+            android:value="2.4" />
 
         <receiver
             android:name="com.example.util.DailyReminderReceiver"
@@ -45,7 +59,7 @@
             android:name="google_analytics_adid_collection_enabled"
             android:value="false" />
 
-        <!-- Google AdMob Application ID: Configured internally; hidden from end users -->
+        <!-- Google AdMob Application ID -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-4457316141776318~5453365517" />
@@ -54,14 +68,15 @@
         <provider
             android:name="com.google.android.gms.ads.MobileAdsInitProvider"
             android:authorities="${applicationId}.mobileadsinitprovider"
-            tools:node="remove" />
+            android:tools:node="remove" />
 
         <activity
             android:name="com.example.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.MyApplication"
-            android:windowSoftInputMode="adjustResize">
+            android:windowSoftInputMode="adjustResize"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
