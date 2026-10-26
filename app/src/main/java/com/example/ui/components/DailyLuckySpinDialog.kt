@@ -7,7 +7,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -85,6 +84,7 @@ fun DailyLuckySpinDialog(
     var isSpinning by remember { mutableStateOf(false) }
     var lastWonCoins by remember { mutableStateOf<Int?>(null) }
     var showWonSheet by remember { mutableStateOf(false) }
+    var isDoubleClaimed by remember { mutableStateOf(false) } // لمنع تكرار المضاعفة
     val rotation = remember { Animatable(0f) }
 
     // تحديث العداد التنازلي كل ثانية إذا كانت اللفة المجانية غير متاحة
@@ -112,6 +112,7 @@ fun DailyLuckySpinDialog(
         isSpinning = true
         lastWonCoins = null
         showWonSheet = false
+        isDoubleClaimed = false // تصفير حالة المضاعفة للدورة الجديدة
 
         coroutineScope.launch {
             val sliceAngle = 360f / SPIN_SLICES.size
@@ -345,24 +346,37 @@ fun DailyLuckySpinDialog(
 
                             Button(
                                 onClick = {
+                                    if (isDoubleClaimed || isSpinning) return@Button
                                     val activity = context as? Activity
                                     if (activity != null) {
                                         AdMobConfig.showRewardedAd(
                                             activity = activity,
                                             onRewardEarned = {
-                                                val doubleAmount = lastWonCoins!!
-                                                onRewardWon(doubleAmount)
-                                                lastWonCoins = lastWonCoins!! * 2
+                                                if (!isDoubleClaimed) {
+                                                    isDoubleClaimed = true
+                                                    val rewardToAdd = lastWonCoins ?: 0
+                                                    if (rewardToAdd > 0) {
+                                                        onRewardWon(rewardToAdd)
+                                                        lastWonCoins = rewardToAdd * 2
+                                                    }
+                                                }
                                             }
                                         )
                                     }
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                                enabled = !isDoubleClaimed && !isSpinning,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (isDoubleClaimed) Color.Gray else Color(0xFF2E7D32)
+                                ),
                                 shape = RoundedCornerShape(8.dp),
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                 modifier = Modifier.height(30.dp)
                             ) {
-                                Text("ضاعفها (2x) 🎬", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Text(
+                                    text = if (isDoubleClaimed) "تمت المضاعفة ✓" else "ضاعفها (2x) 🎬",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
@@ -377,7 +391,6 @@ fun DailyLuckySpinDialog(
                     if (canSpinFree) {
                         Button(
                             onClick = {
-                                // تسجيل وقت التدوير فورياً لحفظه في الهاتف
                                 prefs.edit().putLong("last_free_spin_time", System.currentTimeMillis()).apply()
                                 canSpinFree = false
                                 remainingTimeMs = COOLDOWN_MILLIS
@@ -395,7 +408,7 @@ fun DailyLuckySpinDialog(
                         }
                     }
 
-                    // Watch Ad for Extra Spin (متاح دائماً)
+                    // Watch Ad for Extra Spin
                     Button(
                         onClick = {
                             val activity = context as? Activity
