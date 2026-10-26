@@ -5,6 +5,12 @@ plugins {
     alias(libs.plugins.google.services)
 }
 
+// قراءة رقم البناء من GitHub Actions وتجاوز آخر إصدار تم رفعه (57)
+val passedRunNumber = project.findProperty("appVersionCode")?.toString()?.toIntOrNull()
+val baseVersionCode = 57
+val calculatedVersionCode = if (passedRunNumber != null) baseVersionCode + passedRunNumber else baseVersionCode
+val baseVersionName = "3.3"
+
 android {
     namespace = "com.playtesterhub.app"
     compileSdk = 36
@@ -13,8 +19,10 @@ android {
         applicationId = "com.playtesterhub.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 57
-        versionName = "3.3"
+
+        // الزيادة التلقائية
+        versionCode = calculatedVersionCode
+        versionName = if (passedRunNumber != null) "$baseVersionName.$passedRunNumber" else baseVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -139,4 +147,3 @@ tasks.matching { it.name.startsWith("process") && it.name.contains("GoogleServic
         }
     }
 }
-
