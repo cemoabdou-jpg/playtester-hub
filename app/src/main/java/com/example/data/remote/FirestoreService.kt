@@ -303,4 +303,95 @@ class FirestoreService {
             )?.await()
         } catch (_: Throwable) {}
     }
+
+    suspend fun updateAppIconInFirestore(packageName: String, newIconUrl: String) {
+        try {
+            communityCollection?.document(packageName)?.update(
+                mapOf(
+                    "iconUrl" to newIconUrl,
+                    "icon" to newIconUrl,
+                    "imageUrl" to newIconUrl,
+                    "image" to newIconUrl,
+                    "appIcon" to newIconUrl,
+                    "photoUrl" to newIconUrl,
+                    "logoUrl" to newIconUrl,
+                    "updatedAt" to System.currentTimeMillis()
+                )
+            )?.await()
+        } catch (_: Throwable) {}
+    }
+
+    suspend fun updateAppDetailsInFirestore(
+        packageName: String,
+        name: String,
+        category: String,
+        iconUrl: String,
+        webOptInUrl: String,
+        googleGroupUrl: String
+    ) {
+        try {
+            communityCollection?.document(packageName)?.update(
+                mapOf(
+                    "name" to name,
+                    "category" to category,
+                    "iconUrl" to iconUrl,
+                    "icon" to iconUrl,
+                    "imageUrl" to iconUrl,
+                    "image" to iconUrl,
+                    "appIcon" to iconUrl,
+                    "photoUrl" to iconUrl,
+                    "logoUrl" to iconUrl,
+                    "webOptInUrl" to webOptInUrl,
+                    "googleGroupUrl" to googleGroupUrl,
+                    "updatedAt" to System.currentTimeMillis()
+                )
+            )?.await()
+        } catch (_: Throwable) {}
+    }
+
+    suspend fun deleteAppFromFirestore(packageName: String) {
+        try {
+            communityCollection?.document(packageName)?.delete()?.await()
+        } catch (_: Throwable) {}
+    }
+
+    suspend fun adminUpdateAppFull(
+        packageName: String,
+        name: String,
+        devName: String,
+        category: String,
+        iconUrl: String,
+        currentTesters: Int,
+        targetTesters: Int,
+        isFeatured: Boolean,
+        webOptInUrl: String,
+        googleGroupUrl: String
+    ) {
+        try {
+            communityCollection?.document(packageName)?.update(
+                mapOf(
+                    "name" to name,
+                    "developerName" to devName,
+                    "category" to category,
+                    "iconUrl" to iconUrl,
+                    "icon" to iconUrl,
+                    "imageUrl" to iconUrl,
+                    "image" to iconUrl,
+                    "appIcon" to iconUrl,
+                    "photoUrl" to iconUrl,
+                    "logoUrl" to iconUrl,
+                    "currentTesters" to currentTesters,
+                    "testersCurrent" to currentTesters,
+                    "testersCount" to currentTesters,
+                    "targetTesters" to targetTesters,
+                    "testersTarget" to targetTesters,
+                    "isFeatured" to isFeatured,
+                    "priorityScore" to if (isFeatured) 100 else 10,
+                    "webOptInUrl" to webOptInUrl,
+                    "googleGroupUrl" to googleGroupUrl,
+                    "updatedAt" to System.currentTimeMillis()
+                )
+            )?.await()
+        } catch (_: Throwable) {}
+    }
 }

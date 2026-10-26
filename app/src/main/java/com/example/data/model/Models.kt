@@ -97,16 +97,21 @@ data class DailyTestLog(
     val notes: String = "جلسة اختبار تفاعلية ناجحة"
 )
 
+const val PLATFORM_OWNER_EMAIL = "cemoabdou@gmail.com"
+
 data class AuthUser(
     val uid: String = "dev_guest_01",
-    val email: String = "cemoabdou@gmail.com",
-    val displayName: String = "المطور المعتمد",
-    val points: Int = 750,
-    val isVip: Boolean = true,
+    val email: String = "developer@testerhub.com",
+    val displayName: String = "مطور تجريبي",
+    val points: Int = 0,
+    val isVip: Boolean = false,
     val isEmailVerified: Boolean = false,
     val appsCount: Int = 1,
     val testsCount: Int = 3
-)
+) {
+    val isPlatformOwner: Boolean
+        get() = email.trim().equals(PLATFORM_OWNER_EMAIL, ignoreCase = true)
+}
 
 data class AchievementBadge(
     val id: String,
@@ -129,3 +134,68 @@ data class LeaderboardUser(
     val badgeTitle: String,
     val isCurrentUser: Boolean = false
 )
+
+data class TesterNotification(
+    val id: String,
+    val testerName: String,
+    val testerEmail: String,
+    val testerBadge: String = "مختبر معتمد ⭐",
+    val appName: String,
+    val appPackageName: String,
+    val timestamp: Long = System.currentTimeMillis(),
+    val actionType: String = "TESTED", // "TESTED", "JOINED"
+    val deviceModel: String = "Samsung Galaxy S23",
+    val isRead: Boolean = false,
+    val message: String = ""
+)
+
+data class TesterProfileData(
+    val name: String,
+    val email: String,
+    val badge: String = "مختبر معتمد ⭐",
+    val rating: Float = 4.9f,
+    val testsCompleted: Int = 18,
+    val reputationPoints: Int = 980,
+    val deviceModel: String = "Samsung Galaxy S23",
+    val bio: String = "مطور ومختبر أندرويد معتمد في مجتمع PlayTester Hub، متفاعل يومياً لدعم تطبيقات الزملاء المتبادلة.",
+    val apps: List<CommunityApp> = emptyList()
+)
+
+data class ComplianceDay(
+    val dayNumber: Int,
+    val dateLabel: String,
+    val activeTestersCount: Int,
+    val targetTesters: Int = 20,
+    val avgSessionMinutes: Float,
+    val retentionRate: Float,
+    val isCompleted: Boolean,
+    val isToday: Boolean = false,
+    val notes: String = ""
+)
+
+data class GooglePlayQuestionnaireAnswer(
+    val questionNumber: Int,
+    val questionTitleAr: String,
+    val questionTitleEn: String,
+    val recommendedAnswerAr: String,
+    val recommendedAnswerEn: String
+)
+
+data class ReciprocalChatMessage(
+    val id: String,
+    val senderName: String,
+    val senderEmail: String,
+    val message: String,
+    val timestamp: Long = System.currentTimeMillis(),
+    val isFromMe: Boolean = false,
+    val attachedAppPackage: String? = null,
+    val attachedAppName: String? = null
+)
+
+data class QAInspectionCheck(
+    val id: String,
+    val title: String,
+    val description: String,
+    val isChecked: Boolean = false
+)
+

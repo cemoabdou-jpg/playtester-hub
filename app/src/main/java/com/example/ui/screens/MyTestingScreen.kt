@@ -266,6 +266,7 @@ fun MyTestingScreen(
                                 AppIconImage(
                                     iconUrl = test.iconUrl,
                                     appName = test.appName,
+                                    packageName = test.packageName,
                                     modifier = Modifier.size(46.dp),
                                     shape = RoundedCornerShape(12.dp)
                                 )
@@ -301,22 +302,39 @@ fun MyTestingScreen(
                                 }
                             }
 
-                            // Launch Test Button
-                            Button(
-                                onClick = {
-                                    viewModel.openAndTestApp(context, test) { earned ->
-                                        lastTestedAppForDouble = test
-                                    }
-                                },
-                                shape = RoundedCornerShape(10.dp),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 7.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (isCompleted) Color(0xFF00875A) else MaterialTheme.colorScheme.primary
-                                )
+                            // Actions Row: 15-min QA Session Companion & Quick Launch
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(15.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(if (isCompleted) "إعادة الفتح" else "فتح واختبار", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                OutlinedButton(
+                                    onClick = {
+                                        viewModel.openActiveTestSession(test)
+                                    },
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 7.dp)
+                                ) {
+                                    Icon(Icons.Default.HourglassBottom, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFF00875A))
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text("جلسة 15د (+50)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF00875A))
+                                }
+
+                                Button(
+                                    onClick = {
+                                        viewModel.openAndTestApp(context, test) { earned ->
+                                            lastTestedAppForDouble = test
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 7.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (isCompleted) Color(0xFF00875A) else MaterialTheme.colorScheme.primary
+                                    )
+                                ) {
+                                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(15.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(if (isCompleted) "إعادة الفتح" else "فتح واختبار", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
 

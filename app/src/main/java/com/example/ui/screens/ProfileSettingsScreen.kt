@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -96,31 +97,50 @@ fun ProfileSettingsScreen(
                         }
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Surface(
-                            color = Color(0xFFFFB300).copy(alpha = 0.15f),
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Text(
-                                "VIP نشط",
-                                color = Color(0xFFFF8F00),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
+                        if (currentUser.isPlatformOwner) {
+                            Surface(
+                                color = Color(0xFF1E88E5).copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text(
+                                    "صاحب المنصة 👑",
+                                    color = Color(0xFF1565C0),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
+                        if (currentUser.isVip) {
+                            Surface(
+                                color = Color(0xFFFFB300).copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text(
+                                    "VIP نشط",
+                                    color = Color(0xFFFF8F00),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
                         }
                     }
                 }
             }
         }
 
-        // Email Verification / Registration Card
-        item {
-            if (!currentUser.isEmailVerified) {
+        // Platform Owner Admin Control Banner - ONLY visible for platform owner (cemoabdou@gmail.com)
+        if (currentUser.isPlatformOwner) {
+            item {
                 ElevatedCard(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.openAdminControl() },
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
-                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
+                    colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFF1E88E5).copy(alpha = 0.1f)),
+                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
                 ) {
                     Row(
                         modifier = Modifier
@@ -134,82 +154,105 @@ fun ProfileSettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.size(38.dp)
+                                color = Color(0xFF1E88E5),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.size(42.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
-                                        Icons.Default.MarkEmailUnread,
+                                        Icons.Default.AdminPanelSettings,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
+                                        tint = Color.White,
+                                        modifier = Modifier.size(24.dp)
                                     )
                                 }
                             }
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Spacer(modifier = Modifier.width(12.dp))
                             Column {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        "لوحة تحكم صاحب المنصة",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = Color(0xFF1565C0)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Surface(
+                                        color = Color(0xFF00875A),
+                                        shape = RoundedCornerShape(4.dp)
+                                    ) {
+                                        Text(
+                                            "مسؤول",
+                                            color = Color.White,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                }
                                 Text(
-                                    "تأكيد البريد الإلكتروني (+100 نقطة)",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Text(
-                                    "أرسل رمز تأكيد (OTP) إلى بريدك لتأكيد الاشتراك",
+                                    "إدارة وتعديل وحذف وتمييز جميع تطبيقات السيرفر",
                                     fontSize = 11.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
 
-                        Button(
-                            onClick = { viewModel.openEmailVerification() },
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Text("تأكيد الآن", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            } else {
-                ElevatedCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFFE8F5E9)),
-                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Verified, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(22.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "البريد الإلكتروني مؤكد ونشط بالكامل",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF1B5E20)
-                            )
-                        }
-                        OutlinedButton(
-                            onClick = { viewModel.openEmailVerification() },
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text("تغيير الحساب", fontSize = 10.sp)
-                        }
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowForwardIos,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = Color(0xFF1E88E5)
+                        )
                     }
                 }
             }
         }
 
-        // Account Actions: Register or switch account
+        // Verified Account Status Card
+        item {
+            ElevatedCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFFE8F5E9)),
+                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Verified, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                "الحساب مؤكد بالبريد الإلكتروني (OTP) ✓",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF1B5E20)
+                            )
+                            Text(
+                                currentUser.email,
+                                fontSize = 11.sp,
+                                color = Color(0xFF2E7D32)
+                            )
+                        }
+                    }
+                    OutlinedButton(
+                        onClick = { viewModel.logout() },
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text("تسجيل خروج", fontSize = 11.sp)
+                    }
+                }
+            }
+        }
+
+        // Account Actions: Manage or logout
         item {
             ElevatedCard(
                 modifier = Modifier.fillMaxWidth(),
@@ -219,25 +262,62 @@ fun ProfileSettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text(
-                        "إدارة الحساب والتسجيل:",
+                        "إدارة الحساب والجلسة:",
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(10.dp))
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { viewModel.openEmailVerification() },
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                    ) {
-                        Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "إنشاء حساب جديد وتأكيد الاشتراك (إرسال OTP)",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                    if (currentUser.isPlatformOwner) {
+                        Surface(
+                            color = Color(0xFFE3F2FD),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = Color(0xFF1976D2), modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text("أنت مسجل حالياً بصفتك: صاحب المنصة 👑", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0D47A1))
+                                    Text("البريد الإلكتروني المعتمد: ${currentUser.email}", fontSize = 11.sp, color = Color(0xFF1565C0))
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        OutlinedButton(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { viewModel.logoutToRegularUser() },
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("معاينة مظهر المستخدم العادي (حساب تجريبي)", fontSize = 12.sp)
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { viewModel.logout() },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Icon(Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("تسجيل الخروج والعودة لشاشة الدخول الإلزامية", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        Button(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { viewModel.logout() },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Icon(Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("تسجيل الخروج (العودة لشاشة الدخول الإلزامية)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }

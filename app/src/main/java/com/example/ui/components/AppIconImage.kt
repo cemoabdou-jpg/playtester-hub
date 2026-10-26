@@ -63,9 +63,11 @@ fun AppIconImage(
     iconUrl: String?,
     appName: String,
     category: String = "",
+    packageName: String = "",
     modifier: Modifier = Modifier.size(50.dp),
     shape: Shape = RoundedCornerShape(14.dp)
 ) {
+    val context = LocalContext.current
     val raw = iconUrl?.trim().orEmpty()
     var isImageError by remember(raw) { mutableStateOf(false) }
 
@@ -73,6 +75,25 @@ fun AppIconImage(
     val preset = remember(raw) {
         if (raw.startsWith("preset:")) {
             PRESET_APP_ICONS.firstOrNull { it.id == raw }
+        } else null
+    }
+
+    // Check if a local icon file exists on this device from previous uploads
+    val localFileBitmap: Bitmap? = remember(packageName, raw) {
+        if (packageName.isNotBlank()) {
+            try {
+                val iconsDir = java.io.File(context.filesDir, "app_icons")
+                val safePkg = packageName.replace(".", "_")
+                val pngFile = java.io.File(iconsDir, "$safePkg.png")
+                val jpgFile = java.io.File(iconsDir, "$safePkg.jpg")
+                val targetFile = if (pngFile.exists() && pngFile.length() > 0) pngFile else if (jpgFile.exists() && jpgFile.length() > 0) jpgFile else null
+                if (targetFile != null) {
+                    val decoded = BitmapFactory.decodeFile(targetFile.absolutePath)
+                    decoded
+                } else null
+            } catch (_: Exception) {
+                null
+            }
         } else null
     }
 
@@ -145,7 +166,17 @@ fun AppIconImage(
                 }
             }
 
-            // 2. Decoded Base64 / Local Bitmap
+            // 2. Local device bitmap saved previously
+            localFileBitmap != null && !isImageError -> {
+                Image(
+                    bitmap = localFileBitmap.asImageBitmap(),
+                    contentDescription = appName,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            // 3. Decoded Base64 / Embedded Bitmap
             base64Bitmap != null && !isImageError -> {
                 Image(
                     bitmap = base64Bitmap.asImageBitmap(),
@@ -155,7 +186,7 @@ fun AppIconImage(
                 )
             }
 
-            // 3. Web URL, Local File URI, or Android Content URI via Coil
+            // 4. Web URL, Local File URI, or Android Content URI via Coil
             cleanUrl.isNotBlank() && isLoadableViaCoil(cleanUrl) && !isImageError -> {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
@@ -242,7 +273,7 @@ private fun normalizeImageUrl(raw: String): String {
     if (url.contains("drive.google.com")) {
         val fileId = extractGoogleDriveFileId(url)
         if (fileId != null) {
-            return "https://drive.google.com/uc?export=view&id=$fileId"
+            return "https://lh3.googleusercontent.com/d/$fileId"
         }
     }
 

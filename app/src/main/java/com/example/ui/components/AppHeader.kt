@@ -23,9 +23,14 @@ fun AppHeader(
     onOpenAudit: () -> Unit,
     onOpenLeaderboard: () -> Unit,
     onOpenTheme: () -> Unit = {},
-    onOpenLuckySpin: () -> Unit = {}
+    onOpenLuckySpin: () -> Unit = {},
+    onOpenAdmin: () -> Unit = {},
+    unreadNotificationsCount: Int = 0,
+    onOpenNotifications: () -> Unit = {},
+    onOpenComplianceMatrix: () -> Unit = {}
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    val isOwner = user.isPlatformOwner
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -41,29 +46,49 @@ fun AppHeader(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = if (isOwner) Modifier.clickable { onOpenAdmin() } else Modifier
+            ) {
                 Surface(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                    color = if (isOwner) Color(0xFF1E88E5).copy(alpha = 0.15f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.size(36.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            Icons.Default.VerifiedUser,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            if (isOwner) Icons.Default.AdminPanelSettings else Icons.Default.VerifiedUser,
+                            contentDescription = if (isOwner) "لوحة تحكم صاحب المنصة" else "PlayTester Hub",
+                            tint = if (isOwner) Color(0xFF1E88E5) else MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
                 }
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
-                    Text(
-                        "PlayTester Hub",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "PlayTester Hub",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 17.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        if (isOwner) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                color = Color(0xFF1E88E5),
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    "صاحب المنصة",
+                                    color = Color.White,
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                )
+                            }
+                        }
+                    }
                     Text(
                         "منصة تبادل المختبرين الرسمية",
                         fontSize = 11.sp,
@@ -137,6 +162,33 @@ fun AppHeader(
                     )
                 }
 
+                Spacer(modifier = Modifier.width(4.dp))
+
+                IconButton(
+                    onClick = onOpenNotifications,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    BadgedBox(
+                        badge = {
+                            if (unreadNotificationsCount > 0) {
+                                Badge(
+                                    containerColor = Color(0xFFE53935),
+                                    contentColor = Color.White
+                                ) {
+                                    Text("$unreadNotificationsCount")
+                                }
+                            }
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.Notifications,
+                            contentDescription = "إشعارات المختبرين",
+                            tint = if (unreadNotificationsCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
                 Box {
                     IconButton(
                         onClick = { showMenu = true },
@@ -154,12 +206,47 @@ fun AppHeader(
                         onDismissRequest = { showMenu = false }
                     ) {
                         DropdownMenuItem(
+                            text = { 
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("🔔 إشعارات نشاط المختبرين")
+                                    if (unreadNotificationsCount > 0) {
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Surface(
+                                            color = Color(0xFFE53935),
+                                            shape = RoundedCornerShape(10.dp)
+                                        ) {
+                                            Text(
+                                                "$unreadNotificationsCount جديد",
+                                                color = Color.White,
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            },
+                            onClick = {
+                                showMenu = false
+                                onOpenNotifications()
+                            },
+                            leadingIcon = { Icon(Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                        )
+                        DropdownMenuItem(
                             text = { Text("🏆 لوحة الصدارة ومكافآت الأوسمة") },
                             onClick = {
                                 showMenu = false
                                 onOpenLeaderboard()
                             },
                             leadingIcon = { Text("🏆", fontSize = 16.sp) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("🛡️ مصفوفة الـ 14 يوماً ورادار الامتثال") },
+                            onClick = {
+                                showMenu = false
+                                onOpenComplianceMatrix()
+                            },
+                            leadingIcon = { Icon(Icons.Default.Verified, contentDescription = null, tint = Color(0xFF00875A)) }
                         )
                         DropdownMenuItem(
                             text = { Text("📄 تقرير التدقيق الرسمي (Audit)") },
@@ -193,6 +280,25 @@ fun AppHeader(
                             },
                             leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
                         )
+                        if (isOwner) {
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                            DropdownMenuItem(
+                                text = { 
+                                    Text(
+                                        "🛡️ لوحة تحكم صاحب المنصة",
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF1E88E5)
+                                    ) 
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    onOpenAdmin()
+                                },
+                                leadingIcon = { 
+                                    Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = Color(0xFF1E88E5)) 
+                                }
+                            )
+                        }
                     }
                 }
             }

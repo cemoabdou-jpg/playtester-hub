@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,6 +26,7 @@ import com.example.data.model.UserApp
 fun TesterActivityHealthDialog(
     app: UserApp,
     logs: List<DailyTestLog>,
+    onOpenTesterProfile: (email: String, name: String) -> Unit = { _, _ -> },
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -138,18 +140,24 @@ fun TesterActivityHealthDialog(
                 } else {
                     LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(uniqueTesters) { tester ->
-                            Card(modifier = Modifier.fillMaxWidth()) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text(tester.testerName, fontWeight = FontWeight.Bold)
-                                        Text("الجهاز: ${tester.deviceModel}", fontSize = 12.sp, color = Color.Gray)
-                                        Text("آخر نشاط: اليوم (جلسة اختبار فعالة)", fontSize = 11.sp, color = Color(0xFF00875A))
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onOpenTesterProfile(tester.testerEmail, tester.testerName)
                                     }
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                            ) {
+                                Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text(tester.testerName, fontWeight = FontWeight.Bold)
+                                            Text("الجهاز: ${tester.deviceModel}", fontSize = 12.sp, color = Color.Gray)
+                                            Text("آخر نشاط: اليوم (جلسة اختبار فعالة)", fontSize = 11.sp, color = Color(0xFF00875A))
+                                        }
                                         Surface(
                                             color = Color(0xFFE8F5E9),
                                             shape = RoundedCornerShape(12.dp)
@@ -162,14 +170,22 @@ fun TesterActivityHealthDialog(
                                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                             )
                                         }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    Button(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        onClick = {
+                                            onOpenTesterProfile(tester.testerEmail, tester.testerName)
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(vertical = 6.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f))
+                                    ) {
+                                        Icon(Icons.Default.AccountCircle, contentDescription = null, modifier = Modifier.size(15.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        IconButton(
-                                            onClick = {
-                                                Toast.makeText(context, "تم إرسال تنبيه ودود للمختبر لتذكيره بجلسة الغد", Toast.LENGTH_SHORT).show()
-                                            }
-                                        ) {
-                                            Icon(Icons.Default.Notifications, contentDescription = "تذكير")
-                                        }
+                                        Text("عرض حساب المختبر وتطبيقاته للاختبار المتبادل ↗", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }

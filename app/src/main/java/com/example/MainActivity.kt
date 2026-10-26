@@ -50,10 +50,17 @@ enum class NavigationTab(val title: String, val icon: ImageVector) {
 
 @Composable
 fun MainScreen(viewModel: TesterViewModel) {
+    val user by viewModel.currentUser.collectAsState()
+
+    // Mandatory Authentication Gate: Must log in and verify email via OTP to access the platform
+    if (!user.isEmailVerified) {
+        MandatoryAuthScreen(viewModel = viewModel)
+        return
+    }
+
     val context = LocalContext.current
     val activity = context as? Activity
     var selectedTab by remember { mutableStateOf(NavigationTab.COMMUNITY) }
-    val user by viewModel.currentUser.collectAsState()
     val userApps by viewModel.userApps.collectAsState()
     val selectedApp = viewModel.selectedAppForReport.collectAsState().value ?: userApps.firstOrNull()
 
@@ -86,6 +93,9 @@ fun MainScreen(viewModel: TesterViewModel) {
     val showLeaderboard by viewModel.showLeaderboardDialog.collectAsState()
     var showThemeDialog by remember { mutableStateOf(false) }
 
+    val notifications by viewModel.testerNotifications.collectAsState()
+    val unreadNotificationsCount = remember(notifications) { notifications.count { !it.isRead } }
+
     Scaffold(
         topBar = {
             AppHeader(
@@ -95,7 +105,11 @@ fun MainScreen(viewModel: TesterViewModel) {
                 onOpenAudit = { viewModel.openAuditReport() },
                 onOpenLeaderboard = { viewModel.openLeaderboard() },
                 onOpenTheme = { showThemeDialog = true },
-                onOpenLuckySpin = { viewModel.openLuckySpin() }
+                onOpenLuckySpin = { viewModel.openLuckySpin() },
+                onOpenAdmin = { viewModel.openAdminControl() },
+                unreadNotificationsCount = unreadNotificationsCount,
+                onOpenNotifications = { viewModel.openNotifications() },
+                onOpenComplianceMatrix = { selectedApp?.let { viewModel.openComplianceMatrix(it) } }
             )
         },
         bottomBar = {
@@ -150,20 +164,8 @@ fun MainScreen(viewModel: TesterViewModel) {
 
     if (showMonetization) {
         MonetizationCenterDialog(
-            onDismiss = { viewModel.closeMonetization() },
-            onWatchAd = {
-                if (activity != null) {
-                    AdMobConfig.showRewardedAd(
-                        activity = activity,
-                        onRewardEarned = { coins ->
-                            viewModel.earnAdReward(coins)
-                        }
-                    )
-                } else {
-                    viewModel.earnAdReward(50)
-                }
-                viewModel.closeMonetization()
-            }
+            viewModel = viewModel,
+            onDismiss = { viewModel.closeMonetization() }
         )
     }
 
@@ -180,6 +182,9 @@ fun MainScreen(viewModel: TesterViewModel) {
         TesterActivityHealthDialog(
             app = selectedApp,
             logs = logs,
+            onOpenTesterProfile = { email, name ->
+                viewModel.openTesterProfile(email, name)
+            },
             onDismiss = { viewModel.closeTesterHealth() }
         )
     }
@@ -235,6 +240,66 @@ fun MainScreen(viewModel: TesterViewModel) {
             onRewardWon = { coins ->
                 viewModel.claimSpinReward(coins)
             }
+        )
+    }
+
+    val showAdminControl by viewModel.showAdminControlDialog.collectAsState()
+    if (showAdminControl && user.isPlatformOwner) {
+        PlatformOwnerAdminDialog(
+            viewModel = viewModel,
+            onDismiss = { viewModel.closeAdminControl() }
+        )
+    }
+
+    val showNotifications by viewModel.showNotificationsDialog.collectAsState()
+    if (showNotifications) {
+        NotificationsCenterDialog(
+            viewModel = viewModel,
+            onDismiss = { viewModel.closeNotifications() }
+        )
+    }
+
+    val showTesterProfile by viewModel.showTesterProfileDialog.collectAsState()
+    val selectedTesterProfile by viewModel.selectedTesterProfile.collectAsState()
+    if (showTesterProfile && selectedTesterProfile != null) {
+        TesterProfileDialog(
+            profile = selectedTesterProfile!!,
+            viewModel = viewModel,
+            onDismiss = { viewModel.closeTesterProfile() }
+        )
+    }
+
+    val showComplianceMatrix by viewModel.showComplianceMatrixDialog.collectAsState()
+    val selectedAppForCompliance by viewModel.selectedAppForCompliance.collectAsState()
+    if (showComplianceMatrix && selectedAppForCompliance != null) {
+        GooglePlayComplianceMatrixDialog(
+            app = selectedAppForCompliance!!,
+            viewModel = viewModel,
+            onDismiss = { viewModel.closeComplianceMatrix() }
+        )
+    }
+
+    val showActiveSession by viewModel.showActiveTestSessionDialog.collectAsState()
+    val activeSessionTest by viewModel.activeSessionTest.collectAsState()
+    if (showActiveSession && activeSessionTest != null) {
+        ActiveTestSessionDialog(
+            test = activeSessionTest!!,
+            viewModel = viewModel,
+            onDismiss = { viewModel.closeActiveTestSession() }
+        )
+    }
+
+    val showDeveloperChat by viewModel.showDeveloperChatDialog.collectAsState()
+    val activeChatRecipientName by viewModel.activeChatRecipientName.collectAsState()
+    val activeChatRecipientEmail by viewModel.activeChatRecipientEmail.collectAsState()
+    val activeChatAppName by viewModel.activeChatAppName.collectAsState()
+    if (showDeveloperChat) {
+        DeveloperChatDialog(
+            recipientName = activeChatRecipientName,
+            recipientEmail = activeChatRecipientEmail,
+            appName = activeChatAppName,
+            viewModel = viewModel,
+            onDismiss = { viewModel.closeDeveloperChat() }
         )
     }
 }

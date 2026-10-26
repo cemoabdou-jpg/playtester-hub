@@ -163,7 +163,32 @@ class TesterRepository(
         appDao.deleteUserApp(app)
     }
 
+    suspend fun updateAppIcon(packageName: String, newIconUrl: String) {
+        appDao.updateUserAppIcon(packageName, newIconUrl)
+        try {
+            firestoreService.updateAppIconInFirestore(packageName, newIconUrl)
+        } catch (_: Exception) {}
+    }
+
+    suspend fun updateAppDetails(
+        packageName: String,
+        name: String,
+        category: String,
+        iconUrl: String,
+        webOptInUrl: String,
+        googleGroupUrl: String
+    ) {
+        appDao.updateUserAppDetails(packageName, name, category, iconUrl, webOptInUrl, googleGroupUrl)
+        try {
+            firestoreService.updateAppDetailsInFirestore(packageName, name, category, iconUrl, webOptInUrl, googleGroupUrl)
+        } catch (_: Exception) {}
+    }
+
     suspend fun joinTest(test: JoinedTest) {
+        val current = appDao.getAllJoinedTests().firstOrNull() ?: emptyList()
+        if (current.any { it.packageName == test.packageName }) {
+            return
+        }
         appDao.insertJoinedTest(test)
         try {
             firestoreService.incrementAppTesters(test.packageName)
@@ -218,6 +243,14 @@ class TesterRepository(
         return newDays
     }
 
+    suspend fun addDailyTestLog(log: DailyTestLog) {
+        appDao.insertDailyTestLogs(listOf(log))
+    }
+
+    suspend fun updateTestSession(packageName: String, daysCompleted: Int) {
+        appDao.updateJoinedTestSession(packageName, daysCompleted, System.currentTimeMillis())
+    }
+
     suspend fun addFeedback(appId: String, rating: Int, comment: String) {
         val item = TesterFeedback(
             id = "fb_${appId}_${System.currentTimeMillis()}",
@@ -228,5 +261,52 @@ class TesterRepository(
             createdAt = System.currentTimeMillis()
         )
         appDao.insertFeedback(listOf(item))
+    }
+
+    suspend fun adminDeleteApp(packageName: String) {
+        try {
+            firestoreService.deleteAppFromFirestore(packageName)
+        } catch (_: Exception) {}
+    }
+
+    suspend fun adminSetFeatured(packageName: String, isFeatured: Boolean) {
+        appDao.updateCommunityAppFeatured(packageName, isFeatured)
+        try {
+            firestoreService.setAppFeaturedInFirestore(packageName, isFeatured)
+        } catch (_: Exception) {}
+    }
+
+    suspend fun adminUpdateTesters(packageName: String, testers: Int) {
+        try {
+            firestoreService.updateAppTestersInFirestore(packageName, testers)
+        } catch (_: Exception) {}
+    }
+
+    suspend fun adminUpdateApp(
+        packageName: String,
+        name: String,
+        devName: String,
+        category: String,
+        iconUrl: String,
+        currentTesters: Int,
+        targetTesters: Int,
+        isFeatured: Boolean,
+        webOptInUrl: String,
+        googleGroupUrl: String
+    ) {
+        try {
+            firestoreService.adminUpdateAppFull(
+                packageName = packageName,
+                name = name,
+                devName = devName,
+                category = category,
+                iconUrl = iconUrl,
+                currentTesters = currentTesters,
+                targetTesters = targetTesters,
+                isFeatured = isFeatured,
+                webOptInUrl = webOptInUrl,
+                googleGroupUrl = googleGroupUrl
+            )
+        } catch (_: Exception) {}
     }
 }

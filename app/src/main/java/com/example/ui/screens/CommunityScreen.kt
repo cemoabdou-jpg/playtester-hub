@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import com.playtesterhub.app.R
 import com.example.data.model.CommunityApp
 import com.example.ui.components.AppIconImage
+import com.example.ui.components.RealJoinTestDialog
 import com.example.ui.viewmodel.TesterViewModel
 import com.example.util.AdMobConfig
 
@@ -54,6 +55,7 @@ fun CommunityScreen(
 
     var selectedCategory by remember { mutableStateOf("الكل") }
     var searchQuery by remember { mutableStateOf("") }
+    var appToJoinReal by remember { mutableStateOf<CommunityApp?>(null) }
 
     val categories = listOf("الكل", "الأكثر احتياجاً", "أدوات", "ألعاب", "إنتاجية", "تعليم", "تواصل")
 
@@ -487,11 +489,16 @@ fun CommunityScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(featuredApps, key = { it.id }) { app ->
+                            val isJoined = joinedTests.any { it.packageName == app.packageName }
                             FeaturedAppCard(
                                 app = app,
+                                isJoined = isJoined,
                                 onJoin = {
-                                    viewModel.joinCommunityApp(app)
-                                    Toast.makeText(context, "تم الانضمام لاختبار ${app.name} بنجاح!", Toast.LENGTH_SHORT).show()
+                                    if (isJoined) {
+                                        Toast.makeText(context, "أنت منضم بالفعل لاختبار ${app.name}! توجه إلى تبويب 'اختباراتي' لتسجيل فحصك اليومي.", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        appToJoinReal = app
+                                    }
                                 },
                                 onOpenOptIn = {
                                     val url = if (app.webOptInUrl.isNotBlank()) app.webOptInUrl else "https://play.google.com/apps/testing/${app.packageName}"
@@ -578,11 +585,16 @@ fun CommunityScreen(
             }
         } else {
             itemsIndexed(regularApps, key = { _, app -> app.id }) { _, app ->
+                val isJoined = joinedTests.any { it.packageName == app.packageName }
                 CleanCommunityAppCard(
                     app = app,
+                    isJoined = isJoined,
                     onJoin = {
-                        viewModel.joinCommunityApp(app)
-                        Toast.makeText(context, "تم الانضمام لاختبار ${app.name} بنجاح!", Toast.LENGTH_SHORT).show()
+                        if (isJoined) {
+                            Toast.makeText(context, "أنت منضم بالفعل لاختبار ${app.name}! توجه إلى تبويب 'اختباراتي' لتسجيل فحصك اليومي.", Toast.LENGTH_SHORT).show()
+                        } else {
+                            appToJoinReal = app
+                        }
                     },
                     onOpenOptIn = {
                         val url = if (app.webOptInUrl.isNotBlank()) app.webOptInUrl else "https://play.google.com/apps/testing/${app.packageName}"
@@ -592,10 +604,39 @@ fun CommunityScreen(
                         } catch (_: Exception) {
                             Toast.makeText(context, "الرابط: $url", Toast.LENGTH_SHORT).show()
                         }
+                    },
+                    onOpenDeveloperProfile = {
+                        val devEmail = "${app.developerName.lowercase().replace(" ", "").replace("[^a-zA-Z0-9]".toRegex(), "")}@gmail.com"
+                        viewModel.openTesterProfile(devEmail, app.developerName)
+                    },
+                    onOpenChat = {
+                        val devEmail = "${app.developerName.lowercase().replace(" ", "").replace("[^a-zA-Z0-9]".toRegex(), "")}@gmail.com"
+                        viewModel.openDeveloperChat(devEmail, app.developerName, app.name)
                     }
                 )
             }
         }
+    }
+
+    if (appToJoinReal != null) {
+        val targetApp = appToJoinReal!!
+        RealJoinTestDialog(
+            app = targetApp,
+            onDismiss = { appToJoinReal = null },
+            onConfirmJoin = {
+                val success = viewModel.joinCommunityApp(targetApp)
+                if (success) {
+                    Toast.makeText(
+                        context,
+                        "🎉 تهانينا! أصبحت مختبراً رسمياً لـ ${targetApp.name} وتمت إضافته إلى تبويب 'اختباراتي' (+${targetApp.pointsReward} عملة)!",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    Toast.makeText(context, "أنت منضم بالفعل لهذا التطبيق مسبقاً!", Toast.LENGTH_SHORT).show()
+                }
+                appToJoinReal = null
+            }
+        )
     }
 }
 
@@ -605,6 +646,7 @@ fun CommunityScreen(
 @Composable
 private fun FeaturedAppCard(
     app: CommunityApp,
+    isJoined: Boolean = false,
     onJoin: () -> Unit,
     onOpenOptIn: () -> Unit
 ) {
@@ -630,6 +672,7 @@ private fun FeaturedAppCard(
                     iconUrl = app.iconUrl,
                     appName = app.name,
                     category = app.category,
+                    packageName = app.packageName,
                     modifier = Modifier.size(44.dp),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -686,12 +729,22 @@ private fun FeaturedAppCard(
                 onClick = onJoin,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isJoined) Color(0xFF00875A) else MaterialTheme.colorScheme.primary
+                ),
                 contentPadding = PaddingValues(vertical = 6.dp)
             ) {
-                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
+                Icon(
+                    if (isJoined) Icons.Default.CheckCircle else Icons.Default.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp)
+                )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("انضم الآن", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    if (isJoined) "منضم بالفعل ✓" else "انضم الآن",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
@@ -700,8 +753,11 @@ private fun FeaturedAppCard(
 @Composable
 private fun CleanCommunityAppCard(
     app: CommunityApp,
+    isJoined: Boolean = false,
     onJoin: () -> Unit,
-    onOpenOptIn: () -> Unit
+    onOpenOptIn: () -> Unit,
+    onOpenDeveloperProfile: () -> Unit = {},
+    onOpenChat: () -> Unit = {}
 ) {
     val isGold = app.isFeatured
     ElevatedCard(
@@ -727,6 +783,7 @@ private fun CleanCommunityAppCard(
                         iconUrl = app.iconUrl,
                         appName = app.name,
                         category = app.category,
+                        packageName = app.packageName,
                         modifier = Modifier.size(46.dp),
                         shape = RoundedCornerShape(12.dp)
                     )
@@ -750,7 +807,10 @@ private fun CleanCommunityAppCard(
                                 )
                             }
                         }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable { onOpenDeveloperProfile() }
+                        ) {
                             Text(
                                 app.developerName,
                                 fontSize = 11.sp,
@@ -764,6 +824,13 @@ private fun CleanCommunityAppCard(
                                     fontWeight = FontWeight.Medium
                                 )
                             }
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                Icons.Default.AccountCircle,
+                                contentDescription = "ملف المطور",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(13.dp)
+                            )
                         }
                     }
                 }
@@ -837,11 +904,21 @@ private fun CleanCommunityAppCard(
                     onClick = onJoin,
                     contentPadding = PaddingValues(vertical = 9.dp),
                     shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isJoined) Color(0xFF00875A) else MaterialTheme.colorScheme.primary
+                    )
                 ) {
-                    Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(15.dp))
+                    Icon(
+                        if (isJoined) Icons.Default.CheckCircle else Icons.Default.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(15.dp)
+                    )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("انضم للاختبار", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        if (isJoined) "منضم بالفعل ✓" else "انضم للاختبار",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
 
                 OutlinedButton(
@@ -853,6 +930,20 @@ private fun CleanCommunityAppCard(
                     Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(15.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("رابط التحميل", fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                }
+
+                IconButton(
+                    onClick = onOpenChat,
+                    modifier = Modifier
+                        .size(38.dp)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), RoundedCornerShape(10.dp))
+                ) {
+                    Icon(
+                        Icons.Default.Chat,
+                        contentDescription = "محادثة وتنسيق التبادل",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
             }
         }

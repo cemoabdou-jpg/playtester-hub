@@ -24,6 +24,12 @@ interface AppDao {
     @Query("UPDATE user_apps SET isVip = :isFeatured WHERE packageName = :packageName")
     suspend fun updateUserAppFeatured(packageName: String, isFeatured: Boolean)
 
+    @Query("UPDATE user_apps SET iconUrl = :iconUrl WHERE packageName = :packageName")
+    suspend fun updateUserAppIcon(packageName: String, iconUrl: String)
+
+    @Query("UPDATE user_apps SET name = :name, appCategory = :category, iconUrl = :iconUrl, webOptInUrl = :webOptInUrl, googleGroupUrl = :googleGroupUrl WHERE packageName = :packageName")
+    suspend fun updateUserAppDetails(packageName: String, name: String, category: String, iconUrl: String, webOptInUrl: String, googleGroupUrl: String)
+
     @Query("UPDATE community_apps SET isFeatured = :isFeatured WHERE packageName = :packageName")
     suspend fun updateCommunityAppFeatured(packageName: String, isFeatured: Boolean)
 

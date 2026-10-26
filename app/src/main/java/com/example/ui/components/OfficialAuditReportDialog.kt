@@ -92,6 +92,7 @@ fun OfficialAuditReportDialog(
                             iconUrl = app.iconUrl,
                             appName = app.name,
                             category = app.appCategory,
+                            packageName = app.packageName,
                             modifier = Modifier.size(50.dp),
                             shape = RoundedCornerShape(12.dp)
                         )

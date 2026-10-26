@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.UserApp
 import com.example.ui.components.AppIconImage
+import com.example.ui.components.EditAppDetailsDialog
 import com.example.ui.components.PRESET_APP_ICONS
 import com.example.ui.viewmodel.TesterViewModel
 import java.io.ByteArrayOutputStream
@@ -43,6 +44,7 @@ fun MyAppsScreen(
     val context = LocalContext.current
     val userApps by viewModel.userApps.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
+    val notifications by viewModel.testerNotifications.collectAsState()
     var showAddAppDialog by remember { mutableStateOf(false) }
     var appToPromote by remember { mutableStateOf<UserApp?>(null) }
 
@@ -85,6 +87,77 @@ fun MyAppsScreen(
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("إضافة تطبيق", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        // Reciprocal Tester Alert Banner
+        val latestNotif = notifications.firstOrNull()
+        if (latestNotif != null) {
+            item {
+                ElevatedCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            viewModel.markNotificationAsRead(latestNotif.id)
+                            viewModel.openTesterProfile(latestNotif.testerEmail, latestNotif.testerName)
+                        },
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.09f)),
+                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = androidx.compose.foundation.shape.CircleShape,
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Default.NotificationsActive,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        "قام ${latestNotif.testerName} بتجربة تطبيقك",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("• جديد", fontSize = 10.sp, color = Color(0xFF00875A), fontWeight = FontWeight.Bold)
+                                }
+                                Text(
+                                    "اضغط هنا لفتح حسابه وعرض تطبيقاته والمشاركة في اختبارها 🤝",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Icon(
+                            Icons.Default.ArrowForwardIos,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         }
@@ -138,6 +211,7 @@ fun MyAppsScreen(
             items(userApps, key = { it.id }) { app ->
                 CleanUserAppCard(
                     app = app,
+                    onOpenComplianceMatrix = { viewModel.openComplianceMatrix(app) },
                     onOpenAudit = { viewModel.openAuditReport(app) },
                     onOpenCrashes = { viewModel.openCrashReports(app) },
                     onOpenHealth = { viewModel.openTesterHealth(app) },
@@ -152,6 +226,9 @@ fun MyAppsScreen(
                     onUnpromote = {
                         viewModel.unpromoteApp(app)
                         Toast.makeText(context, "تم إلغاء تمييز التطبيق", Toast.LENGTH_SHORT).show()
+                    },
+                    onUpdateDetails = { name, cat, iconUrl, web, grp ->
+                        viewModel.updateAppDetails(app.packageName, name, cat, iconUrl, web, grp)
                     },
                     onDelete = {
                         viewModel.removeUserApp(app)
@@ -206,11 +283,11 @@ fun MyAppsScreen(
                 }
             },
             onPayCoinsToPromote = {
-                val success = viewModel.promoteApp(targetApp, cost = 100)
+                val success = viewModel.promoteApp(targetApp, cost = 350)
                 if (success) {
                     Toast.makeText(
                         context,
-                        "🌟 تهانينا! تم تمييز تطبيق ${targetApp.name} وخصم 100 عملة!",
+                        "🌟 تهانينا! تم تمييز تطبيق ${targetApp.name} وخصم 350 عملة!",
                         Toast.LENGTH_LONG
                     ).show()
                     appToPromote = null
@@ -236,6 +313,7 @@ fun MyAppsScreen(
 @Composable
 private fun CleanUserAppCard(
     app: UserApp,
+    onOpenComplianceMatrix: () -> Unit = {},
     onOpenAudit: () -> Unit,
     onOpenCrashes: () -> Unit,
     onOpenHealth: () -> Unit,
@@ -243,10 +321,12 @@ private fun CleanUserAppCard(
     onUpdateTesters: (Int, Int) -> Unit,
     onPromote: () -> Unit,
     onUnpromote: () -> Unit,
+    onUpdateDetails: (name: String, category: String, iconUrl: String, webOptInUrl: String, googleGroupUrl: String) -> Unit = { _, _, _, _, _ -> },
     onDelete: () -> Unit
 ) {
     var showConfirmDelete by remember { mutableStateOf(false) }
     var showEditProgressDialog by remember { mutableStateOf(false) }
+    var showEditDetailsDialog by remember { mutableStateOf(false) }
 
     val isCompleted = app.currentTesters >= 20 && app.completedDays >= 14
     val compliancePercent = ((app.currentTesters.toFloat() / app.targetTesters.coerceAtLeast(1)) * 100).toInt().coerceIn(0, 100)
@@ -274,6 +354,7 @@ private fun CleanUserAppCard(
                         iconUrl = app.iconUrl,
                         appName = app.name,
                         category = app.appCategory,
+                        packageName = app.packageName,
                         modifier = Modifier.size(46.dp),
                         shape = RoundedCornerShape(12.dp)
                     )
@@ -306,6 +387,18 @@ private fun CleanUserAppCard(
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp,
                             modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { showEditDetailsDialog = true },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "تعديل صورة وبيانات التطبيق",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
 
@@ -445,11 +538,28 @@ private fun CleanUserAppCard(
                 ) {
                     Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("ترقية لتطبيق مميز في الصدارة ⭐ (100 عملة)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
+                    Text("ترقية لتطبيق مميز في الصدارة ⭐ (350 عملة أو بإعلان)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            // 🌟 14-Day Google Play Compliance & Production Readiness Radar Button
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = onOpenComplianceMatrix,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                contentPadding = PaddingValues(vertical = 10.dp)
+            ) {
+                Icon(Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "مصفوفة الـ 14 يوماً ورادار جاهزية Google Play 🛡️",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Primary Audit Report Button
             Button(
@@ -583,6 +693,17 @@ private fun CleanUserAppCard(
             }
         )
     }
+
+    if (showEditDetailsDialog) {
+        EditAppDetailsDialog(
+            app = app,
+            onDismiss = { showEditDetailsDialog = false },
+            onSave = { name, cat, iconUrl, web, grp ->
+                onUpdateDetails(name, cat, iconUrl, web, grp)
+                showEditDetailsDialog = false
+            }
+        )
+    }
 }
 
 @Composable
@@ -680,8 +801,8 @@ private fun PromoteAppFeaturedDialog(
                     }
                 }
 
-                // Option 2: Pay Coins
-                if (currentCoins >= 100) {
+                // Option 2: Pay Coins (Increased cost: 350 coins)
+                if (currentCoins >= 350) {
                     OutlinedButton(
                         onClick = onPayCoinsToPromote,
                         shape = RoundedCornerShape(12.dp),
@@ -690,7 +811,7 @@ private fun PromoteAppFeaturedDialog(
                     ) {
                         Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = Color(0xFFFF8F00), modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("ترقية مقابل 100 عملة (رصيدك: $currentCoins 🪙)", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        Text("ترقية مقابل 350 عملة (رصيدك: $currentCoins 🪙)", fontSize = 12.sp, fontWeight = FontWeight.Medium)
                     }
                 } else {
                     Surface(
@@ -699,15 +820,22 @@ private fun PromoteAppFeaturedDialog(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
-                            modifier = Modifier.padding(8.dp),
+                            modifier = Modifier.padding(10.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("رصيدك الحالي: $currentCoins عملة", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF8F00))
-                                Text("ينقصك ${100 - currentCoins} عملة للترقية بالعملات", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("رصيدك الحالي: $currentCoins عملة (تكلفة الترقية: 350)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF8F00))
+                                Text("ينقصك ${350 - currentCoins} عملة • شاهد إعلانات لجمعها سريعاً", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            TextButton(onClick = onWatchAdForCoins) {
+                            Button(
+                                onClick = onWatchAdForCoins,
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00875A)),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Icon(Icons.Default.PlayCircle, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text("+50 عملة 🎬", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
