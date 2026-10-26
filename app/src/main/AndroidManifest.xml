@@ -9,14 +9,12 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
 
-    <!-- دعم جميع مقاسات وكثافات الشاشات -->
     <supports-screens
         android:smallScreens="true"
         android:normalScreens="true"
         android:largeScreens="true"
         android:xlargeScreens="true"
-        android:anyDensity="true"
-        android:resizeable="true" />
+        android:anyDensity="true" />
 
     <queries>
         <intent>
@@ -34,7 +32,6 @@
         android:usesCleartextTraffic="true"
         android:theme="@style/Theme.MyApplication">
 
-        <!-- دعم الأبعاد الطويلة والشاشات الحديثة لمنع الأشرطة السوداء -->
         <meta-data
             android:name="android.max_aspect"
             android:value="2.4" />
@@ -59,12 +56,10 @@
             android:name="google_analytics_adid_collection_enabled"
             android:value="false" />
 
-        <!-- Google AdMob Application ID -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-4457316141776318~5453365517" />
 
-        <!-- Prevent AdMob from launching Chromium/WebView synchronously during app startup -->
         <provider
             android:name="com.google.android.gms.ads.MobileAdsInitProvider"
             android:authorities="${applicationId}.mobileadsinitprovider"
