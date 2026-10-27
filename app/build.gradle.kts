@@ -5,11 +5,11 @@ plugins {
     alias(libs.plugins.google.services)
 }
 
-// قراءة رقم البناء من GitHub Actions وتجاوز آخر إصدار تم رفعه (57)
+// قراءة رقم البناء من GitHub Actions وتجاوز آخر إصدار تم رفعه (58)
 val passedRunNumber = project.findProperty("appVersionCode")?.toString()?.toIntOrNull()
-val baseVersionCode = 57
+val baseVersionCode = 58
 val calculatedVersionCode = if (passedRunNumber != null) baseVersionCode + passedRunNumber else baseVersionCode
-val baseVersionName = "3.3"
+val baseVersionName = "3.4"
 
 android {
     namespace = "com.playtesterhub.app"
@@ -57,7 +57,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

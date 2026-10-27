@@ -128,6 +128,15 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         val database = AppDatabase.getInstance(application)
         repository = TesterRepository(database.appDao())
 
+        // Global reset of coins to 0 for all users as requested
+        val resetCoinsKey = "global_coins_reset_zero_all_users_v2"
+        if (!prefs.getBoolean(resetCoinsKey, false)) {
+            prefs.edit()
+                .putInt("user_points", 0)
+                .putBoolean(resetCoinsKey, true)
+                .apply()
+        }
+
         // Check if user has an already verified session
         val savedEmail = prefs.getString("user_email", null)
         val savedName = prefs.getString("user_name", null)
@@ -172,61 +181,8 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
             emptyList()
         )
 
-        // Seed realistic tester notifications
-        _testerNotifications.value = listOf(
-            TesterNotification(
-                id = "notif_1",
-                testerName = "أحمد المنصوري (DevAhmed)",
-                testerEmail = "ahmed.dev@gmail.com",
-                testerBadge = "المختبر الأسطوري 🥇",
-                appName = "تطبيقاتك قيد الاختبار",
-                appPackageName = "com.user.app",
-                timestamp = System.currentTimeMillis() - 15 * 60 * 1000L,
-                actionType = "TESTED",
-                deviceModel = "Samsung Galaxy S23 Ultra",
-                isRead = false,
-                message = "أجرى جلسة اختبار تفاعلية كاملة لتطبيقك اليوم (15 دقيقة) وقدم تقييماً إيجابياً."
-            ),
-            TesterNotification(
-                id = "notif_2",
-                testerName = "سارة التميمي (CodeWithSara)",
-                testerEmail = "sara.code@gmail.com",
-                testerBadge = "صائدة الأخطاء المحترفة 🥈",
-                appName = "تطبيقاتك قيد الاختبار",
-                appPackageName = "com.user.app",
-                timestamp = System.currentTimeMillis() - 2 * 3600 * 1000L,
-                actionType = "JOINED",
-                deviceModel = "Google Pixel 8 Pro",
-                isRead = false,
-                message = "انضمت لاختبار تطبيقك عبر رابط الاشتراك في Google Play لمساعدتك في شرط الـ 14 يوماً."
-            ),
-            TesterNotification(
-                id = "notif_3",
-                testerName = "طارق الخالدي (AppForge)",
-                testerEmail = "tariq.kh@gmail.com",
-                testerBadge = "مطور معتمد 🥉",
-                appName = "تطبيقاتك قيد الاختبار",
-                appPackageName = "com.user.app",
-                timestamp = System.currentTimeMillis() - 5 * 3600 * 1000L,
-                actionType = "TESTED",
-                deviceModel = "Xiaomi 13 Pro",
-                isRead = false,
-                message = "قام بتجربة التطبيق وفحص استقراره مع توثيق نشاط اليوم بنجاح."
-            ),
-            TesterNotification(
-                id = "notif_4",
-                testerName = "عمر الزهراني (OmarDev)",
-                testerEmail = "omar.zh@gmail.com",
-                testerBadge = "مختبر متميز ⭐",
-                appName = "تطبيقاتك قيد الاختبار",
-                appPackageName = "com.user.app",
-                timestamp = System.currentTimeMillis() - 24 * 3600 * 1000L,
-                actionType = "JOINED",
-                deviceModel = "OnePlus 11 5G",
-                isRead = true,
-                message = "انضم لاختبار تطبيقك في إطار التبادل المتبادل للمختبرين."
-            )
-        )
+        // Only genuine notifications created from real testing activities are shown
+        _testerNotifications.value = emptyList()
     }
 
     fun openAuditReport(app: UserApp? = null) {
@@ -296,20 +252,30 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         _showEmailVerificationDialog.value = false
     }
 
-    fun earnAdReward(points: Int = 50) {
-        _currentUser.update {
-            val newPoints = it.points + points
-            prefs.edit().putInt("user_points", newPoints).apply()
-            it.copy(points = newPoints)
+    fun addPoints(amount: Int) {
+        _currentUser.update { user ->
+            val newPoints = (user.points + amount).coerceAtLeast(0)
+            if (!user.isPlatformOwner) {
+                prefs.edit().putInt("user_points", newPoints).apply()
+            }
+            user.copy(points = newPoints)
         }
     }
 
-    fun claimDailyBonus(points: Int = 50) {
-        _currentUser.update {
-            val newPoints = it.points + points
-            prefs.edit().putInt("user_points", newPoints).apply()
-            it.copy(points = newPoints)
+    fun adminResetAllCoins() {
+        if (!_currentUser.value.isPlatformOwner) return
+        prefs.edit().putInt("user_points", 0).apply()
+        _currentUser.update { user ->
+            if (user.isPlatformOwner) user else user.copy(points = 0)
         }
+    }
+
+    fun earnAdReward(points: Int = 50) {
+        addPoints(points)
+    }
+
+    fun claimDailyBonus(points: Int = 50) {
+        addPoints(points)
     }
 
     fun startEmailVerification(email: String, name: String) {
@@ -379,12 +345,17 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
                 packageName = app.packageName,
                 iconUrl = app.iconUrl,
                 joinedAt = System.currentTimeMillis(),
-                daysCompleted = 1,
                 lastTestDate = System.currentTimeMillis(),
                 status = "TESTING"
             )
             repository.joinTest(joined)
-            _currentUser.update { it.copy(points = it.points + app.pointsReward, testsCount = it.testsCount + 1) }
+            _currentUser.update { user ->
+                val newPoints = (user.points + app.pointsReward).coerceAtLeast(0)
+                if (!user.isPlatformOwner) {
+                    prefs.edit().putInt("user_points", newPoints).apply()
+                }
+                user.copy(points = newPoints, testsCount = user.testsCount + 1)
+            }
         }
         return true
     }
@@ -580,53 +551,25 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         val cleanEmail = testerEmail.trim()
         val cleanName = testerName.trim()
 
-        // Match developer apps from communityApps
+        // Match genuine developer apps uploaded to communityApps
         val matchedApps = allApps.filter { app ->
-            app.developerName.contains(cleanName, ignoreCase = true) ||
-            cleanName.contains(app.developerName, ignoreCase = true) ||
-            app.developerName.contains(cleanEmail.substringBefore("@"), ignoreCase = true)
+            (cleanName.isNotBlank() && (app.developerName.contains(cleanName, ignoreCase = true) || cleanName.contains(app.developerName, ignoreCase = true))) ||
+            (cleanEmail.isNotBlank() && app.developerName.contains(cleanEmail.substringBefore("@"), ignoreCase = true))
         }
 
-        val devApps = if (matchedApps.isNotEmpty()) {
-            matchedApps
-        } else {
-            // Provide relevant community apps deterministically so reciprocal testing is always functional!
-            val hash = Math.abs(cleanEmail.hashCode())
-            if (allApps.isNotEmpty()) {
-                val idx1 = hash % allApps.size
-                val idx2 = (hash + 1) % allApps.size
-                listOfNotNull(allApps.getOrNull(idx1), allApps.getOrNull(idx2)).distinctBy { it.packageName }
-            } else {
-                emptyList()
-            }
-        }
-
-        val badge = when {
-            cleanEmail.contains("ahmed") -> "المختبر الأسطوري 🥇"
-            cleanEmail.contains("sara") -> "صائدة الأخطاء المحترفة 🥈"
-            cleanEmail.contains("tariq") -> "مطور معتمد 🥉"
-            cleanEmail.contains("omar") -> "مختبر متميز ⭐"
-            else -> "مختبر معتمد ⭐"
-        }
-
-        val completedCount = when {
-            cleanEmail.contains("ahmed") -> 19
-            cleanEmail.contains("sara") -> 16
-            cleanEmail.contains("tariq") -> 14
-            cleanEmail.contains("omar") -> 11
-            else -> 10
-        }
+        val completedCount = matchedApps.sumOf { it.currentTesters }.coerceAtLeast(1)
+        val badge = if (matchedApps.any { it.isFeatured }) "مطور مميز 💎" else "مطور معتمد ⭐"
 
         _selectedTesterProfile.value = TesterProfileData(
-            name = cleanName,
+            name = cleanName.ifBlank { "مطور مسجل" },
             email = cleanEmail,
             badge = badge,
-            rating = 4.9f,
+            rating = 5.0f,
             testsCompleted = completedCount,
-            reputationPoints = completedCount * 75,
-            deviceModel = "Samsung Galaxy S23 / Pixel 8",
-            bio = "مطور ومختبر نشط في مجتمع PlayTester Hub. قمت بتجربة تطبيقك ويسعدني تبادل الاختبار لتطبيقاتي لتحقيق شرط الـ 14 يوماً معاً 🤝",
-            apps = devApps
+            reputationPoints = completedCount * 50,
+            deviceModel = "جهاز أندرويد معتمد",
+            bio = "مطور مسجل في مجتمع PlayTester Hub. يشارك في اختبار التطبيقات وتبادل الفحص للوصول إلى شرط الـ 14 يوماً و 20 مختبراً 🤝",
+            apps = matchedApps
         )
         _showTesterProfileDialog.value = true
     }
@@ -690,7 +633,7 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         val reward = 25
         viewModelScope.launch {
             repository.recordDailyAppTest(test.packageName)
-            _currentUser.update { it.copy(points = it.points + reward) }
+            addPoints(reward)
             onRewarded(reward)
         }
         try {
@@ -720,7 +663,7 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
     fun claimBadge(badgeId: String, rewardPoints: Int) {
         if (!_claimedBadgeIds.value.contains(badgeId)) {
             _claimedBadgeIds.update { it + badgeId }
-            _currentUser.update { it.copy(points = it.points + rewardPoints) }
+            addPoints(rewardPoints)
         }
     }
 
@@ -808,58 +751,44 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun getWeeklyLeaderboard(currentUser: AuthUser): List<LeaderboardUser> {
-        val baseUsers = listOf(
-            LeaderboardUser(
+        val devMap = mutableMapOf<String, LeaderboardUser>()
+
+        // 1. Add current user if verified or has name
+        if (currentUser.displayName.isNotBlank()) {
+            val key = currentUser.email.ifBlank { currentUser.displayName }
+            devMap[key] = LeaderboardUser(
                 rank = 1,
-                name = "أحمد المنصوري (DevAhmed)",
-                email = "ahmed.dev@gmail.com",
-                testsCompleted = 19,
-                points = 1420,
-                badgeTitle = "المختبر الأسطوري 🥇"
-            ),
-            LeaderboardUser(
-                rank = 2,
-                name = "سارة التميمي (CodeWithSara)",
-                email = "sara.code@gmail.com",
-                testsCompleted = 16,
-                points = 1180,
-                badgeTitle = "صائدة الأخطاء المحترفة 🥈"
-            ),
-            LeaderboardUser(
-                rank = 3,
-                name = "طارق الخالدي (AppForge)",
-                email = "tariq.kh@gmail.com",
-                testsCompleted = 14,
-                points = 990,
-                badgeTitle = "مطور معتمد 🥉"
-            ),
-            LeaderboardUser(
-                rank = 4,
                 name = currentUser.displayName,
                 email = currentUser.email,
-                testsCompleted = maxOf(3, currentUser.testsCount),
+                testsCompleted = currentUser.testsCount,
                 points = currentUser.points,
-                badgeTitle = "مطور نشط ⭐",
+                badgeTitle = if (currentUser.isPlatformOwner) "صاحب المنصة 👑" else "مطور نشط ⭐",
                 isCurrentUser = true
-            ),
-            LeaderboardUser(
-                rank = 5,
-                name = "عمر الزهراني (OmarDev)",
-                email = "omar.zh@gmail.com",
-                testsCompleted = 11,
-                points = 680,
-                badgeTitle = "مختبر متميز"
-            ),
-            LeaderboardUser(
-                rank = 6,
-                name = "ياسين الإدريسي (YassineApps)",
-                email = "yassine.apps@gmail.com",
-                testsCompleted = 9,
-                points = 540,
-                badgeTitle = "مختبر جديد"
             )
-        )
-        return baseUsers.sortedByDescending { it.points }.mapIndexed { index, user ->
+        }
+
+        // 2. Add real developers who uploaded apps to community
+        communityApps.value.forEach { app ->
+            val devName = app.developerName.trim()
+            if (devName.isNotBlank() && devName != "المطور المعتمد") {
+                val isSelf = currentUser.displayName.equals(devName, ignoreCase = true)
+                if (!isSelf && !devMap.containsKey(devName)) {
+                    val safeEmail = "${devName.lowercase().replace(" ", "").replace("[^a-zA-Z0-9]".toRegex(), "")}@developer.com"
+                    devMap[devName] = LeaderboardUser(
+                        rank = 0,
+                        name = devName,
+                        email = safeEmail,
+                        testsCompleted = app.currentTesters,
+                        points = app.currentTesters * 50,
+                        badgeTitle = if (app.isFeatured) "مطور مميز 💎" else "مطور معتمد ⭐",
+                        isCurrentUser = false
+                    )
+                }
+            }
+        }
+
+        val allUsers = devMap.values.toList()
+        return allUsers.sortedByDescending { it.points }.mapIndexed { index, user ->
             user.copy(rank = index + 1)
         }
     }
@@ -876,24 +805,24 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         if (!_isDailyCheckInDoneToday.value) {
             _isDailyCheckInDoneToday.value = true
             _streakDays.update { it + 1 }
-            _currentUser.update { it.copy(points = it.points + 20) }
+            addPoints(20)
             return true
         }
         return false
     }
 
     fun claimSpinReward(coins: Int) {
-        _currentUser.update { it.copy(points = it.points + coins) }
+        addPoints(coins)
     }
 
     fun doubleTestReward(reward: Int = 25) {
-        _currentUser.update { it.copy(points = it.points + reward) }
+        addPoints(reward)
     }
 
     fun submitFeedback(appId: String, rating: Int, comment: String) {
         viewModelScope.launch {
             repository.addFeedback(appId, rating, comment)
-            _currentUser.update { it.copy(points = it.points + 15) }
+            addPoints(15)
         }
     }
 
@@ -1012,7 +941,13 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
             repository.updateTestSession(test.packageName, (test.daysCompleted + 1).coerceAtMost(14))
 
             // Reward tester generously for a full verified QA session
-            _currentUser.update { it.copy(points = it.points + 50, testsCount = it.testsCount + 1) }
+            _currentUser.update { user ->
+                val newPoints = (user.points + 50).coerceAtLeast(0)
+                if (!user.isPlatformOwner) {
+                    prefs.edit().putInt("user_points", newPoints).apply()
+                }
+                user.copy(points = newPoints, testsCount = user.testsCount + 1)
+            }
 
             // Add reciprocal notification
             val newNotif = TesterNotification(
@@ -1044,26 +979,7 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         _activeChatRecipientName.value = recipientName
         _activeChatAppName.value = appName
 
-        // Initialize realistic seed messages for reciprocal testing dialogue
-        _chatMessages.value = listOf(
-            ReciprocalChatMessage(
-                id = "msg_rec_1",
-                senderName = recipientName,
-                senderEmail = recipientEmail,
-                message = "مرحباً يا غالي! أهلاً بك في شبكة التبادل. لقد قمت بتجربة تطبيقك وإبقاءه نشطاً، ويسعدني استمرارنا حتى اليوم الـ 14 إن شاء الله 🤝",
-                timestamp = System.currentTimeMillis() - 2 * 60 * 60 * 1000L,
-                isFromMe = false,
-                attachedAppName = appName
-            ),
-            ReciprocalChatMessage(
-                id = "msg_rec_2",
-                senderName = recipientName,
-                senderEmail = recipientEmail,
-                message = "إذا كان لديك أي تحديث جديد أو ملاحظات حول واجهة تطبيقي شاركني إياها هنا وسأقوم بمراجعتها فوراً!",
-                timestamp = System.currentTimeMillis() - 45 * 60 * 1000L,
-                isFromMe = false
-            )
-        )
+        _chatMessages.value = emptyList()
         _showDeveloperChatDialog.value = true
     }
 

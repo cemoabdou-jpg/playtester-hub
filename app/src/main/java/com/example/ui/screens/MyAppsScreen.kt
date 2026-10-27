@@ -1017,18 +1017,72 @@ private fun AddAppSimpleDialog(
                     }
                 }
 
+                // Smart Package Name / Play Store URL input
                 OutlinedTextField(
                     value = pkg,
-                    onValueChange = { pkg = it; errorText = null },
-                    label = { Text("اسم الحزمة (Package Name)") },
-                    placeholder = { Text("مثال: com.company.app") },
+                    onValueChange = { input ->
+                        val extracted = com.example.util.AppInstallVerifier.extractPackageName(input)
+                        pkg = extracted
+                        errorText = null
+                        if (extracted.isNotBlank() && optIn.isBlank()) {
+                            optIn = "https://play.google.com/apps/testing/$extracted"
+                        }
+                    },
+                    label = { Text("اسم الحزمة أو رابط Play Store") },
+                    placeholder = { Text("مثال: com.company.app أو الصق رابط المتجر") },
+                    trailingIcon = {
+                        if (pkg.isNotBlank()) {
+                            val isValid = com.example.util.AppInstallVerifier.isValidPackageName(pkg)
+                            val isInstalled = com.example.util.AppInstallVerifier.isAppInstalled(context, pkg)
+                            Icon(
+                                if (isValid) Icons.Default.CheckCircle else Icons.Default.Info,
+                                contentDescription = null,
+                                tint = if (isInstalled) Color(0xFF00875A) else if (isValid) Color(0xFF0288D1) else Color(0xFFF57C00),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
 
+                // Smart Detection & Installation Status Hint
+                if (pkg.isNotBlank()) {
+                    val isValid = com.example.util.AppInstallVerifier.isValidPackageName(pkg)
+                    val isInstalled = com.example.util.AppInstallVerifier.isAppInstalled(context, pkg)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (isInstalled) "✓ مثبت على جهازك الحالي" else if (isValid) "معرف الحزمة صالح ✓" else "يرجى التأكد من صيغة الحزمة",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (isInstalled) Color(0xFF00875A) else if (isValid) Color(0xFF0288D1) else MaterialTheme.colorScheme.error
+                        )
+                        if (optIn.isNotBlank()) {
+                            Text(
+                                "تم توليد رابط Opt-in 🚀",
+                                fontSize = 10.sp,
+                                color = Color(0xFF00875A),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
                 OutlinedTextField(
                     value = optIn,
-                    onValueChange = { optIn = it },
+                    onValueChange = { input ->
+                        optIn = input
+                        if (pkg.isBlank()) {
+                            val extracted = com.example.util.AppInstallVerifier.extractPackageName(input)
+                            if (com.example.util.AppInstallVerifier.isValidPackageName(extracted)) {
+                                pkg = extracted
+                            }
+                        }
+                    },
                     label = { Text("رابط Google Play Opt-in") },
                     placeholder = { Text("https://play.google.com/apps/testing/...") },
                     singleLine = true,

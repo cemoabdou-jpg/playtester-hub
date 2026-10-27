@@ -68,7 +68,24 @@ fun OfficialAuditReportDialog(
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleLarge
                     )
-                    Row {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        FilledTonalButton(
+                            onClick = {
+                                val pdfFile = com.example.util.PdfComplianceReportGenerator.generateCompliancePdf(context, app, logs, crashes)
+                                if (pdfFile != null) {
+                                    com.example.util.PdfComplianceReportGenerator.sharePdf(context, pdfFile, app.name)
+                                } else {
+                                    Toast.makeText(context, "تعذر إنشاء ملف PDF", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("ملف PDF معتمد", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
                         IconButton(onClick = { exportAsCsv(context, app, logs, crashes) }) {
                             Icon(Icons.Default.Share, contentDescription = "تصدير CSV")
                         }

@@ -32,6 +32,10 @@ class MainActivity : ComponentActivity() {
             enableEdgeToEdge()
         } catch (_: Throwable) {}
 
+        try {
+            com.example.util.DailyReminderScheduler.scheduleDailyReminder(this)
+        } catch (_: Throwable) {}
+
         setContent {
             PlayTesterTheme {
                 MainScreen(viewModel = viewModel)

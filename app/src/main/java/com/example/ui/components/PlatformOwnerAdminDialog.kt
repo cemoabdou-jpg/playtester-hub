@@ -279,13 +279,32 @@ fun PlatformOwnerAdminDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Bottom Close Button
-                Button(
-                    onClick = onDismiss,
+                // Bottom Admin Actions
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("إغلاق لوحة التحكم", fontWeight = FontWeight.Bold)
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.adminResetAllCoins()
+                            Toast.makeText(context, "✅ تم تصفير عملات جميع المستخدمين بنجاح (0 عملة)!", Toast.LENGTH_LONG).show()
+                        },
+                        modifier = Modifier.weight(1.1f),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFD32F2F)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("تصفير عملات الجميع", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(0.9f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("إغلاق", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }

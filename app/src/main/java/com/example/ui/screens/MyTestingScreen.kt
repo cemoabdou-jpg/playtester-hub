@@ -298,6 +298,31 @@ fun MyTestingScreen(
                                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                                             )
                                         }
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        val isInstalled = com.example.util.AppInstallVerifier.isAppInstalled(context, test.packageName)
+                                        Surface(
+                                            color = if (isInstalled) Color(0xFFE8F5E9) else Color(0xFFFFF3E0),
+                                            shape = RoundedCornerShape(6.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(
+                                                    if (isInstalled) Icons.Default.CheckCircle else Icons.Default.Download,
+                                                    contentDescription = null,
+                                                    tint = if (isInstalled) Color(0xFF2E7D32) else Color(0xFFE65100),
+                                                    modifier = Modifier.size(10.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(3.dp))
+                                                Text(
+                                                    if (isInstalled) "مثبت ✓" else "يحتاج تثبيت",
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isInstalled) Color(0xFF2E7D32) else Color(0xFFE65100)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -307,6 +332,21 @@ fun MyTestingScreen(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                val isInstalled = com.example.util.AppInstallVerifier.isAppInstalled(context, test.packageName)
+                                if (isInstalled) {
+                                    FilledTonalButton(
+                                        onClick = {
+                                            com.example.util.AppInstallVerifier.launchApp(context, test.packageName)
+                                        },
+                                        shape = RoundedCornerShape(10.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 7.dp)
+                                    ) {
+                                        Icon(Icons.Default.Launch, contentDescription = null, modifier = Modifier.size(13.dp))
+                                        Spacer(modifier = Modifier.width(3.dp))
+                                        Text("تشغيل", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+
                                 OutlinedButton(
                                     onClick = {
                                         viewModel.openActiveTestSession(test)
@@ -333,7 +373,7 @@ fun MyTestingScreen(
                                 ) {
                                     Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(15.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text(if (isCompleted) "إعادة الفتح" else "فتح واختبار", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Text(if (isCompleted) "إعادة الفحص" else "تسجيل الاختبار", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }

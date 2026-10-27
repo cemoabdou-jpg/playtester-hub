@@ -55,6 +55,7 @@ fun CommunityScreen(
 
     var selectedCategory by remember { mutableStateOf("الكل") }
     var searchQuery by remember { mutableStateOf("") }
+    var sortOption by remember { mutableStateOf("FAIR_PLAY") } // FAIR_PLAY, NEED, REWARD
     var appToJoinReal by remember { mutableStateOf<CommunityApp?>(null) }
 
     val categories = listOf("الكل", "الأكثر احتياجاً", "أدوات", "ألعاب", "إنتاجية", "تعليم", "تواصل")
@@ -63,7 +64,7 @@ fun CommunityScreen(
         communityApps.filter { it.isFeatured }
     }
 
-    val regularApps = remember(communityApps, selectedCategory, searchQuery) {
+    val regularApps = remember(communityApps, selectedCategory, searchQuery, sortOption) {
         communityApps.filter { app ->
             val matchesCategory = when (selectedCategory) {
                 "الكل" -> true
@@ -76,10 +77,14 @@ fun CommunityScreen(
                     app.developerName.contains(searchQuery, ignoreCase = true)
             matchesCategory && matchesSearch
         }.sortedWith(
-            if (selectedCategory == "الأكثر احتياجاً") {
-                compareBy<CommunityApp> { it.currentTesters }
-            } else {
-                compareByDescending<CommunityApp> { it.isFeatured }.thenBy { it.currentTesters }
+            when (sortOption) {
+                "NEED" -> compareBy<CommunityApp> { it.currentTesters }
+                "REWARD" -> compareByDescending<CommunityApp> { it.pointsReward }
+                else -> { // FAIR_PLAY: Featured first, then closest to 20 to finish testing cohorts efficiently
+                    compareByDescending<CommunityApp> { it.isFeatured }
+                        .thenBy { it.currentTesters >= 20 }
+                        .thenByDescending { it.currentTesters }
+                }
             }
         )
     }
@@ -448,6 +453,39 @@ fun CommunityScreen(
             }
         }
 
+        // 3.5 Sort Mode Selector (Fair-Play Karma ⚖️, Closest to 20 🎯, Highest Reward 🪙)
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("ترتيب:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                listOf(
+                    "FAIR_PLAY" to "التبادل العادل (Fair-Play ⚖️)",
+                    "NEED" to "الأقرب لاكتمال الـ 20 🎯",
+                    "REWARD" to "الأعلى عملات 🪙"
+                ).forEach { (opt, label) ->
+                    val isSelected = sortOption == opt
+                    Surface(
+                        onClick = { sortOption = opt },
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Text(
+                            label,
+                            fontSize = 10.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+        }
+
         // 4. Dedicated "Featured Spotlight" Carousel
         if (featuredApps.isNotEmpty()) {
             item {
@@ -760,6 +798,10 @@ private fun CleanCommunityAppCard(
     onOpenChat: () -> Unit = {}
 ) {
     val isGold = app.isFeatured
+    val context = LocalContext.current
+    val isInstalled = remember(app.packageName) {
+        com.example.util.AppInstallVerifier.isAppInstalled(context, app.packageName)
+    }
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -832,6 +874,39 @@ private fun CleanCommunityAppCard(
                                 modifier = Modifier.size(13.dp)
                             )
                         }
+                        // Fair-Play & Installation Status Micro-row
+                        Row(
+                            modifier = Modifier.padding(top = 2.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                color = Color(0xFF00875A).copy(alpha = 0.12f),
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    "تبادل عادل ⚖️",
+                                    fontSize = 9.sp,
+                                    color = Color(0xFF00875A),
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                )
+                            }
+                            if (isInstalled) {
+                                Surface(
+                                    color = Color(0xFFE8F5E9),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        "مثبت ✓",
+                                        fontSize = 9.sp,
+                                        color = Color(0xFF2E7D32),
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -897,7 +972,7 @@ private fun CleanCommunityAppCard(
             // Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
                     modifier = Modifier.weight(1.1f),
@@ -921,15 +996,29 @@ private fun CleanCommunityAppCard(
                     )
                 }
 
-                OutlinedButton(
-                    modifier = Modifier.weight(0.9f),
-                    onClick = onOpenOptIn,
-                    contentPadding = PaddingValues(vertical = 9.dp),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(15.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("رابط التحميل", fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                if (isInstalled) {
+                    FilledTonalButton(
+                        onClick = {
+                            com.example.util.AppInstallVerifier.launchApp(context, app.packageName)
+                        },
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 9.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.Launch, contentDescription = null, modifier = Modifier.size(15.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("تشغيل", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    OutlinedButton(
+                        modifier = Modifier.weight(0.9f),
+                        onClick = onOpenOptIn,
+                        contentPadding = PaddingValues(vertical = 9.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(15.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("رابط التحميل", fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                    }
                 }
 
                 IconButton(

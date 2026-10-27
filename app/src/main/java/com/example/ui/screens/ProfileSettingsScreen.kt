@@ -572,6 +572,73 @@ fun ProfileSettingsScreen(
                             )
                         }
                     }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+
+                    // Daily Testing Streak Reminder Setting
+                    var isReminderOn by remember {
+                        mutableStateOf(com.example.util.DailyReminderScheduler.isReminderEnabled(context))
+                    }
+                    val notificationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+                    ) { granted ->
+                        if (granted) {
+                            com.example.util.DailyReminderScheduler.setReminderEnabled(context, true)
+                            isReminderOn = true
+                            Toast.makeText(context, "تم تفعيل الإشعارات بنجاح 🔔", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "يرجى السماح بالإشعارات من إعدادات الهاتف لتلقي التذكير اليومي", Toast.LENGTH_LONG).show()
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = Color(0xFF00875A), modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("تذكير الاختبار اليومي (8:00 م)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
+                            Text(
+                                "تنبيه يومي للحفاظ على سلسلة الـ 14 يوماً ومساعدة المطورين",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = isReminderOn,
+                            onCheckedChange = { enable ->
+                                if (enable && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                    notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                } else {
+                                    com.example.util.DailyReminderScheduler.setReminderEnabled(context, enable)
+                                    isReminderOn = enable
+                                    Toast.makeText(context, if (enable) "تم تفعيل التذكير اليومي (8:00 مساءً) ⏰" else "تم إيقاف التذكير", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedButton(
+                        onClick = {
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                            com.example.util.DailyReminderScheduler.triggerTestReminderNow(context)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.Notifications, contentDescription = null, modifier = Modifier.size(15.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("إرسال إشعار تجريبي الآن للتأكد 🔔", fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                    }
                 }
             }
         }

@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <files-path name="image_provider_images" path="image_provider/" />
+    <cache-path name="reports" path="reports/" />
+    <cache-path name="cache_root" path="." />
+    <files-path name="files_root" path="." />
 </paths>

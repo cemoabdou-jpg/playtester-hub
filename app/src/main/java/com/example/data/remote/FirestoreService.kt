@@ -24,7 +24,7 @@ class FirestoreService {
     fun getCommunityAppsFlow(): Flow<List<CommunityApp>> = callbackFlow {
         val collection = communityCollection
         if (collection == null) {
-            trySend(getDefaultCommunityApps())
+            trySend(emptyList())
             awaitClose {}
             return@callbackFlow
         }
@@ -32,8 +32,8 @@ class FirestoreService {
         try {
             listener = collection.addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    Log.e("FirestoreService", "Error listening to community_apps, using defaults", error)
-                    trySend(getDefaultCommunityApps())
+                    Log.e("FirestoreService", "Error listening to community_apps: ${error.message}")
+                    trySend(emptyList())
                     return@addSnapshotListener
                 }
                 if (snapshot != null) {
@@ -90,18 +90,14 @@ class FirestoreService {
                             null
                         }
                     }
-                    if (apps.isNotEmpty()) {
-                        trySend(apps)
-                    } else {
-                        trySend(getDefaultCommunityApps())
-                    }
+                    trySend(apps)
                 } else {
-                    trySend(getDefaultCommunityApps())
+                    trySend(emptyList())
                 }
             }
         } catch (e: Throwable) {
             Log.e("FirestoreService", "Failed to register snapshot listener: ${e.message}")
-            trySend(getDefaultCommunityApps())
+            trySend(emptyList())
         }
 
         awaitClose {
@@ -152,72 +148,7 @@ class FirestoreService {
     }
 
     fun getDefaultCommunityApps(): List<CommunityApp> {
-        return listOf(
-            CommunityApp(
-                id = "io.github.cemohamedabdou_commits.staradventure",
-                name = "Star Adventure",
-                packageName = "io.github.cemohamedabdou_commits.staradventure",
-                iconUrl = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80",
-                developerName = "Cemo Abdou",
-                category = "ألعاب",
-                pointsReward = 50,
-                currentTesters = 18,
-                targetTesters = 20,
-                webOptInUrl = "https://play.google.com/apps/testing/io.github.cemohamedabdou_commits.staradventure",
-                androidOptInUrl = "https://play.google.com/store/apps/details?id=io.github.cemohamedabdou_commits.staradventure",
-                googleGroupUrl = "https://groups.google.com/g/playtesters-hub",
-                isFeatured = true,
-                description = "لعبة مغامرات فضاء مميزة قيد الاختبار المغلق لـ 14 يوماً"
-            ),
-            CommunityApp(
-                id = "com.sprinthon.notesflow",
-                name = "NotesFlow - الملاحظات",
-                packageName = "com.sprinthon.notesflow",
-                iconUrl = "https://images.unsplash.com/photo-1517842645767-c639042777db?w=150&auto=format&fit=crop&q=80",
-                developerName = "Sprinthon Dev",
-                category = "إنتاجية",
-                pointsReward = 45,
-                currentTesters = 15,
-                targetTesters = 20,
-                webOptInUrl = "https://play.google.com/apps/testing/com.sprinthon.notesflow",
-                androidOptInUrl = "https://play.google.com/store/apps/details?id=com.sprinthon.notesflow",
-                googleGroupUrl = "https://groups.google.com/g/playtesters-hub",
-                isFeatured = true,
-                description = "تطبيق ملاحظات ذكية وسريعة مع مزامنة سحابية"
-            ),
-            CommunityApp(
-                id = "com.cairofiles.detective1948",
-                name = "Detective 1948",
-                packageName = "com.cairofiles.detective1948",
-                iconUrl = "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=150&auto=format&fit=crop&q=80",
-                developerName = "Cairo Files Studio",
-                category = "ألعاب",
-                pointsReward = 50,
-                currentTesters = 14,
-                targetTesters = 20,
-                webOptInUrl = "https://play.google.com/apps/testing/com.cairofiles.detective1948",
-                androidOptInUrl = "https://play.google.com/store/apps/details?id=com.cairofiles.detective1948",
-                googleGroupUrl = "https://groups.google.com/g/playtesters-hub",
-                isFeatured = true,
-                description = "لعبة تحقيق وألغاز بوليسية شيقة في شوارع القاهرة التاريخية"
-            ),
-            CommunityApp(
-                id = "com.fastdelivery.pro",
-                name = "FastDelivery Pro",
-                packageName = "com.fastdelivery.pro",
-                iconUrl = "https://images.unsplash.com/photo-1526367790999-0150786686a2?w=150&auto=format&fit=crop&q=80",
-                developerName = "Logistics Lab",
-                category = "أدوات",
-                pointsReward = 40,
-                currentTesters = 12,
-                targetTesters = 20,
-                webOptInUrl = "https://play.google.com/apps/testing/com.fastdelivery.pro",
-                androidOptInUrl = "https://play.google.com/store/apps/details?id=com.fastdelivery.pro",
-                googleGroupUrl = "https://groups.google.com/g/playtesters-hub",
-                isFeatured = false,
-                description = "أداة ذكية لتتبع شحنات التوصيل والطلبات"
-            )
-        )
+        return emptyList()
     }
 
     suspend fun addAppToFirestore(
