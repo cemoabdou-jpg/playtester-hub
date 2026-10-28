@@ -2,6 +2,8 @@ package com.example.data.remote
 
 import android.util.Log
 import com.example.data.model.CommunityApp
+import com.example.data.model.DeveloperConversation
+import com.example.data.model.ReciprocalChatMessage
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -45,6 +47,10 @@ class FirestoreService {
                             val name = doc.getString("name") ?: ""
                             val pkg = doc.getString("packageName") ?: doc.id
                             val dev = doc.getString("developerName") ?: "مطور معتمد"
+                            val devEmail = doc.getString("developerEmail")
+                                ?: doc.getString("userEmail")
+                                ?: doc.getString("email")
+                                ?: "${dev.lowercase().replace(" ", "").replace("[^a-zA-Z0-9]".toRegex(), "")}@gmail.com"
                             val cat = doc.getString("category") ?: "تطبيق"
                             val desc = doc.getString("description") ?: "تطبيق قيد الاختبار المغلق لـ 14 يوماً"
 
@@ -75,6 +81,7 @@ class FirestoreService {
                                 packageName = pkg,
                                 iconUrl = icon,
                                 developerName = dev,
+                                developerEmail = devEmail,
                                 category = cat,
                                 pointsReward = points,
                                 currentTesters = current,
@@ -161,6 +168,7 @@ class FirestoreService {
         description: String,
         iconUrl: String = "",
         developerName: String = "المطور المعتمد",
+        developerEmail: String = "",
         userId: String = "user_default",
         initialTesters: Int = 1
     ) {
@@ -168,6 +176,7 @@ class FirestoreService {
             "name" to name,
             "packageName" to packageName,
             "developerName" to developerName,
+            "developerEmail" to developerEmail,
             "userId" to userId,
             "category" to category,
             "description" to if (description.isNotBlank()) description else "تطبيق قيد الاختبار المغلق لـ 14 يوماً",
@@ -324,5 +333,174 @@ class FirestoreService {
                 )
             )?.await()
         } catch (_: Throwable) {}
+    }
+
+    companion object {
+        fun getChatChannelId(email1: String, email2: String): String {
+            val e1 = email1.trim().lowercase()
+            val e2 = email2.trim().lowercase()
+            val first = if (e1 < e2) e1 else e2
+            val second = if (e1 < e2) e2 else e1
+            val raw = "${first}__${second}"
+            return raw.replace(".", "_dot_").replace("@", "_at_").replace("/", "_")
+        }
+    }
+
+    /**
+     * Real-time listener for chat messages in a developer-to-developer channel.
+     */
+    fun getChatMessagesFlow(channelId: String): Flow<List<ReciprocalChatMessage>> = callbackFlow {
+        val db = firestore
+        if (db == null || channelId.isBlank()) {
+            trySend(emptyList())
+            awaitClose {}
+            return@callbackFlow
+        }
+
+        val messagesColl = db.collection("developer_chats")
+            .document(channelId)
+            .collection("messages")
+
+        var listener: ListenerRegistration? = null
+        try {
+            listener = messagesColl
+                .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.ASCENDING)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.e("FirestoreService", "Error listening to chat messages: ${error.message}")
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null) {
+                        val list = snapshot.documents.mapNotNull { doc ->
+                            try {
+                                ReciprocalChatMessage(
+                                    id = doc.id,
+                                    senderName = doc.getString("senderName") ?: "مطور",
+                                    senderEmail = doc.getString("senderEmail") ?: "",
+                                    message = doc.getString("message") ?: "",
+                                    timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis(),
+                                    isFromMe = false,
+                                    attachedAppName = doc.getString("attachedAppName"),
+                                    attachedAppPackage = doc.getString("attachedAppPackage")
+                                )
+                            } catch (e: Exception) {
+                                null
+                            }
+                        }
+                        trySend(list)
+                    }
+                }
+        } catch (e: Exception) {
+            Log.e("FirestoreService", "Failed to register chat listener: ${e.message}")
+            trySend(emptyList())
+        }
+
+        awaitClose { listener?.remove() }
+    }
+
+    /**
+     * Sends a real message to another developer in Cloud Firestore.
+     */
+    suspend fun sendChatMessage(
+        channelId: String,
+        message: ReciprocalChatMessage,
+        recipientEmail: String,
+        recipientName: String
+    ) {
+        val db = firestore ?: return
+        val chatDoc = db.collection("developer_chats").document(channelId)
+
+        val cleanSenderEmail = message.senderEmail.lowercase().trim()
+        val cleanRecipientEmail = recipientEmail.lowercase().trim()
+
+        val msgData = hashMapOf(
+            "senderName" to message.senderName,
+            "senderEmail" to cleanSenderEmail,
+            "recipientName" to recipientName,
+            "recipientEmail" to cleanRecipientEmail,
+            "message" to message.message,
+            "timestamp" to message.timestamp,
+            "attachedAppName" to (message.attachedAppName ?: ""),
+            "attachedAppPackage" to (message.attachedAppPackage ?: "")
+        )
+
+        val summaryData = hashMapOf(
+            "channelId" to channelId,
+            "participants" to listOf(cleanSenderEmail, cleanRecipientEmail),
+            "participantNames" to mapOf(
+                cleanSenderEmail to message.senderName,
+                cleanRecipientEmail to recipientName
+            ),
+            "lastMessage" to message.message,
+            "lastSenderEmail" to cleanSenderEmail,
+            "lastSenderName" to message.senderName,
+            "lastTimestamp" to message.timestamp,
+            "attachedAppName" to (message.attachedAppName ?: "")
+        )
+
+        try {
+            chatDoc.set(summaryData, com.google.firebase.firestore.SetOptions.merge()).await()
+            chatDoc.collection("messages").document(message.id).set(msgData).await()
+        } catch (e: Exception) {
+            Log.e("FirestoreService", "Failed to send chat message: ${e.message}")
+        }
+    }
+
+    /**
+     * Real-time listener for all active conversations of the current developer.
+     */
+    fun getUserConversationsFlow(userEmail: String): Flow<List<DeveloperConversation>> = callbackFlow {
+        val cleanEmail = userEmail.lowercase().trim()
+        val db = firestore
+        if (cleanEmail.isBlank() || db == null) {
+            trySend(emptyList())
+            awaitClose {}
+            return@callbackFlow
+        }
+
+        var listener: ListenerRegistration? = null
+        try {
+            listener = db.collection("developer_chats")
+                .whereArrayContains("participants", cleanEmail)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.e("FirestoreService", "Error listening to user conversations: ${error.message}")
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null) {
+                        val conversations = snapshot.documents.mapNotNull { doc ->
+                            try {
+                                val participants = doc.get("participants") as? List<*> ?: emptyList<Any>()
+                                val otherEmail = participants.mapNotNull { it?.toString() }
+                                    .firstOrNull { !it.equals(cleanEmail, ignoreCase = true) } ?: cleanEmail
+                                val names = doc.get("participantNames") as? Map<*, *>
+                                val otherName = names?.get(otherEmail)?.toString() ?: "مطور"
+                                val lastMsg = doc.getString("lastMessage") ?: ""
+                                val lastTime = doc.getLong("lastTimestamp") ?: 0L
+                                val lastSender = doc.getString("lastSenderEmail") ?: ""
+                                val appName = doc.getString("attachedAppName")
+
+                                DeveloperConversation(
+                                    channelId = doc.id,
+                                    otherParticipantName = otherName,
+                                    otherParticipantEmail = otherEmail,
+                                    lastMessage = lastMsg,
+                                    lastTimestamp = lastTime,
+                                    lastSenderEmail = lastSender,
+                                    appName = appName
+                                )
+                            } catch (e: Exception) {
+                                null
+                            }
+                        }.sortedByDescending { it.lastTimestamp }
+                        trySend(conversations)
+                    }
+                }
+        } catch (e: Exception) {
+            Log.e("FirestoreService", "Failed to listen to user conversations: ${e.message}")
+            trySend(emptyList())
+        }
+
+        awaitClose { listener?.remove() }
     }
 }

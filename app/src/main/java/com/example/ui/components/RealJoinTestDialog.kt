@@ -7,14 +7,13 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,16 +34,18 @@ fun RealJoinTestDialog(
     onConfirmJoin: () -> Unit
 ) {
     val context = LocalContext.current
-    var hasOpenedLink by remember { mutableStateOf(false) }
+    var hasJoinedGroup by remember { mutableStateOf(false) }
+    var hasOpenedOptIn by remember { mutableStateOf(false) }
 
-    val targetUrl = remember(app) {
+    val optInUrl = remember(app) {
         when {
             app.webOptInUrl.isNotBlank() -> app.webOptInUrl.trim()
-            app.googleGroupUrl.isNotBlank() -> app.googleGroupUrl.trim()
             app.androidOptInUrl.isNotBlank() -> app.androidOptInUrl.trim()
             else -> "https://play.google.com/apps/testing/${app.packageName.trim()}"
         }
     }
+
+    val hasCustomGroup = app.googleGroupUrl.isNotBlank()
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -53,13 +54,14 @@ fun RealJoinTestDialog(
             tonalElevation = 6.dp,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp)
+                .padding(vertical = 12.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                    .verticalScroll(androidx.compose.foundation.rememberScrollState())
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // Header
                 Row(
@@ -75,7 +77,7 @@ fun RealJoinTestDialog(
                     }
 
                     Text(
-                        "الانضمام الفعلي للاختبار المغلق",
+                        "الانضمام لاختبار التطبيق",
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
                         color = MaterialTheme.colorScheme.onSurface
@@ -110,12 +112,12 @@ fun RealJoinTestDialog(
                             appName = app.name,
                             category = app.category,
                             packageName = app.packageName,
-                            modifier = Modifier.size(48.dp),
+                            modifier = Modifier.size(46.dp),
                             shape = RoundedCornerShape(12.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            Text(app.name, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text(app.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             Text(
                                 "المطور: ${app.developerName} • ${app.category}",
                                 fontSize = 11.sp,
@@ -149,22 +151,22 @@ fun RealJoinTestDialog(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "شرط Google Play: لكي يُحتسب انضمامك رسمياً للمطور، يجب قبول الدعوة عبر الرابط وتثبيت التطبيق على جهازك لمدة 14 يوماً.",
-                            fontSize = 11.sp,
+                            "نظام Google Play: يتطلب الانضمام للمجموعة أولاً بحساب Google، ثم فتح رابط الاختبار لتظهر لك صفحة التحميل بنجاح.",
+                            fontSize = 10.5.sp,
                             color = Color(0xFF0D47A1),
-                            lineHeight = 16.sp
+                            lineHeight = 15.sp
                         )
                     }
                 }
 
-                // Step 1: Open Opt-in Link
+                // Step 1: Join Google Group
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     border = androidx.compose.foundation.BorderStroke(
                         width = 1.dp,
-                        color = if (hasOpenedLink) Color(0xFF00875A) else MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                        color = if (hasJoinedGroup) Color(0xFF00875A) else MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
                     ),
-                    color = if (hasOpenedLink) Color(0xFFE8F5E9).copy(alpha = 0.5f) else MaterialTheme.colorScheme.surface
+                    color = if (hasJoinedGroup) Color(0xFFE8F5E9).copy(alpha = 0.5f) else MaterialTheme.colorScheme.surface
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Row(
@@ -172,13 +174,28 @@ fun RealJoinTestDialog(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                "الخطوة 1: قبول الدعوة في Google Play",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                color = if (hasOpenedLink) Color(0xFF00875A) else MaterialTheme.colorScheme.onSurface
-                            )
-                            if (hasOpenedLink) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "الخطوة 1: الانضمام لمجموعة Google",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = if (hasJoinedGroup) Color(0xFF00875A) else MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Surface(
+                                    color = if (hasCustomGroup) Color(0xFFE8F5E9) else Color(0xFFFFF3E0),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        if (hasCustomGroup) "مجموعة مخصصة" else "المجموعة العامة",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (hasCustomGroup) Color(0xFF2E7D32) else Color(0xFFE65100),
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                    )
+                                }
+                            }
+                            if (hasJoinedGroup) {
                                 Surface(
                                     color = Color(0xFF00875A),
                                     shape = CircleShape,
@@ -190,35 +207,30 @@ fun RealJoinTestDialog(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "افتح رابط Google Play وقبول الانضمام للبرنامج التجريبي",
+                            if (hasCustomGroup)
+                                "انضم لمجموعة Google الخاصة بالمطور لمنح حسابك صلاحية التحميل في متجر Play"
+                            else
+                                "انضم لمجموعة المنصة العامة على Google Groups لاعتماد بريدك كمختبر معتمد",
                             fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
                             onClick = {
-                                try {
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(targetUrl)).apply {
-                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    }
-                                    context.startActivity(intent)
-                                    hasOpenedLink = true
-                                } catch (_: Exception) {
-                                    Toast.makeText(context, "الرابط: $targetUrl", Toast.LENGTH_LONG).show()
-                                    hasOpenedLink = true
-                                }
+                                com.example.util.AppInstallVerifier.openGoogleGroup(context, app.googleGroupUrl)
+                                hasJoinedGroup = true
                             },
                             shape = RoundedCornerShape(8.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (hasOpenedLink) Color(0xFF00875A) else MaterialTheme.colorScheme.primary
+                                containerColor = if (hasJoinedGroup) Color(0xFF00875A) else Color(0xFF2E7D32)
                             ),
                             modifier = Modifier.fillMaxWidth(),
                             contentPadding = PaddingValues(vertical = 8.dp)
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Groups, contentDescription = null, modifier = Modifier.size(15.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                if (hasOpenedLink) "تم فتح الرابط بنجاح ✓ (إعادة الفتح)" else "فتح رابط Google Play الرسمي 🔗",
+                                if (hasJoinedGroup) "تم فتح المجموعة بنجاح ✓ (إعادة الفتح)" else "1. الانضمام إلى مجموعة Google Group 👥",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -226,18 +238,87 @@ fun RealJoinTestDialog(
                     }
                 }
 
-                // Step 2: Confirm Join
+                // Step 2: Open Opt-in Link
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(
+                        width = 1.dp,
+                        color = if (hasOpenedOptIn) Color(0xFF00875A) else MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                    ),
+                    color = if (hasOpenedOptIn) Color(0xFFE8F5E9).copy(alpha = 0.5f) else MaterialTheme.colorScheme.surface
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "الخطوة 2: قبول الدعوة في Google Play",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = if (hasOpenedOptIn) Color(0xFF00875A) else MaterialTheme.colorScheme.onSurface
+                            )
+                            if (hasOpenedOptIn) {
+                                Surface(
+                                    color = Color(0xFF00875A),
+                                    shape = CircleShape,
+                                    modifier = Modifier.size(18.dp)
+                                ) {
+                                    Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "اضغط Become a Tester ثم اضغط Download it on Google Play لتنزيل التطبيق",
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = {
+                                try {
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(optInUrl)).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    context.startActivity(intent)
+                                    hasOpenedOptIn = true
+                                } catch (_: Exception) {
+                                    Toast.makeText(context, "الرابط: $optInUrl", Toast.LENGTH_LONG).show()
+                                    hasOpenedOptIn = true
+                                }
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (hasOpenedOptIn) Color(0xFF00875A) else MaterialTheme.colorScheme.primary
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(vertical = 8.dp)
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                if (hasOpenedOptIn) "تم فتح الرابط بنجاح ✓ (إعادة الفتح)" else "2. فتح رابط تجربة التطبيق (Web Opt-In) 🚀",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                // Step 3: Confirm Join
                 Button(
                     onClick = {
-                        if (!hasOpenedLink) {
-                            Toast.makeText(context, "يرجى فتح رابط Google Play أولاً لإتمام الانضمام الفعلي", Toast.LENGTH_LONG).show()
+                        if (!hasJoinedGroup && !hasOpenedOptIn) {
+                            Toast.makeText(context, "يرجى فتح رابط مجموعة Google ورابط الاشتراك أولاً لإتمام الانضمام الفعلي", Toast.LENGTH_LONG).show()
                         } else {
                             onConfirmJoin()
                         }
                     },
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (hasOpenedLink) Color(0xFF00875A) else MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                        containerColor = if (hasJoinedGroup || hasOpenedOptIn) Color(0xFF00875A) else MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
                     ),
                     modifier = Modifier.fillMaxWidth(),
                     contentPadding = PaddingValues(vertical = 11.dp)

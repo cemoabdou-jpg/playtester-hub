@@ -248,171 +248,181 @@ fun MyTestingScreen(
         } else {
             items(displayList, key = { it.id }) { test ->
                 val isCompleted = test.daysCompleted >= 14
+                val isInstalled = remember(test.packageName) {
+                    com.example.util.AppInstallVerifier.isAppInstalled(context, test.packageName)
+                }
                 ElevatedCard(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
                 ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        // 1. Top Section: App Icon + Name & Package + Badges
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier.weight(1f),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                AppIconImage(
-                                    iconUrl = test.iconUrl,
-                                    appName = test.appName,
-                                    packageName = test.packageName,
-                                    modifier = Modifier.size(46.dp),
-                                    shape = RoundedCornerShape(12.dp)
+                            AppIconImage(
+                                iconUrl = test.iconUrl,
+                                appName = test.appName,
+                                packageName = test.packageName,
+                                modifier = Modifier.size(52.dp),
+                                shape = RoundedCornerShape(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    test.appName,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                    maxLines = 1,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        test.appName,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 14.sp,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            if (isCompleted) "مكتمل 14 يوماً بنجاح ✓" else "اليوم ${test.daysCompleted} من 14",
-                                            fontSize = 11.sp,
-                                            color = if (isCompleted) Color(0xFF00875A) else MaterialTheme.colorScheme.primary,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Surface(
-                                            color = Color(0xFFFFB300).copy(alpha = 0.15f),
-                                            shape = RoundedCornerShape(6.dp)
+                                Text(
+                                    test.packageName,
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Surface(
+                                        color = if (isInstalled) Color(0xFFE8F5E9) else Color(0xFFFFF3E0),
+                                        shape = RoundedCornerShape(6.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
+                                            Icon(
+                                                if (isInstalled) Icons.Default.CheckCircle else Icons.Default.Download,
+                                                contentDescription = null,
+                                                tint = if (isInstalled) Color(0xFF2E7D32) else Color(0xFFE65100),
+                                                modifier = Modifier.size(10.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(3.dp))
                                             Text(
-                                                "+25 عملة يومياً",
+                                                if (isInstalled) "مثبت على جهازك ✓" else "يحتاج تثبيت",
                                                 fontSize = 9.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color(0xFFFF8F00),
-                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                color = if (isInstalled) Color(0xFF2E7D32) else Color(0xFFE65100)
                                             )
                                         }
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        val isInstalled = com.example.util.AppInstallVerifier.isAppInstalled(context, test.packageName)
-                                        Surface(
-                                            color = if (isInstalled) Color(0xFFE8F5E9) else Color(0xFFFFF3E0),
-                                            shape = RoundedCornerShape(6.dp)
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Icon(
-                                                    if (isInstalled) Icons.Default.CheckCircle else Icons.Default.Download,
-                                                    contentDescription = null,
-                                                    tint = if (isInstalled) Color(0xFF2E7D32) else Color(0xFFE65100),
-                                                    modifier = Modifier.size(10.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(3.dp))
-                                                Text(
-                                                    if (isInstalled) "مثبت ✓" else "يحتاج تثبيت",
-                                                    fontSize = 9.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = if (isInstalled) Color(0xFF2E7D32) else Color(0xFFE65100)
-                                                )
-                                            }
-                                        }
                                     }
-                                }
-                            }
-
-                            // Actions Row: 15-min QA Session Companion & Quick Launch
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                val isInstalled = com.example.util.AppInstallVerifier.isAppInstalled(context, test.packageName)
-                                if (isInstalled) {
-                                    FilledTonalButton(
-                                        onClick = {
-                                            com.example.util.AppInstallVerifier.launchApp(context, test.packageName)
-                                        },
-                                        shape = RoundedCornerShape(10.dp),
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 7.dp)
+                                    Surface(
+                                        color = Color(0xFFFFB300).copy(alpha = 0.15f),
+                                        shape = RoundedCornerShape(6.dp)
                                     ) {
-                                        Icon(Icons.Default.Launch, contentDescription = null, modifier = Modifier.size(13.dp))
-                                        Spacer(modifier = Modifier.width(3.dp))
-                                        Text("تشغيل", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        Text(
+                                            "+25 عملة يومياً 🪙",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFFFF8F00),
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
                                     }
-                                }
-
-                                OutlinedButton(
-                                    onClick = {
-                                        viewModel.openActiveTestSession(test)
-                                    },
-                                    shape = RoundedCornerShape(10.dp),
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 7.dp)
-                                ) {
-                                    Icon(Icons.Default.HourglassBottom, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFF00875A))
-                                    Spacer(modifier = Modifier.width(3.dp))
-                                    Text("جلسة 15د (+50)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF00875A))
-                                }
-
-                                Button(
-                                    onClick = {
-                                        viewModel.openAndTestApp(context, test) { earned ->
-                                            lastTestedAppForDouble = test
-                                        }
-                                    },
-                                    shape = RoundedCornerShape(10.dp),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 7.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (isCompleted) Color(0xFF00875A) else MaterialTheme.colorScheme.primary
-                                    )
-                                ) {
-                                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(15.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(if (isCompleted) "إعادة الفحص" else "تسجيل الاختبار", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
-                        // Progress Bar (14 Days)
-                        LinearProgressIndicator(
-                            progress = { (test.daysCompleted.toFloat() / 14f).coerceIn(0f, 1f) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(5.dp)
-                                .clip(RoundedCornerShape(3.dp)),
-                            color = if (isCompleted) Color(0xFF00875A) else MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Bottom Actions (Review & Days Left)
+                        // 2. Middle Section: 14-Day Testing Progress
+                        val progressFraction = (test.daysCompleted.toFloat() / 14f).coerceIn(0f, 1f)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                if (isCompleted) "أتممت مدة الاختبار المعتمدة لهذا التطبيق 🎉" else "متبقي ${maxOf(0, 14 - test.daysCompleted)} يوماً لاجتياز شرط Google Play",
-                                fontSize = 10.sp,
+                                if (isCompleted) "مكتمل 14 يوماً بنجاح ✓" else "تقدم الاختبار: اليوم ${test.daysCompleted} من 14",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isCompleted) Color(0xFF00875A) else MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                if (isCompleted) "100% مكتمل 🎉" else "متبقي ${maxOf(0, 14 - test.daysCompleted)} يوماً",
+                                fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        LinearProgressIndicator(
+                            progress = { progressFraction },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = if (isCompleted) Color(0xFF00875A) else MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                        )
 
-                            TextButton(
-                                onClick = { appForFeedback = test },
-                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
-                                modifier = Modifier.height(26.dp)
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // 3. Action Buttons Section
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Button(
+                                modifier = Modifier.weight(1.3f),
+                                onClick = {
+                                    viewModel.openAndTestApp(context, test) { earned ->
+                                        lastTestedAppForDouble = test
+                                    }
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(vertical = 10.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (isCompleted) Color(0xFF00875A) else MaterialTheme.colorScheme.primary
+                                )
                             ) {
-                                Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFF8F00), modifier = Modifier.size(13.dp))
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text("كتابة تقييم (+15)", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Icon(
+                                    if (isCompleted) Icons.Default.CheckCircle else Icons.Default.PlayArrow,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    if (isCompleted) "إعادة الفحص" else "تسجيل الاختبار (+25)",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            OutlinedButton(
+                                modifier = Modifier.weight(1.1f),
+                                onClick = { viewModel.openActiveTestSession(test) },
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(vertical = 10.dp)
+                            ) {
+                                Icon(Icons.Default.HourglassBottom, contentDescription = null, modifier = Modifier.size(15.dp), tint = Color(0xFF00875A))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("جلسة 15د (+50)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF00875A))
+                            }
+
+                            if (isInstalled) {
+                                FilledTonalButton(
+                                    onClick = { com.example.util.AppInstallVerifier.launchApp(context, test.packageName) },
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp)
+                                ) {
+                                    Icon(Icons.Default.Launch, contentDescription = "تشغيل", modifier = Modifier.size(15.dp))
+                                }
+                            }
+
+                            IconButton(
+                                onClick = { appForFeedback = test },
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .background(Color(0xFFFFB300).copy(alpha = 0.12f), RoundedCornerShape(10.dp))
+                            ) {
+                                Icon(Icons.Default.Star, contentDescription = "تقييم", tint = Color(0xFFFF8F00), modifier = Modifier.size(18.dp))
                             }
                         }
                     }

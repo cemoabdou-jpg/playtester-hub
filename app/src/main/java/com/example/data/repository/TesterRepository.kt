@@ -58,6 +58,7 @@ class TesterRepository(
         description: String = "",
         iconUrl: String = "",
         developerName: String = "المطور المعتمد",
+        developerEmail: String = "",
         userId: String = "user_default",
         initialTesters: Int = 0,
         completedDays: Int = 1
@@ -77,6 +78,7 @@ class TesterRepository(
                 description = description,
                 iconUrl = iconUrl,
                 developerName = developerName,
+                developerEmail = developerEmail,
                 userId = userId,
                 initialTesters = safeTesters
             )
@@ -309,4 +311,17 @@ class TesterRepository(
             )
         } catch (_: Exception) {}
     }
+
+    fun getChatMessagesFlow(channelId: String): Flow<List<ReciprocalChatMessage>> =
+        firestoreService.getChatMessagesFlow(channelId)
+
+    suspend fun sendChatMessage(
+        channelId: String,
+        message: ReciprocalChatMessage,
+        recipientEmail: String,
+        recipientName: String
+    ) = firestoreService.sendChatMessage(channelId, message, recipientEmail, recipientName)
+
+    fun getUserConversationsFlow(userEmail: String): Flow<List<DeveloperConversation>> =
+        firestoreService.getUserConversationsFlow(userEmail)
 }

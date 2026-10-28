@@ -508,20 +508,34 @@ fun ProfileSettingsScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    val isBonusClaimed by viewModel.isDailyBonusClaimedToday.collectAsState()
                     Button(
                         modifier = Modifier.fillMaxWidth(),
+                        enabled = !isBonusClaimed,
                         onClick = {
-                            viewModel.earnAdReward(50)
-                            Toast.makeText(context, "🎉 مبروك! حصلت على +50 نقطة مكافأة نشاط يومي!", Toast.LENGTH_SHORT).show()
+                            val success = viewModel.claimDailyBonus()
+                            if (success) {
+                                Toast.makeText(context, "🎉 مبروك! حصلت على +50 نقطة مكافأة نشاط يومي!", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, "لقد استلمت مكافأة اليوم مسبقاً! عد غداً للمزيد.", Toast.LENGTH_SHORT).show()
+                            }
                         },
                         shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFB300))
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFFB300),
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                        )
                     ) {
-                        Icon(Icons.Default.CardGiftcard, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
+                        Icon(
+                            if (isBonusClaimed) Icons.Default.CheckCircle else Icons.Default.CardGiftcard,
+                            contentDescription = null,
+                            tint = if (isBonusClaimed) Color(0xFF00875A) else Color.Black,
+                            modifier = Modifier.size(18.dp)
+                        )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            "استلام مكافأة اليوم (+50 نقطة)",
-                            color = Color.Black,
+                            if (isBonusClaimed) "تم استلام مكافأة اليوم بنجاح ✓ (عد غداً)" else "استلام مكافأة اليوم (+50 نقطة)",
+                            color = if (isBonusClaimed) Color(0xFF00875A) else Color.Black,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )

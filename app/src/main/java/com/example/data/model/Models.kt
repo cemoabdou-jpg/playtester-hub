@@ -31,6 +31,7 @@ data class CommunityApp(
     val packageName: String,
     val iconUrl: String = "",
     val developerName: String = "",
+    val developerEmail: String = "",
     val category: String = "General",
     val pointsReward: Int = 50,
     val requiredDays: Int = 14,
@@ -197,5 +198,15 @@ data class QAInspectionCheck(
     val title: String,
     val description: String,
     val isChecked: Boolean = false
+)
+
+data class DeveloperConversation(
+    val channelId: String,
+    val otherParticipantName: String,
+    val otherParticipantEmail: String,
+    val lastMessage: String,
+    val lastTimestamp: Long,
+    val lastSenderEmail: String,
+    val appName: String? = null
 )
 

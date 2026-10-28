@@ -15,7 +15,7 @@ import com.example.data.model.*
         TesterFeedback::class,
         DailyTestLog::class
     ],
-    version = 2, // رفع الإصدار لحذف الجداول القديمة المليئة بالبيانات الوهمية
+    version = 3, // إضافة حقل developerEmail لمحادثات المطورين المباشرة
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

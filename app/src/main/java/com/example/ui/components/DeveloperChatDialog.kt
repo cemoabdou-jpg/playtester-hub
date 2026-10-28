@@ -113,7 +113,7 @@ fun DeveloperChatDialog(
                                 ) {}
                             }
                             Text(
-                                "مطور شريك في شبكة التبادل • متصل الآن",
+                                if (recipientEmail.isNotBlank()) "$recipientEmail • محادثة حقيقية مباشرة 🟢" else "محادثة سحابية مباشرة 🟢",
                                 fontSize = 10.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -270,6 +270,15 @@ private fun ChatBubble(message: ReciprocalChatMessage) {
     val bubbleColor = if (isMe) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
     val textColor = if (isMe) Color.White else MaterialTheme.colorScheme.onSurface
 
+    val timeFormatted = remember(message.timestamp) {
+        try {
+            val sdf = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault())
+            sdf.format(java.util.Date(message.timestamp))
+        } catch (_: Exception) {
+            ""
+        }
+    }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
@@ -303,6 +312,15 @@ private fun ChatBubble(message: ReciprocalChatMessage) {
                         color = textColor,
                         lineHeight = 16.sp
                     )
+                    if (timeFormatted.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Text(
+                            timeFormatted,
+                            fontSize = 9.sp,
+                            color = if (isMe) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.align(if (isMe) Alignment.Start else Alignment.End)
+                        )
+                    }
                 }
             }
         }

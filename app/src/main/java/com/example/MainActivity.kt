@@ -113,6 +113,7 @@ fun MainScreen(viewModel: TesterViewModel) {
                 onOpenAdmin = { viewModel.openAdminControl() },
                 unreadNotificationsCount = unreadNotificationsCount,
                 onOpenNotifications = { viewModel.openNotifications() },
+                onOpenDeveloperInbox = { viewModel.openDeveloperInbox() },
                 onOpenComplianceMatrix = { selectedApp?.let { viewModel.openComplianceMatrix(it) } }
             )
         },
@@ -290,6 +291,14 @@ fun MainScreen(viewModel: TesterViewModel) {
             test = activeSessionTest!!,
             viewModel = viewModel,
             onDismiss = { viewModel.closeActiveTestSession() }
+        )
+    }
+
+    val showDeveloperInbox by viewModel.showDeveloperInboxDialog.collectAsState()
+    if (showDeveloperInbox) {
+        DeveloperInboxDialog(
+            viewModel = viewModel,
+            onDismiss = { viewModel.closeDeveloperInbox() }
         )
     }
 

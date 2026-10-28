@@ -27,6 +27,7 @@ fun AppHeader(
     onOpenAdmin: () -> Unit = {},
     unreadNotificationsCount: Int = 0,
     onOpenNotifications: () -> Unit = {},
+    onOpenDeveloperInbox: () -> Unit = {},
     onOpenComplianceMatrix: () -> Unit = {}
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -42,7 +43,7 @@ fun AppHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -53,28 +54,28 @@ fun AppHeader(
                 Surface(
                     color = if (isOwner) Color(0xFF1E88E5).copy(alpha = 0.15f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                     shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(34.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             if (isOwner) Icons.Default.AdminPanelSettings else Icons.Default.VerifiedUser,
                             contentDescription = if (isOwner) "لوحة تحكم صاحب المنصة" else "PlayTester Hub",
                             tint = if (isOwner) Color(0xFF1E88E5) else MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(19.dp)
                         )
                     }
                 }
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             "PlayTester Hub",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 17.sp,
+                            fontSize = 15.sp,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         if (isOwner) {
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Surface(
                                 color = Color(0xFF1E88E5),
                                 shape = RoundedCornerShape(4.dp)
@@ -91,82 +92,54 @@ fun AppHeader(
                     }
                     Text(
                         "منصة تبادل المختبرين الرسمية",
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // Points Pill
                 Surface(
                     color = Color(0xFFFFB300).copy(alpha = 0.15f),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.clickable { onOpenMonetization() }
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
                             Icons.Default.MonetizationOn,
                             contentDescription = null,
                             tint = Color(0xFFFF8F00),
-                            modifier = Modifier.size(15.dp)
+                            modifier = Modifier.size(14.dp)
                         )
-                        Spacer(modifier = Modifier.width(5.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             "${user.points}",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             color = Color(0xFFFF8F00)
-                        )
-                        Spacer(modifier = Modifier.width(3.dp))
-                        Icon(
-                            Icons.Default.AddCircle,
-                            contentDescription = "كسب عملات",
-                            tint = Color(0xFFFF8F00),
-                            modifier = Modifier.size(13.dp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.width(4.dp))
-
-                IconButton(
-                    onClick = onOpenLeaderboard,
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Text("🏆", fontSize = 18.sp)
-                }
-
-                Spacer(modifier = Modifier.width(4.dp))
-
+                // Quick Action: Lucky Spin
                 IconButton(
                     onClick = onOpenLuckySpin,
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(34.dp)
                 ) {
-                    Text("🎡", fontSize = 18.sp)
+                    Text("🎡", fontSize = 16.sp)
                 }
 
-                Spacer(modifier = Modifier.width(4.dp))
-
-                IconButton(
-                    onClick = onOpenMonetization,
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Star,
-                        contentDescription = "VIP",
-                        tint = Color(0xFFFFB300),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(4.dp))
-
+                // Notifications Bell with Badge
                 IconButton(
                     onClick = onOpenNotifications,
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(34.dp)
                 ) {
                     BadgedBox(
                         badge = {
@@ -231,6 +204,14 @@ fun AppHeader(
                                 onOpenNotifications()
                             },
                             leadingIcon = { Icon(Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("💬 محادثاتي مع المطورين") },
+                            onClick = {
+                                showMenu = false
+                                onOpenDeveloperInbox()
+                            },
+                            leadingIcon = { Icon(Icons.Default.Chat, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
                         )
                         DropdownMenuItem(
                             text = { Text("🏆 لوحة الصدارة ومكافآت الأوسمة") },

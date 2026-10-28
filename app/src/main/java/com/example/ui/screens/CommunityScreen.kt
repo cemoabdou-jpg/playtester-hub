@@ -277,6 +277,8 @@ fun CommunityScreen(
                                 val success = viewModel.dailyCheckIn()
                                 if (success) {
                                     Toast.makeText(context, "🎉 رائع! تم تسجيل حضورك اليوم وكسبت +20 عملة!", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(context, "تم تسجيل حضورك اليوم مسبقاً ✓", Toast.LENGTH_SHORT).show()
                                 }
                             },
                             shape = RoundedCornerShape(10.dp),
@@ -538,6 +540,9 @@ fun CommunityScreen(
                                         appToJoinReal = app
                                     }
                                 },
+                                onOpenGroup = {
+                                    com.example.util.AppInstallVerifier.openGoogleGroup(context, app.googleGroupUrl)
+                                },
                                 onOpenOptIn = {
                                     val url = if (app.webOptInUrl.isNotBlank()) app.webOptInUrl else "https://play.google.com/apps/testing/${app.packageName}"
                                     try {
@@ -569,17 +574,36 @@ fun CommunityScreen(
                     fontSize = 15.sp,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Surface(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(8.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(
-                        "${regularApps.size} تطبيق",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                    )
+                    Surface(
+                        onClick = { viewModel.openDeveloperInbox() },
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Chat, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(12.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("محادثاتي 💬", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            "${regularApps.size} تطبيق",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
                 }
             }
         }
@@ -634,6 +658,9 @@ fun CommunityScreen(
                             appToJoinReal = app
                         }
                     },
+                    onOpenGroup = {
+                        com.example.util.AppInstallVerifier.openGoogleGroup(context, app.googleGroupUrl)
+                    },
                     onOpenOptIn = {
                         val url = if (app.webOptInUrl.isNotBlank()) app.webOptInUrl else "https://play.google.com/apps/testing/${app.packageName}"
                         try {
@@ -644,11 +671,11 @@ fun CommunityScreen(
                         }
                     },
                     onOpenDeveloperProfile = {
-                        val devEmail = "${app.developerName.lowercase().replace(" ", "").replace("[^a-zA-Z0-9]".toRegex(), "")}@gmail.com"
+                        val devEmail = if (app.developerEmail.isNotBlank()) app.developerEmail else "${app.developerName.lowercase().replace(" ", "").replace("[^a-zA-Z0-9]".toRegex(), "")}@gmail.com"
                         viewModel.openTesterProfile(devEmail, app.developerName)
                     },
                     onOpenChat = {
-                        val devEmail = "${app.developerName.lowercase().replace(" ", "").replace("[^a-zA-Z0-9]".toRegex(), "")}@gmail.com"
+                        val devEmail = if (app.developerEmail.isNotBlank()) app.developerEmail else "${app.developerName.lowercase().replace(" ", "").replace("[^a-zA-Z0-9]".toRegex(), "")}@gmail.com"
                         viewModel.openDeveloperChat(devEmail, app.developerName, app.name)
                     }
                 )
@@ -686,6 +713,7 @@ private fun FeaturedAppCard(
     app: CommunityApp,
     isJoined: Boolean = false,
     onJoin: () -> Unit,
+    onOpenGroup: () -> Unit = {},
     onOpenOptIn: () -> Unit
 ) {
     Card(
@@ -763,26 +791,46 @@ private fun FeaturedAppCard(
             )
 
             Spacer(modifier = Modifier.height(10.dp))
-            Button(
-                onClick = onJoin,
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isJoined) Color(0xFF00875A) else MaterialTheme.colorScheme.primary
-                ),
-                contentPadding = PaddingValues(vertical = 6.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Icon(
-                    if (isJoined) Icons.Default.CheckCircle else Icons.Default.Check,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    if (isJoined) "منضم بالفعل ✓" else "انضم الآن",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Button(
+                    onClick = onJoin,
+                    modifier = Modifier.weight(1.1f),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isJoined) Color(0xFF00875A) else MaterialTheme.colorScheme.primary
+                    ),
+                    contentPadding = PaddingValues(vertical = 6.dp)
+                ) {
+                    Icon(
+                        if (isJoined) Icons.Default.CheckCircle else Icons.Default.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(
+                        if (isJoined) "منضم ✓" else "انضم",
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                FilledTonalButton(
+                    onClick = onOpenGroup,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = Color(0xFFE8F5E9),
+                        contentColor = Color(0xFF1B5E20)
+                    ),
+                    contentPadding = PaddingValues(vertical = 6.dp, horizontal = 2.dp)
+                ) {
+                    Icon(Icons.Default.Groups, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color(0xFF2E7D32))
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Text("المجموعة 👥", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
@@ -793,6 +841,7 @@ private fun CleanCommunityAppCard(
     app: CommunityApp,
     isJoined: Boolean = false,
     onJoin: () -> Unit,
+    onOpenGroup: () -> Unit = {},
     onOpenOptIn: () -> Unit,
     onOpenDeveloperProfile: () -> Unit = {},
     onOpenChat: () -> Unit = {}
@@ -906,6 +955,30 @@ private fun CleanCommunityAppCard(
                                     )
                                 }
                             }
+                            Surface(
+                                color = if (app.googleGroupUrl.isNotBlank()) Color(0xFFE8F5E9) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                shape = RoundedCornerShape(4.dp),
+                                modifier = Modifier.clickable { onOpenGroup() }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Default.Groups,
+                                        contentDescription = null,
+                                        tint = if (app.googleGroupUrl.isNotBlank()) Color(0xFF2E7D32) else MaterialTheme.colorScheme.outline,
+                                        modifier = Modifier.size(10.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(2.dp))
+                                    Text(
+                                        if (app.googleGroupUrl.isNotBlank()) "المجموعة مخصصة 👥" else "مجموعة عامة 👥",
+                                        fontSize = 9.sp,
+                                        color = if (app.googleGroupUrl.isNotBlank()) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -970,69 +1043,109 @@ private fun CleanCommunityAppCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Action Buttons
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Button(
-                    modifier = Modifier.weight(1.1f),
-                    onClick = onJoin,
-                    contentPadding = PaddingValues(vertical = 9.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isJoined) Color(0xFF00875A) else MaterialTheme.colorScheme.primary
-                    )
+                // Row 1: Primary actions (Join Test & Join Google Group)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        if (isJoined) Icons.Default.CheckCircle else Icons.Default.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(15.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        if (isJoined) "منضم بالفعل ✓" else "انضم للاختبار",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                if (isInstalled) {
-                    FilledTonalButton(
-                        onClick = {
-                            com.example.util.AppInstallVerifier.launchApp(context, app.packageName)
-                        },
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 9.dp),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Icon(Icons.Default.Launch, contentDescription = null, modifier = Modifier.size(15.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("تشغيل", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-                } else {
-                    OutlinedButton(
-                        modifier = Modifier.weight(0.9f),
-                        onClick = onOpenOptIn,
+                    Button(
+                        modifier = Modifier.weight(1.1f),
+                        onClick = onJoin,
                         contentPadding = PaddingValues(vertical = 9.dp),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isJoined) Color(0xFF00875A) else MaterialTheme.colorScheme.primary
+                        )
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(15.dp))
+                        Icon(
+                            if (isJoined) Icons.Default.CheckCircle else Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            if (isJoined) "منضم بالفعل ✓" else "انضم للاختبار",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    FilledTonalButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = onOpenGroup,
+                        contentPadding = PaddingValues(vertical = 9.dp, horizontal = 4.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = Color(0xFFE8F5E9),
+                            contentColor = Color(0xFF1B5E20)
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.Groups,
+                            contentDescription = null,
+                            modifier = Modifier.size(15.dp),
+                            tint = Color(0xFF2E7D32)
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("رابط التحميل", fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                        Text(
+                            "انضم للمجموعة 👥",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1B5E20)
+                        )
                     }
                 }
 
-                IconButton(
-                    onClick = onOpenChat,
-                    modifier = Modifier
-                        .size(38.dp)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), RoundedCornerShape(10.dp))
+                // Row 2: Download / Launch & Developer Chat
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        Icons.Default.Chat,
-                        contentDescription = "محادثة وتنسيق التبادل",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp)
-                    )
+                    if (isInstalled) {
+                        FilledTonalButton(
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                com.example.util.AppInstallVerifier.launchApp(context, app.packageName)
+                            },
+                            contentPadding = PaddingValues(vertical = 8.dp),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.Launch, contentDescription = null, modifier = Modifier.size(15.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("تشغيل التطبيق المثبت", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        OutlinedButton(
+                            modifier = Modifier.weight(1f),
+                            onClick = onOpenOptIn,
+                            contentPadding = PaddingValues(vertical = 8.dp),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("رابط التحميل (Google Play)", fontSize = 10.5.sp, fontWeight = FontWeight.Medium)
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = onOpenChat,
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Chat,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("محادثة", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+                    }
                 }
             }
         }

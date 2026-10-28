@@ -266,6 +266,14 @@ fun EditAppDetailsDialog(
                     value = googleGroupUrl,
                     onValueChange = { googleGroupUrl = it },
                     label = { Text("رابط مجموعة Google Group للمختبرين") },
+                    placeholder = { Text("https://groups.google.com/g/...") },
+                    supportingText = {
+                        Text(
+                            "ضروري ليتمكن المختبرون من الانضمام بحساباتهم وتحميل التطبيق بدون أخطاء متجر Play",
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )

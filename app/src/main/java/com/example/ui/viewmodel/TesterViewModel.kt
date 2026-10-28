@@ -100,14 +100,23 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
     private val _chatMessages = MutableStateFlow<List<ReciprocalChatMessage>>(emptyList())
     val chatMessages: StateFlow<List<ReciprocalChatMessage>> = _chatMessages.asStateFlow()
 
+    private val _showDeveloperInboxDialog = MutableStateFlow(false)
+    val showDeveloperInboxDialog: StateFlow<Boolean> = _showDeveloperInboxDialog.asStateFlow()
+
+    private val _userConversations = MutableStateFlow<List<DeveloperConversation>>(emptyList())
+    val userConversations: StateFlow<List<DeveloperConversation>> = _userConversations.asStateFlow()
+
     private val _testerNotifications = MutableStateFlow<List<TesterNotification>>(emptyList())
     val testerNotifications: StateFlow<List<TesterNotification>> = _testerNotifications.asStateFlow()
 
-    private val _streakDays = MutableStateFlow(3)
+    private val _streakDays = MutableStateFlow(1)
     val streakDays: StateFlow<Int> = _streakDays.asStateFlow()
 
     private val _isDailyCheckInDoneToday = MutableStateFlow(false)
     val isDailyCheckInDoneToday: StateFlow<Boolean> = _isDailyCheckInDoneToday.asStateFlow()
+
+    private val _isDailyBonusClaimedToday = MutableStateFlow(false)
+    val isDailyBonusClaimedToday: StateFlow<Boolean> = _isDailyBonusClaimedToday.asStateFlow()
 
     private val _claimedBadgeIds = MutableStateFlow<Set<String>>(emptySet())
     val claimedBadgeIds: StateFlow<Set<String>> = _claimedBadgeIds.asStateFlow()
@@ -183,6 +192,34 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
 
         // Only genuine notifications created from real testing activities are shown
         _testerNotifications.value = emptyList()
+
+        // Real-time conversations listener for the authenticated developer
+        viewModelScope.launch {
+            _currentUser.collect { user ->
+                val email = user.email.trim()
+                if (email.isNotBlank()) {
+                    repository.getUserConversationsFlow(email).collect { convList ->
+                        _userConversations.value = convList
+                    }
+                } else {
+                    _userConversations.value = emptyList()
+                }
+            }
+        }
+
+        // Persistent Daily Rewards & Streak initialization
+        val today = getTodayDateString()
+        val lastCheckInDate = prefs.getString("last_check_in_date", "")
+        _isDailyCheckInDoneToday.value = (lastCheckInDate == today)
+
+        val lastDailyBonusDate = prefs.getString("last_daily_bonus_date", "")
+        _isDailyBonusClaimedToday.value = (lastDailyBonusDate == today)
+
+        _streakDays.value = prefs.getInt("streak_days_count", 1)
+    }
+
+    private fun getTodayDateString(): String {
+        return java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
     }
 
     fun openAuditReport(app: UserApp? = null) {
@@ -274,8 +311,17 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         addPoints(points)
     }
 
-    fun claimDailyBonus(points: Int = 50) {
-        addPoints(points)
+    @Synchronized
+    fun claimDailyBonus(): Boolean {
+        val today = getTodayDateString()
+        val lastDate = prefs.getString("last_daily_bonus_date", "")
+        if (lastDate == today || _isDailyBonusClaimedToday.value) {
+            return false
+        }
+        _isDailyBonusClaimedToday.value = true
+        prefs.edit().putString("last_daily_bonus_date", today).apply()
+        addPoints(50)
+        return true
     }
 
     fun startEmailVerification(email: String, name: String) {
@@ -382,6 +428,7 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
                 description = desc,
                 iconUrl = iconUrl,
                 developerName = _currentUser.value.displayName,
+                developerEmail = _currentUser.value.email,
                 userId = _currentUser.value.uid,
                 initialTesters = initialTesters,
                 completedDays = initialDays
@@ -801,14 +848,22 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         _showLuckySpinDialog.value = false
     }
 
+    @Synchronized
     fun dailyCheckIn(): Boolean {
-        if (!_isDailyCheckInDoneToday.value) {
-            _isDailyCheckInDoneToday.value = true
-            _streakDays.update { it + 1 }
-            addPoints(20)
-            return true
+        val today = getTodayDateString()
+        val lastDate = prefs.getString("last_check_in_date", "")
+        if (lastDate == today || _isDailyCheckInDoneToday.value) {
+            return false
         }
-        return false
+        _isDailyCheckInDoneToday.value = true
+        prefs.edit().putString("last_check_in_date", today).apply()
+
+        val newStreak = _streakDays.value + 1
+        _streakDays.value = newStreak
+        prefs.edit().putInt("streak_days_count", newStreak).apply()
+
+        addPoints(20)
+        return true
     }
 
     fun claimSpinReward(coins: Int) {
@@ -969,26 +1024,50 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    // --- Developer-to-Developer Reciprocal Chat Hub ---
+    private var chatMessagesJob: kotlinx.coroutines.Job? = null
+
+    // --- Developer-to-Developer Real Reciprocal Chat Hub ---
     fun openDeveloperChat(
         recipientEmail: String,
         recipientName: String,
         appName: String? = null
     ) {
+        val myEmail = _currentUser.value.email.ifBlank { "dev.tester@testerhub.com" }
         _activeChatRecipientEmail.value = recipientEmail
         _activeChatRecipientName.value = recipientName
         _activeChatAppName.value = appName
 
-        _chatMessages.value = emptyList()
+        chatMessagesJob?.cancel()
+        val channelId = com.example.data.remote.FirestoreService.getChatChannelId(myEmail, recipientEmail)
+
+        chatMessagesJob = viewModelScope.launch {
+            repository.getChatMessagesFlow(channelId).collect { rawList ->
+                val resolvedList = rawList.map { msg ->
+                    msg.copy(isFromMe = msg.senderEmail.equals(myEmail, ignoreCase = true))
+                }
+                _chatMessages.value = resolvedList
+            }
+        }
+
         _showDeveloperChatDialog.value = true
     }
 
     fun closeDeveloperChat() {
+        chatMessagesJob?.cancel()
+        chatMessagesJob = null
         _showDeveloperChatDialog.value = false
         _activeChatRecipientEmail.value = ""
         _activeChatRecipientName.value = ""
         _activeChatAppName.value = null
         _chatMessages.value = emptyList()
+    }
+
+    fun openDeveloperInbox() {
+        _showDeveloperInboxDialog.value = true
+    }
+
+    fun closeDeveloperInbox() {
+        _showDeveloperInboxDialog.value = false
     }
 
     fun sendChatMessage(
@@ -999,39 +1078,32 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         if (text.isBlank()) return
         val myName = _currentUser.value.displayName.ifBlank { "مطور معتمد" }
         val myEmail = _currentUser.value.email.ifBlank { "dev.tester@testerhub.com" }
+        val recipientEmail = _activeChatRecipientEmail.value
+        val recipientName = _activeChatRecipientName.value
+
+        if (recipientEmail.isBlank()) return
+
+        val channelId = com.example.data.remote.FirestoreService.getChatChannelId(myEmail, recipientEmail)
 
         val newMsg = ReciprocalChatMessage(
-            id = "msg_${System.currentTimeMillis()}",
+            id = "msg_${System.currentTimeMillis()}_${(1000..9999).random()}",
             senderName = myName,
             senderEmail = myEmail,
             message = text.trim(),
             timestamp = System.currentTimeMillis(),
             isFromMe = true,
-            attachedAppName = attachedAppName,
+            attachedAppName = attachedAppName ?: _activeChatAppName.value,
             attachedAppPackage = attachedAppPackage
         )
 
-        _chatMessages.update { it + newMsg }
-
-        // Simulate instant friendly reciprocal developer acknowledgment
+        // Real message dispatch to Cloud Firestore so the other developer receives and replies!
         viewModelScope.launch {
-            kotlinx.coroutines.delay(1200)
-            val recipientName = _activeChatRecipientName.value
-            val recipientEmail = _activeChatRecipientEmail.value
-            val responseText = when {
-                text.contains("14") || text.contains("يوم") -> "تمام يا بطل! متفقون، لن أحذف التطبيق نهائياً حتى استلامك بريد قبول الإنتاج من Google Play 🚀"
-                text.contains("تحديث") || text.contains("نسخة") -> "ممتاز! سأقوم بفتح التحديث الآن واختبار التحسينات الجديدة وتأكيد استقرارها 📱"
-                else -> "شكراً جزيلاً لتعاونك المثمر! سأستمر في فتح تطبيقك يومياً وسأخبرك بأي مستجدات فوراً 🤝"
-            }
-            val autoReply = ReciprocalChatMessage(
-                id = "reply_${System.currentTimeMillis()}",
-                senderName = recipientName,
-                senderEmail = recipientEmail,
-                message = responseText,
-                timestamp = System.currentTimeMillis(),
-                isFromMe = false
+            repository.sendChatMessage(
+                channelId = channelId,
+                message = newMsg,
+                recipientEmail = recipientEmail,
+                recipientName = recipientName
             )
-            _chatMessages.update { it + autoReply }
         }
     }
 }

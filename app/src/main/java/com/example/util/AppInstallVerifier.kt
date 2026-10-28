@@ -78,6 +78,32 @@ object AppInstallVerifier {
     }
 
     /**
+     * Opens the Google Group for testers. If the developer didn't set a custom URL,
+     * it falls back to the PlayTester Hub official tester group.
+     */
+    fun openGoogleGroup(context: Context, googleGroupUrl: String = "") {
+        val trimmed = googleGroupUrl.trim()
+        val targetUrl = when {
+            trimmed.isNotBlank() -> {
+                if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) "https://$trimmed" else trimmed
+            }
+            else -> "https://groups.google.com/g/playtester-hub-testers"
+        }
+
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(targetUrl)).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+            if (trimmed.isBlank()) {
+                Toast.makeText(context, "تم فتح مجموعة المختبرين العامة (PlayTester Hub) لعدم توفر رابط مخصص من المطور", Toast.LENGTH_LONG).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "تعذر فتح رابط المجموعة: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
      * Parses and extracts the Android Package Name (e.g. com.example.app)
      * from full URLs (Play Store link, Opt-In testing link) or raw text.
      */
