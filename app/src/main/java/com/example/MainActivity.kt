@@ -19,7 +19,10 @@ import androidx.compose.ui.unit.dp
 import com.example.ui.components.*
 import com.example.ui.screens.*
 import com.example.ui.theme.PlayTesterTheme
+import com.example.ui.util.L
 import com.example.ui.viewmodel.TesterViewModel
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import com.example.util.AdBannerView
 import com.example.util.AdMobConfig
 
@@ -44,12 +47,15 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-enum class NavigationTab(val title: String, val icon: ImageVector) {
-    COMMUNITY("المجتمع", Icons.Default.Public),
-    MY_TESTING("اختباراتي", Icons.Default.Science),
-    MY_APPS("تطبيقاتي", Icons.Default.Apps),
-    GUIDE("الدليل", Icons.Default.Book),
-    PROFILE("حسابي", Icons.Default.Person)
+enum class NavigationTab(val titleAr: String, val titleEn: String, val icon: ImageVector) {
+    COMMUNITY("المجتمع", "Community", Icons.Default.Public),
+    MY_TESTING("اختباراتي", "My Tests", Icons.Default.Science),
+    MY_APPS("تطبيقاتي", "My Apps", Icons.Default.Apps),
+    GUIDE("الدليل", "Guide", Icons.Default.Book),
+    PROFILE("حسابي", "Profile", Icons.Default.Person);
+
+    @Composable
+    fun getTitle(): String = if (L.isArabic()) titleAr else titleEn
 }
 
 @Composable
@@ -105,55 +111,60 @@ fun MainScreen(viewModel: TesterViewModel) {
 
     val showLeaderboard by viewModel.showLeaderboardDialog.collectAsState()
     var showThemeDialog by remember { mutableStateOf(false) }
+    var showLogoEventsDialog by remember { mutableStateOf(false) }
 
     val notifications by viewModel.testerNotifications.collectAsState()
     val unreadNotificationsCount = remember(notifications) { notifications.count { !it.isRead } }
 
-    Scaffold(
-        topBar = {
-            AppHeader(
-                user = user,
-                onOpenMonetization = { viewModel.openMonetization() },
-                onOpenGrowth = { viewModel.openDeveloperGrowth() },
-                onOpenAudit = { viewModel.openAuditReport() },
-                onOpenLeaderboard = { viewModel.openLeaderboard() },
-                onOpenTheme = { showThemeDialog = true },
-                onOpenLuckySpin = { viewModel.openLuckySpin() },
-                onOpenAdmin = { viewModel.openAdminControl() },
-                unreadNotificationsCount = unreadNotificationsCount,
-                onOpenNotifications = { viewModel.openNotifications() },
-                onOpenDeveloperInbox = { viewModel.openDeveloperInbox() },
-                onOpenComplianceMatrix = { selectedApp?.let { viewModel.openComplianceMatrix(it) } }
-            )
-        },
-        bottomBar = {
-            NavigationBar {
-                NavigationTab.values().forEach { tab ->
-                    NavigationBarItem(
-                        selected = selectedTab == tab,
-                        onClick = {
-                            if (selectedTab != tab) {
-                                tabSwitchCount++
-                                // كل 3 تنقلات بين الصفحات يتم عرض الإعلان البيني
-                                if (tabSwitchCount % 3 == 0 && activity != null) {
-                                    AdMobConfig.showInterstitialAd(activity) {
+    CompositionLocalProvider(
+        LocalLayoutDirection provides (if (L.isArabic()) LayoutDirection.Rtl else LayoutDirection.Ltr)
+    ) {
+        Scaffold(
+            topBar = {
+                AppHeader(
+                    user = user,
+                    onOpenMonetization = { viewModel.openMonetization() },
+                    onOpenGrowth = { viewModel.openDeveloperGrowth() },
+                    onOpenAudit = { viewModel.openAuditReport() },
+                    onOpenLeaderboard = { viewModel.openLeaderboard() },
+                    onOpenTheme = { showThemeDialog = true },
+                    onOpenLuckySpin = { viewModel.openLuckySpin() },
+                    onOpenAdmin = { viewModel.openAdminControl() },
+                    unreadNotificationsCount = unreadNotificationsCount,
+                    onOpenNotifications = { viewModel.openNotifications() },
+                    onOpenDeveloperInbox = { viewModel.openDeveloperInbox() },
+                    onOpenComplianceMatrix = { selectedApp?.let { viewModel.openComplianceMatrix(it) } },
+                    onOpenLogoEvents = { showLogoEventsDialog = true }
+                )
+            },
+            bottomBar = {
+                NavigationBar {
+                    NavigationTab.values().forEach { tab ->
+                        NavigationBarItem(
+                            selected = selectedTab == tab,
+                            onClick = {
+                                if (selectedTab != tab) {
+                                    tabSwitchCount++
+                                    // كل 3 تنقلات بين الصفحات يتم عرض الإعلان البيني
+                                    if (tabSwitchCount % 3 == 0 && activity != null) {
+                                        AdMobConfig.showInterstitialAd(activity) {
+                                            selectedTab = tab
+                                        }
+                                    } else {
                                         selectedTab = tab
                                     }
-                                } else {
-                                    selectedTab = tab
                                 }
-                            }
-                        },
-                        icon = { Icon(tab.icon, contentDescription = tab.title) },
-                        label = { Text(tab.title) }
-                    )
+                            },
+                            icon = { Icon(tab.icon, contentDescription = tab.getTitle()) },
+                            label = { Text(tab.getTitle()) }
+                        )
+                    }
                 }
             }
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
                 .padding(paddingValues)
         ) {
             Box(
@@ -259,6 +270,12 @@ fun MainScreen(viewModel: TesterViewModel) {
         )
     }
 
+    if (showLogoEventsDialog) {
+        LogoEventSelectionDialog(
+            onDismiss = { showLogoEventsDialog = false }
+        )
+    }
+
     val showLuckySpin by viewModel.showLuckySpinDialog.collectAsState()
     if (showLuckySpin) {
         DailyLuckySpinDialog(
@@ -335,5 +352,6 @@ fun MainScreen(viewModel: TesterViewModel) {
             viewModel = viewModel,
             onDismiss = { viewModel.closeDeveloperChat() }
         )
+    }
     }
 }

@@ -86,7 +86,7 @@ fun ProfileSettingsScreen(
                                     shape = RoundedCornerShape(6.dp)
                                 ) {
                                     Text(
-                                        "موثق ✓",
+                                        L.t("موثق ✓", "Verified ✓"),
                                         color = Color(0xFF2E7D32),
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.Bold,
@@ -103,7 +103,7 @@ fun ProfileSettingsScreen(
                                 shape = RoundedCornerShape(10.dp)
                             ) {
                                 Text(
-                                    "صاحب المنصة 👑",
+                                    L.t("صاحب المنصة 👑", "Platform Owner 👑"),
                                     color = Color(0xFF1565C0),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
@@ -118,7 +118,7 @@ fun ProfileSettingsScreen(
                                 shape = RoundedCornerShape(10.dp)
                             ) {
                                 Text(
-                                    "VIP نشط",
+                                    L.t("VIP نشط", "VIP Active"),
                                     color = Color(0xFFFF8F00),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
@@ -559,7 +559,7 @@ fun ProfileSettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text(
-                        "تفضيلات التطبيق:",
+                        L.t("تفضيلات التطبيق:", "App Preferences:"),
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurface
@@ -570,17 +570,17 @@ fun ProfileSettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("لغة التطبيق:", fontSize = 13.sp)
+                        Text(L.t("لغة التطبيق:", "App Language:"), fontSize = 13.sp)
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             FilterChip(
                                 selected = L.isArabic(),
-                                onClick = { L.currentLanguage = AppLanguage.ARABIC },
+                                onClick = { L.setLanguage(AppLanguage.ARABIC) },
                                 label = { Text("العربية", fontSize = 11.sp) },
                                 shape = RoundedCornerShape(8.dp)
                             )
                             FilterChip(
                                 selected = !L.isArabic(),
-                                onClick = { L.currentLanguage = AppLanguage.ENGLISH },
+                                onClick = { L.setLanguage(AppLanguage.ENGLISH) },
                                 label = { Text("English", fontSize = 11.sp) },
                                 shape = RoundedCornerShape(8.dp)
                             )

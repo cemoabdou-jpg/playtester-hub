@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.JoinedTest
 import com.example.ui.components.AppIconImage
 import com.example.ui.components.FeedbackDialog
+import com.example.ui.util.L
 import com.example.ui.viewmodel.TesterViewModel
 import com.example.util.AdMobConfig
 
@@ -65,13 +66,13 @@ fun MyTestingScreen(
             ) {
                 Column {
                     Text(
-                        "التطبيقات التي أقوم باختبارها",
+                        L.t("التطبيقات التي أقوم باختبارها", "Apps I am Testing"),
                         fontWeight = FontWeight.Bold,
                         fontSize = 17.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        "افتح التطبيقات يومياً للحفاظ على نقاطك وسمعتك وتأهيل المطورين",
+                        L.t("افتح التطبيقات يومياً للحفاظ على نقاطك وسمعتك وتأهيل المطورين", "Open apps daily to maintain points and qualify developers"),
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -94,7 +95,7 @@ fun MyTestingScreen(
                     onClick = { selectedSubTab = "ACTIVE" },
                     label = {
                         Text(
-                            "قيد الاختبار اليومي (${activeTests.size})",
+                            L.t("قيد الاختبار اليومي (${activeTests.size})", "Daily Testing (${activeTests.size})"),
                             fontSize = 12.sp,
                             fontWeight = if (selectedSubTab == "ACTIVE") FontWeight.Bold else FontWeight.Normal
                         )
@@ -111,7 +112,7 @@ fun MyTestingScreen(
                     onClick = { selectedSubTab = "COMPLETED" },
                     label = {
                         Text(
-                            "المكتملة 14 يوماً (${completedTests.size}) ✓",
+                            L.t("المكتملة 14 يوماً (${completedTests.size}) ✓", "Completed 14 Days (${completedTests.size}) ✓"),
                             fontSize = 12.sp,
                             fontWeight = if (selectedSubTab == "COMPLETED") FontWeight.Bold else FontWeight.Normal
                         )
@@ -339,13 +340,13 @@ fun MyTestingScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                if (isCompleted) "مكتمل 14 يوماً بنجاح ✓" else "تقدم الاختبار: اليوم ${test.daysCompleted} من 14",
+                                if (isCompleted) L.t("مكتمل 14 يوماً بنجاح ✓", "Completed 14 Days ✓") else L.t("تقدم الاختبار: اليوم ${test.daysCompleted} من 14", "Progress: Day ${test.daysCompleted} of 14"),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isCompleted) Color(0xFF00875A) else MaterialTheme.colorScheme.primary
                             )
                             Text(
-                                if (isCompleted) "100% مكتمل 🎉" else "متبقي ${maxOf(0, 14 - test.daysCompleted)} يوماً",
+                                if (isCompleted) L.t("100% مكتمل 🎉", "100% Done 🎉") else L.t("متبقي ${maxOf(0, 14 - test.daysCompleted)} يوماً", "${maxOf(0, 14 - test.daysCompleted)} days left"),
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -389,7 +390,7 @@ fun MyTestingScreen(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    if (isCompleted) "إعادة الفحص" else "تسجيل الاختبار (+25)",
+                                    if (isCompleted) L.t("إعادة الفحص", "Re-check") else L.t("تسجيل الاختبار (+25)", "Log Test (+25)"),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -403,7 +404,7 @@ fun MyTestingScreen(
                             ) {
                                 Icon(Icons.Default.HourglassBottom, contentDescription = null, modifier = Modifier.size(15.dp), tint = Color(0xFF00875A))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("جلسة 15د (+50)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF00875A))
+                                Text(L.t("جلسة 15د (+50)", "15m (+50)"), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF00875A))
                             }
 
                             if (isInstalled) {

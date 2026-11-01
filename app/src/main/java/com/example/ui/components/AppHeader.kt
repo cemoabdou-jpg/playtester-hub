@@ -28,7 +28,8 @@ fun AppHeader(
     unreadNotificationsCount: Int = 0,
     onOpenNotifications: () -> Unit = {},
     onOpenDeveloperInbox: () -> Unit = {},
-    onOpenComplianceMatrix: () -> Unit = {}
+    onOpenComplianceMatrix: () -> Unit = {},
+    onOpenLogoEvents: () -> Unit = {}
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val isOwner = user.isPlatformOwner
@@ -48,23 +49,16 @@ fun AppHeader(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = if (isOwner) Modifier.clickable { onOpenAdmin() } else Modifier
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    color = if (isOwner) Color(0xFF1E88E5).copy(alpha = 0.15f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.size(34.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            if (isOwner) Icons.Default.AdminPanelSettings else Icons.Default.VerifiedUser,
-                            contentDescription = if (isOwner) "لوحة تحكم صاحب المنصة" else "PlayTester Hub",
-                            tint = if (isOwner) Color(0xFF1E88E5) else MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(19.dp)
-                        )
+                DynamicEventLogo(
+                    size = 36.dp,
+                    isOwner = isOwner,
+                    showBadge = true,
+                    onClick = {
+                        onOpenLogoEvents()
                     }
-                }
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -81,7 +75,7 @@ fun AppHeader(
                                 shape = RoundedCornerShape(4.dp)
                             ) {
                                 Text(
-                                    "صاحب المنصة",
+                                    com.example.ui.util.L.t("صاحب المنصة", "Owner"),
                                     color = Color.White,
                                     fontSize = 8.sp,
                                     fontWeight = FontWeight.Bold,
@@ -91,7 +85,7 @@ fun AppHeader(
                         }
                     }
                     Text(
-                        "منصة تبادل المختبرين الرسمية",
+                        com.example.ui.util.L.t("منصة تبادل المختبرين الرسمية", "Official Tester Exchange Platform"),
                         fontSize = 10.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -260,6 +254,14 @@ fun AppHeader(
                                 onOpenTheme()
                             },
                             leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("🎭 فعاليات وأجواء اللوجو") },
+                            onClick = {
+                                showMenu = false
+                                onOpenLogoEvents()
+                            },
+                            leadingIcon = { Text("✨", fontSize = 16.sp) }
                         )
                         if (isOwner) {
                             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))

@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.PLATFORM_OWNER_EMAIL
+import com.example.ui.components.DynamicEventLogo
 import com.example.ui.viewmodel.TesterViewModel
 import kotlinx.coroutines.delay
 
@@ -93,21 +94,11 @@ fun MandatoryAuthScreen(
             ) {
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // App Brand & Logo
-                Surface(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(24.dp),
-                    modifier = Modifier.size(76.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Default.VerifiedUser,
-                            contentDescription = "PlayTester Hub",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(42.dp)
-                        )
-                    }
-                }
+                // App Brand & Dynamic Event Logo
+                DynamicEventLogo(
+                    size = 72.dp,
+                    showBadge = true
+                )
 
                 Spacer(modifier = Modifier.height(14.dp))
 

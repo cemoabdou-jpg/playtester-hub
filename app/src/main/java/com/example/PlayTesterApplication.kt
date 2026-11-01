@@ -25,11 +25,13 @@ class PlayTesterApplication : Application() {
         }
 
 
-        // Initialize Theme Manager
+        // Initialize Theme Manager & Logo Event Manager & Localization
         try {
             com.example.ui.theme.ThemeManager.init(this)
+            com.example.ui.theme.LogoEventManager.init(this)
+            com.example.ui.util.L.init(this)
         } catch (e: Throwable) {
-            Log.e("PLAYTESTER_APP", "ThemeManager init error: ${e.message}")
+            Log.e("PLAYTESTER_APP", "Theme/Logo/Localization Manager init error: ${e.message}")
         }
 
         // Notifications channel

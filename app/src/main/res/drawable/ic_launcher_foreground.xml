@@ -4,5 +4,5 @@
         android:width="66dp"
         android:height="66dp"
         android:gravity="center"
-        android:drawable="@drawable/app_icon_logo" />
+        android:drawable="@drawable/app_icon_cropped" />
 </layer-list>

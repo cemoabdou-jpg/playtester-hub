@@ -30,6 +30,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.theme.LogoEvent
+import com.example.ui.theme.LogoEventManager
 import com.playtesterhub.app.R
 import kotlinx.coroutines.delay
 
@@ -67,6 +69,8 @@ fun SplashScreen(
         animationSpec = tween(durationMillis = 1600, easing = FastOutSlowInEasing),
         label = "StartProgress"
     )
+
+    val activeEvent = remember { LogoEventManager.getEffectiveEvent() }
 
     LaunchedEffect(Unit) {
         progress = 1f
@@ -116,8 +120,8 @@ fun SplashScreen(
                         .background(
                             Brush.radialGradient(
                                 colors = listOf(
-                                    Color(0xFF00E676).copy(alpha = haloAlpha),
-                                    Color(0xFF00B0FF).copy(alpha = 0.15f),
+                                    activeEvent.glowColor.copy(alpha = haloAlpha),
+                                    activeEvent.primaryColor.copy(alpha = 0.25f),
                                     Color.Transparent
                                 )
                             )
@@ -133,8 +137,8 @@ fun SplashScreen(
                             width = 2.dp,
                             brush = Brush.linearGradient(
                                 colors = listOf(
-                                    Color(0xFF00E676).copy(alpha = 0.6f),
-                                    Color(0xFF00B0FF).copy(alpha = 0.4f)
+                                    activeEvent.glowColor.copy(alpha = 0.7f),
+                                    activeEvent.primaryColor.copy(alpha = 0.5f)
                                 )
                             ),
                             shape = RoundedCornerShape(38.dp)
@@ -149,7 +153,7 @@ fun SplashScreen(
                         .shadow(
                             elevation = 24.dp,
                             shape = RoundedCornerShape(34.dp),
-                            spotColor = Color(0xFF00E676)
+                            spotColor = activeEvent.glowColor
                         ),
                     shape = RoundedCornerShape(34.dp),
                     color = Color(0xFF0F172A)
