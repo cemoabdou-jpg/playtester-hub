@@ -65,7 +65,7 @@ android {
             )
             signingConfig = signingConfigs.getByName("release")
             ndk {
-                debugSymbolLevel = "SYMBOL_TABLE"
+                debugSymbolLevel = "FULL"
             }
         }
         debug {
@@ -96,6 +96,7 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.coil.compose)
     implementation(libs.play.services.ads)
+    implementation(libs.androidx.fragment.ktx)
 
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
