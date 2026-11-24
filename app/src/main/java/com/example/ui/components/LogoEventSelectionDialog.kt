@@ -33,6 +33,7 @@ fun LogoEventSelectionDialog(
 ) {
     val context = LocalContext.current
     var selectedEvent by remember { mutableStateOf(LogoEventManager.selectedEvent) }
+    var syncExternalIcon by remember { mutableStateOf(LogoEventManager.externalIconSyncEnabled) }
     val liveAutoEvent = remember(selectedEvent) {
         if (selectedEvent == LogoEvent.AUTO) LogoEventManager.getEffectiveEvent() else selectedEvent
     }
@@ -98,7 +99,7 @@ fun LogoEventSelectionDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Auto External Launcher Icon Status Banner
+                // Auto External Launcher Icon Status Banner + Toggle
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = liveAutoEvent.primaryColor.copy(alpha = 0.10f),
@@ -119,8 +120,8 @@ fun LogoEventSelectionDialog(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 L.t(
-                                    "الأيقونة الخارجية تتكيف تلقائياً",
-                                    "External Launcher Icon Adapts Automatically"
+                                    "تحديث أيقونة الشاشة الرئيسية",
+                                    "Update Home Screen App Icon"
                                 ),
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 11.5.sp,
@@ -128,13 +129,18 @@ fun LogoEventSelectionDialog(
                             )
                             Text(
                                 L.t(
-                                    "المظهر النشط حالياً: ${liveAutoEvent.getTitle()} ${liveAutoEvent.badgeEmoji}",
-                                    "Active theme now: ${liveAutoEvent.getTitle()} ${liveAutoEvent.badgeEmoji}"
+                                    "المظهر النشط: ${liveAutoEvent.getTitle()} ${liveAutoEvent.badgeEmoji}",
+                                    "Active theme: ${liveAutoEvent.getTitle()} ${liveAutoEvent.badgeEmoji}"
                                 ),
                                 fontSize = 10.5.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Switch(
+                            checked = syncExternalIcon,
+                            onCheckedChange = { syncExternalIcon = it }
+                        )
                     }
                 }
 
@@ -214,21 +220,24 @@ fun LogoEventSelectionDialog(
                 // Save button
                 Button(
                     onClick = {
-                        LogoEventManager.setEvent(selectedEvent, context)
-                        LauncherIconManager.syncWithEvent(
-                            context = context,
-                            event = if (selectedEvent == LogoEvent.AUTO) {
-                                LogoEventManager.getEffectiveEvent()
-                            } else {
-                                selectedEvent
-                            }
+                        LogoEventManager.applySelection(
+                            event = selectedEvent,
+                            syncExternalIcon = syncExternalIcon,
+                            context = context
                         )
                         Toast.makeText(
                             context,
-                            L.t(
-                                "تم تطبيق المظهر وتحديث الأيقونة الخارجية بنجاح ✨",
-                                "Theme applied & external app icon updated ✨"
-                            ),
+                            if (syncExternalIcon) {
+                                L.t(
+                                    "تم تطبيق المظهر وتحديث الأيقونة الخارجية بنجاح ✨",
+                                    "Theme applied & home-screen icon updated ✨"
+                                )
+                            } else {
+                                L.t(
+                                    "تم تطبيق المظهر داخل التطبيق بنجاح ✨",
+                                    "In-app theme applied successfully ✨"
+                                )
+                            },
                             Toast.LENGTH_SHORT
                         ).show()
                         onDismiss()

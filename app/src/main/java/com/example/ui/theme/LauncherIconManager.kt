@@ -6,7 +6,7 @@ import android.content.pm.PackageManager
 
 /**
  * Dynamically adapts the external home-screen launcher icon by toggling
- * Manifest <activity-alias> components according to the active LogoEvent.
+ * Manifest <activity-alias> components cleanly without leaving duplicate icons.
  */
 object LauncherIconManager {
 
@@ -32,66 +32,91 @@ object LauncherIconManager {
         }
     }
 
+    private fun isAliasActive(
+        pm: PackageManager,
+        packageName: String,
+        alias: Alias
+    ): Boolean {
+        val state = pm.getComponentEnabledSetting(ComponentName(packageName, alias.className))
+        return when (state) {
+            PackageManager.COMPONENT_ENABLED_STATE_ENABLED -> true
+            PackageManager.COMPONENT_ENABLED_STATE_DISABLED -> false
+            else -> alias == Alias.DEFAULT // In AndroidManifest, only LauncherDefault is enabled="true"
+        }
+    }
+
     /**
-     * Synchronizes the external launcher icon with the active event (or AUTO evaluation).
-     * Idempotent: returns true if a change was applied, false if already up to date or skipped.
+     * Synchronizes the external launcher icon with the given event.
+     *
+     * Key anti-duplication rules:
+     * 1. Never call setComponentEnabledSetting on aliases that are already disabled in the manifest.
+     * 2. Enable the new alias first with DONT_KILL_APP so the process stays alive to finish disabling the old one.
+     * 3. Disable only the previously active alias(es), using flags = 0 on the final disable call
+     *    so Android's launcher receives a full refresh and purges the old icon cleanly instead of leaving duplicates.
      */
     fun syncWithEvent(
         context: Context,
-        event: LogoEvent = LogoEventManager.getEffectiveEvent()
+        event: LogoEvent = LogoEventManager.getEffectiveEvent(),
+        forceSystemRefresh: Boolean = true
+    ): Boolean {
+        val resolvedEvent = if (event == LogoEvent.AUTO) {
+            LogoEventManager.getEffectiveEvent()
+        } else {
+            event
+        }
+        return syncWithAlias(
+            context = context,
+            targetAlias = Alias.fromEvent(resolvedEvent),
+            forceSystemRefresh = forceSystemRefresh
+        )
+    }
+
+    fun resetToDefault(context: Context, forceSystemRefresh: Boolean = true): Boolean {
+        return syncWithAlias(
+            context = context,
+            targetAlias = Alias.DEFAULT,
+            forceSystemRefresh = forceSystemRefresh
+        )
+    }
+
+    private fun syncWithAlias(
+        context: Context,
+        targetAlias: Alias,
+        forceSystemRefresh: Boolean
     ): Boolean {
         return try {
             val appContext = context.applicationContext
             val pm = appContext.packageManager
             val packageName = appContext.packageName
-
-            val resolvedEvent = if (event == LogoEvent.AUTO) {
-                LogoEventManager.getEffectiveEvent()
-            } else {
-                event
-            }
-            val targetAlias = Alias.fromEvent(resolvedEvent)
             val targetComponent = ComponentName(packageName, targetAlias.className)
 
-            val currentTargetState = pm.getComponentEnabledSetting(targetComponent)
-            val isTargetAlreadyActive =
-                currentTargetState == PackageManager.COMPONENT_ENABLED_STATE_ENABLED ||
-                    (targetAlias == Alias.DEFAULT &&
-                        currentTargetState == PackageManager.COMPONENT_ENABLED_STATE_DEFAULT)
-
-            val hasStaleEnabledAlias = Alias.entries.any { alias ->
-                if (alias == targetAlias) return@any false
-                val comp = ComponentName(packageName, alias.className)
-                val state = pm.getComponentEnabledSetting(comp)
-                state == PackageManager.COMPONENT_ENABLED_STATE_ENABLED ||
-                    (alias == Alias.DEFAULT &&
-                        state == PackageManager.COMPONENT_ENABLED_STATE_DEFAULT)
+            val isTargetActive = isAliasActive(pm, packageName, targetAlias)
+            val activeOldAliases = Alias.entries.filter { alias ->
+                alias != targetAlias && isAliasActive(pm, packageName, alias)
             }
 
-            if (isTargetAlreadyActive && !hasStaleEnabledAlias) {
+            if (isTargetActive && activeOldAliases.isEmpty()) {
                 return false
             }
 
-            // Enable target alias FIRST so the launcher never loses all entry points
-            pm.setComponentEnabledSetting(
-                targetComponent,
-                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                PackageManager.DONT_KILL_APP
-            )
+            // 1. Ensure target alias is enabled first (keep process alive so step 2 always executes)
+            if (!isTargetActive) {
+                pm.setComponentEnabledSetting(
+                    targetComponent,
+                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                    PackageManager.DONT_KILL_APP
+                )
+            }
 
-            // Disable all other aliases
-            Alias.entries.forEach { alias ->
-                if (alias != targetAlias) {
-                    val otherComponent = ComponentName(packageName, alias.className)
-                    val state = pm.getComponentEnabledSetting(otherComponent)
-                    if (state != PackageManager.COMPONENT_ENABLED_STATE_DISABLED) {
-                        pm.setComponentEnabledSetting(
-                            otherComponent,
-                            PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                            PackageManager.DONT_KILL_APP
-                        )
-                    }
-                }
+            // 2. Disable ONLY previously active alias(es); pass 0 on the final call to flush launcher cache
+            activeOldAliases.forEachIndexed { index, oldAlias ->
+                val isLast = index == activeOldAliases.lastIndex
+                val flags = if (isLast && forceSystemRefresh) 0 else PackageManager.DONT_KILL_APP
+                pm.setComponentEnabledSetting(
+                    ComponentName(packageName, oldAlias.className),
+                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                    flags
+                )
             }
             true
         } catch (_: Throwable) {

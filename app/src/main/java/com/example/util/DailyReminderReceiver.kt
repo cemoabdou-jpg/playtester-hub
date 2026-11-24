@@ -18,7 +18,9 @@ class DailyReminderReceiver : BroadcastReceiver() {
         L.init(context)
         try {
             com.example.ui.theme.LogoEventManager.init(context)
-            com.example.ui.theme.LauncherIconManager.syncWithEvent(context)
+            if (com.example.ui.theme.LogoEventManager.externalIconSyncEnabled) {
+                com.example.ui.theme.LauncherIconManager.syncWithEvent(context)
+            }
         } catch (_: Throwable) {}
 
         val action = intent.action

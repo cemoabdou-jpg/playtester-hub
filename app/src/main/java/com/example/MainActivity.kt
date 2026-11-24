@@ -45,13 +45,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-    override fun onStop() {
-        super.onStop()
-        try {
-            com.example.ui.theme.LauncherIconManager.syncWithEvent(this)
-        } catch (_: Throwable) {}
-    }
 }
 
 enum class NavigationTab(val titleAr: String, val titleEn: String, val icon: ImageVector) {

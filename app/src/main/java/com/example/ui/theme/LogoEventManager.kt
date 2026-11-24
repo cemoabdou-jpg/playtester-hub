@@ -106,10 +106,14 @@ enum class LogoEvent(
 object LogoEventManager {
     private const val PREFS_NAME = "playtester_logo_event_prefs"
     private const val KEY_SELECTED_EVENT = "selected_logo_event"
+    private const val KEY_EXTERNAL_ICON_SYNC = "external_icon_sync_enabled"
 
     private var prefs: SharedPreferences? = null
 
     var selectedEvent by mutableStateOf(LogoEvent.AUTO)
+        private set
+
+    var externalIconSyncEnabled by mutableStateOf(true)
         private set
 
     fun init(context: Context) {
@@ -119,14 +123,44 @@ object LogoEventManager {
             prefs?.let { p ->
                 val savedId = p.getString(KEY_SELECTED_EVENT, LogoEvent.AUTO.id)
                 selectedEvent = LogoEvent.values().firstOrNull { it.id == savedId } ?: LogoEvent.AUTO
+                externalIconSyncEnabled = p.getBoolean(KEY_EXTERNAL_ICON_SYNC, true)
             }
         } catch (_: Throwable) {}
     }
 
+    fun setExternalIconSync(enabled: Boolean, context: Context? = null) {
+        externalIconSyncEnabled = enabled
+        prefs?.edit()?.putBoolean(KEY_EXTERNAL_ICON_SYNC, enabled)?.commit()
+        if (context != null) {
+            if (enabled) {
+                LauncherIconManager.syncWithEvent(context, getEffectiveEvent())
+            } else {
+                LauncherIconManager.resetToDefault(context)
+            }
+        }
+    }
+
+    fun applySelection(event: LogoEvent, syncExternalIcon: Boolean, context: Context) {
+        selectedEvent = event
+        externalIconSyncEnabled = syncExternalIcon
+        prefs?.edit()
+            ?.putString(KEY_SELECTED_EVENT, event.id)
+            ?.putBoolean(KEY_EXTERNAL_ICON_SYNC, syncExternalIcon)
+            ?.commit()
+        if (syncExternalIcon) {
+            LauncherIconManager.syncWithEvent(
+                context = context,
+                event = if (event == LogoEvent.AUTO) getEffectiveEvent() else event
+            )
+        } else {
+            LauncherIconManager.resetToDefault(context)
+        }
+    }
+
     fun setEvent(event: LogoEvent, context: Context? = null) {
         selectedEvent = event
-        prefs?.edit()?.putString(KEY_SELECTED_EVENT, event.id)?.apply()
-        if (context != null) {
+        prefs?.edit()?.putString(KEY_SELECTED_EVENT, event.id)?.commit()
+        if (context != null && externalIconSyncEnabled) {
             LauncherIconManager.syncWithEvent(
                 context = context,
                 event = if (event == LogoEvent.AUTO) getEffectiveEvent() else event
