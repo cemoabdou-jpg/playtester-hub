@@ -122,13 +122,15 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'NnBkgyAhj1sG0FZkLD9x' }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'upload' }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || secrets.KEYSTORE_PASSWORD || 'NnBkgyAhj1sG0FZkLD9x' }}
-        run: ./gradlew assembleDebug assembleRelease -PappVersionCode=${{ github.run_number }} --no-daemon
+          GRADLE_OPTS: -Djava.net.preferIPv4Stack=true
+        run: ./gradlew assembleDebug assembleRelease -PappVersionCode=${{ github.run_number }} --no-daemon || ./gradlew assembleDebug assembleRelease -PappVersionCode=${{ github.run_number }} --refresh-dependencies --no-daemon
 
       - name: Build Android App Bundle (AAB for Google Play)
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'NnBkgyAhj1sG0FZkLD9x' }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'upload' }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || secrets.KEYSTORE_PASSWORD || 'NnBkgyAhj1sG0FZkLD9x' }}
+          GRADLE_OPTS: -Djava.net.preferIPv4Stack=true
         run: ./gradlew bundleRelease -PappVersionCode=${{ github.run_number }} --no-daemon
 
       - name: Upload Release APK
