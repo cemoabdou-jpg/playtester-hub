@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.CommunityApp
+import com.example.ui.util.L
 import com.example.ui.viewmodel.TesterViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -97,7 +98,7 @@ fun PlatformOwnerAdminDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                         Surface(
                             shape = CircleShape,
                             color = Color(0xFF1E88E5).copy(alpha = 0.15f),
@@ -116,9 +117,9 @@ fun PlatformOwnerAdminDialog(
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    "لوحة تحكم صاحب المنصة",
+                                    L.t("لوحة تحكم صاحب المنصة", "Platform Owner Admin Panel"),
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 17.sp,
+                                    fontSize = 16.sp,
                                     color = MaterialTheme.colorScheme.onBackground
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -127,7 +128,7 @@ fun PlatformOwnerAdminDialog(
                                     shape = RoundedCornerShape(6.dp)
                                 ) {
                                     Text(
-                                        "مسؤول معتمد",
+                                        L.t("مسؤول معتمد", "Verified Admin"),
                                         color = Color(0xFF00875A),
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
@@ -136,7 +137,10 @@ fun PlatformOwnerAdminDialog(
                                 }
                             }
                             Text(
-                                "تحكم كامل وفوري في جميع التطبيقات بالسيرفر والمجتمع",
+                                L.t(
+                                    "تحكم كامل وفوري في جميع التطبيقات بالسيرفر والمجتمع",
+                                    "Full real-time control over all server & community apps"
+                                ),
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -147,7 +151,7 @@ fun PlatformOwnerAdminDialog(
                         onClick = onDismiss,
                         modifier = Modifier.size(36.dp)
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "إغلاق")
+                        Icon(Icons.Default.Close, contentDescription = L.t("إغلاق", "Close"))
                     }
                 }
 
@@ -159,21 +163,21 @@ fun PlatformOwnerAdminDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     AdminStatCard(
-                        title = "إجمالي التطبيقات",
+                        title = L.t("إجمالي التطبيقات", "Total Apps"),
                         value = "${communityApps.size}",
                         icon = Icons.Default.Apps,
                         accentColor = Color(0xFF1E88E5),
                         modifier = Modifier.weight(1f)
                     )
                     AdminStatCard(
-                        title = "تطبيقات VIP مميزة",
+                        title = L.t("تطبيقات مميزة", "VIP Featured"),
                         value = "$featuredCount",
                         icon = Icons.Default.Star,
                         accentColor = Color(0xFFFF8F00),
                         modifier = Modifier.weight(1f)
                     )
                     AdminStatCard(
-                        title = "المختبرون الفعليون",
+                        title = L.t("المختبرون الفعليون", "Active Testers"),
                         value = "$totalTesters",
                         icon = Icons.Default.Group,
                         accentColor = Color(0xFF00875A),
@@ -187,12 +191,12 @@ fun PlatformOwnerAdminDialog(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("بحث باسم التطبيق، اسم الحزمة، أو اسم المطور...") },
+                    placeholder = { Text(L.t("بحث باسم التطبيق، اسم الحزمة، أو اسم المطور...", "Search by app name, package ID, or developer...")) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { searchQuery = "" }) {
-                                Icon(Icons.Default.Clear, contentDescription = "مسح")
+                                Icon(Icons.Default.Clear, contentDescription = L.t("مسح", "Clear"))
                             }
                         }
                     },
@@ -212,13 +216,13 @@ fun PlatformOwnerAdminDialog(
                     FilterChip(
                         selected = !filterFeaturedOnly,
                         onClick = { filterFeaturedOnly = false },
-                        label = { Text("جميع التطبيقات (${communityApps.size})") }
+                        label = { Text(L.t("جميع التطبيقات (${communityApps.size})", "All Apps (${communityApps.size})")) }
                     )
                     FilterChip(
                         selected = filterFeaturedOnly,
                         onClick = { filterFeaturedOnly = true },
                         leadingIcon = { Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                        label = { Text("المميزة فقط ($featuredCount)") }
+                        label = { Text(L.t("المميزة فقط ($featuredCount)", "Featured Only ($featuredCount)")) }
                     )
                 }
 
@@ -233,7 +237,7 @@ fun PlatformOwnerAdminDialog(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "لا توجد تطبيقات مطابقة لبحثك في السيرفر",
+                            L.t("لا توجد تطبيقات مطابقة لبحثك في السيرفر", "No matching apps found on the server"),
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -253,14 +257,22 @@ fun PlatformOwnerAdminDialog(
                                     viewModel.adminToggleFeatured(app.packageName, newFeaturedState)
                                     Toast.makeText(
                                         context,
-                                        if (newFeaturedState) "⭐ تم ترقية ${app.name} إلى تطبيق مميز في صدارة السيرفر!" else "تم إلغاء تمييز ${app.name}",
+                                        if (newFeaturedState) {
+                                            L.t("⭐ تم ترقية ${app.name} إلى تطبيق مميز في صدارة السيرفر!", "⭐ Promoted ${app.name} to VIP Spotlight!")
+                                        } else {
+                                            L.t("تم إلغاء تمييز ${app.name}", "Removed featured status for ${app.name}")
+                                        },
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 },
                                 onUpdateTesters = { newCount ->
                                     val safe = newCount.coerceIn(0, 100)
                                     viewModel.adminUpdateTesters(app.packageName, safe)
-                                    Toast.makeText(context, "تم ضبط عدد مختبري ${app.name} إلى $safe", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        L.t("تم ضبط عدد مختبري ${app.name} إلى $safe", "Updated ${app.name} testers count to $safe"),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 },
                                 onEdit = { appToEdit = app },
                                 onDelete = { appToDelete = app },
@@ -269,7 +281,7 @@ fun PlatformOwnerAdminDialog(
                                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                         context.startActivity(intent)
                                     } catch (_: Exception) {
-                                        Toast.makeText(context, "الرابط: $url", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, L.t("الرابط: $url", "Link: $url"), Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             )
@@ -287,7 +299,11 @@ fun PlatformOwnerAdminDialog(
                     OutlinedButton(
                         onClick = {
                             viewModel.adminResetAllCoins()
-                            Toast.makeText(context, "✅ تم تصفير عملات جميع المستخدمين بنجاح (0 عملة)!", Toast.LENGTH_LONG).show()
+                            Toast.makeText(
+                                context,
+                                L.t("✅ تم تصفير عملات جميع المستخدمين بنجاح (0 عملة)!", "✅ All user coin balances reset to 0!"),
+                                Toast.LENGTH_LONG
+                            ).show()
                         },
                         modifier = Modifier.weight(1.1f),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFD32F2F)),
@@ -295,7 +311,7 @@ fun PlatformOwnerAdminDialog(
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("تصفير عملات الجميع", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(L.t("تصفير عملات الجميع", "Reset All Coins"), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
 
                     Button(
@@ -303,7 +319,7 @@ fun PlatformOwnerAdminDialog(
                         modifier = Modifier.weight(0.9f),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("إغلاق", fontWeight = FontWeight.Bold)
+                        Text(L.t("إغلاق", "Close"), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -329,7 +345,11 @@ fun PlatformOwnerAdminDialog(
                     webOptInUrl = webUrl,
                     googleGroupUrl = grpUrl
                 )
-                Toast.makeText(context, "🎉 تم حفظ كافة التعديلات في السيرفر بنجاح!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    L.t("🎉 تم حفظ كافة التعديلات في السيرفر بنجاح!", "🎉 All changes saved to the server!"),
+                    Toast.LENGTH_SHORT
+                ).show()
                 appToEdit = null
             }
         )
@@ -344,27 +364,36 @@ fun PlatformOwnerAdminDialog(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("حذف التطبيق نهائياً من المنصة", fontWeight = FontWeight.Bold)
+                    Text(L.t("حذف التطبيق نهائياً من المنصة", "Permanently Delete App"), fontWeight = FontWeight.Bold)
                 }
             },
             text = {
-                Text("هل أنت متأكد من حذف تطبيق '${target.name}' (${target.packageName}) من السيرفر نهائياً؟ سيختفي التطبيق من قائمة جميع المطورين والمختبرين فوراً.")
+                Text(
+                    L.t(
+                        "هل أنت متأكد من حذف تطبيق '${target.name}' (${target.packageName}) من السيرفر نهائياً؟ سيختفي التطبيق من قائمة جميع المطورين والمختبرين فوراً.",
+                        "Are you sure you want to permanently delete '${target.name}' (${target.packageName}) from the server? It will disappear from all developers and testers immediately."
+                    )
+                )
             },
             confirmButton = {
                 Button(
                     onClick = {
                         viewModel.adminDeleteApp(target.packageName)
-                        Toast.makeText(context, "🗑️ تم حذف ${target.name} من السيرفر نهائياً", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            L.t("🗑️ تم حذف ${target.name} من السيرفر نهائياً", "🗑️ Permanently deleted ${target.name} from the server"),
+                            Toast.LENGTH_SHORT
+                        ).show()
                         appToDelete = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("حذف نهائي", fontWeight = FontWeight.Bold)
+                    Text(L.t("حذف نهائي", "Delete Forever"), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 OutlinedButton(onClick = { appToDelete = null }) {
-                    Text("إلغاء")
+                    Text(L.t("إلغاء", "Cancel"))
                 }
             }
         )
@@ -450,7 +479,7 @@ private fun AdminAppControlCard(
                                     shape = RoundedCornerShape(6.dp)
                                 ) {
                                     Text(
-                                        "مميز ⭐",
+                                        L.t("مميز ⭐", "Featured ⭐"),
                                         color = Color(0xFFE65100),
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.Bold,
@@ -466,7 +495,10 @@ private fun AdminAppControlCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            "المطور: ${app.developerName} • الفئة: ${app.category}",
+                            L.t(
+                                "المطور: ${L.translateKnown(app.developerName)} • الفئة: ${L.localizeCategory(app.category)}",
+                                "Dev: ${L.translateKnown(app.developerName)} • Category: ${L.localizeCategory(app.category)}"
+                            ),
                             fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -479,13 +511,13 @@ private fun AdminAppControlCard(
                         onClick = onEdit,
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(Icons.Default.Edit, contentDescription = "تعديل", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(17.dp))
+                        Icon(Icons.Default.Edit, contentDescription = L.t("تعديل", "Edit"), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(17.dp))
                     }
                     IconButton(
                         onClick = onDelete,
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(Icons.Default.Delete, contentDescription = "حذف من السيرفر", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(17.dp))
+                        Icon(Icons.Default.Delete, contentDescription = L.t("حذف من السيرفر", "Delete from server"), tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(17.dp))
                     }
                 }
             }
@@ -504,7 +536,7 @@ private fun AdminAppControlCard(
                 // Quick Adjust Testers
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "المختبرون: ",
+                        L.t("المختبرون: ", "Testers: "),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -513,7 +545,7 @@ private fun AdminAppControlCard(
                         onClick = { onUpdateTesters(app.currentTesters - 1) },
                         modifier = Modifier.size(24.dp)
                     ) {
-                        Icon(Icons.Default.Remove, contentDescription = "إنقاص", modifier = Modifier.size(12.dp))
+                        Icon(Icons.Default.Remove, contentDescription = L.t("إنقاص", "Decrease"), modifier = Modifier.size(12.dp))
                     }
                     Text(
                         "${app.currentTesters}/${app.targetTesters}",
@@ -526,7 +558,7 @@ private fun AdminAppControlCard(
                         onClick = { onUpdateTesters(app.currentTesters + 1) },
                         modifier = Modifier.size(24.dp)
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = "زيادة", modifier = Modifier.size(12.dp))
+                        Icon(Icons.Default.Add, contentDescription = L.t("زيادة", "Increase"), modifier = Modifier.size(12.dp))
                     }
                 }
 
@@ -547,7 +579,7 @@ private fun AdminAppControlCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        if (app.isFeatured) "إلغاء التمييز" else "تمييز كـ VIP ⭐",
+                        if (app.isFeatured) L.t("إلغاء التمييز", "Unfeature") else L.t("تمييز في الصدارة ⭐", "Feature VIP ⭐"),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (app.isFeatured) Color(0xFFE65100) else MaterialTheme.colorScheme.onSurface
@@ -571,7 +603,7 @@ private fun AdminAppControlCard(
                     ) {
                         Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(13.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("رابط Opt-in", fontSize = 10.sp)
+                        Text(L.t("رابط الانضمام", "Opt-in Link"), fontSize = 10.sp)
                     }
                 }
                 if (app.googleGroupUrl.isNotBlank()) {
@@ -583,7 +615,7 @@ private fun AdminAppControlCard(
                     ) {
                         Icon(Icons.Default.Groups, contentDescription = null, modifier = Modifier.size(13.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("مجموعة Google Group", fontSize = 10.sp)
+                        Text(L.t("مجموعة جوجل", "Google Group"), fontSize = 10.sp)
                     }
                 }
             }
@@ -613,7 +645,7 @@ private fun AdminEditAppDialog(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("تعديل التطبيق كمسؤول", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(L.t("تعديل التطبيق كمسؤول", "Edit App as Admin"), fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         },
         text = {
@@ -638,14 +670,14 @@ private fun AdminEditAppDialog(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(app.packageName, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                        Text("التحكم الكامل ببيانات السيرفر", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(L.t("التحكم الكامل ببيانات السيرفر", "Full server data control"), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
 
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("اسم التطبيق") },
+                    label = { Text(L.t("اسم التطبيق", "App Name")) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -653,7 +685,7 @@ private fun AdminEditAppDialog(
                 OutlinedTextField(
                     value = devName,
                     onValueChange = { devName = it },
-                    label = { Text("اسم المطور") },
+                    label = { Text(L.t("اسم المطور", "Developer Name")) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -661,7 +693,7 @@ private fun AdminEditAppDialog(
                 OutlinedTextField(
                     value = category,
                     onValueChange = { category = it },
-                    label = { Text("التصنيف") },
+                    label = { Text(L.t("التصنيف", "Category")) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -669,7 +701,7 @@ private fun AdminEditAppDialog(
                 OutlinedTextField(
                     value = iconUrl,
                     onValueChange = { iconUrl = it },
-                    label = { Text("رابط الأيقونة (URL / Base64 / Preset)") },
+                    label = { Text(L.t("رابط الأيقونة أو رمزها الجاهز", "Icon URL / Base64 / Preset")) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -678,14 +710,14 @@ private fun AdminEditAppDialog(
                     OutlinedTextField(
                         value = testers,
                         onValueChange = { testers = it.filter { ch -> ch.isDigit() } },
-                        label = { Text("المختبرون الحاليون") },
+                        label = { Text(L.t("المختبرون الحاليون", "Current Testers")) },
                         singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
                         value = targetTesters,
                         onValueChange = { targetTesters = it.filter { ch -> ch.isDigit() } },
-                        label = { Text("الهدف (20)") },
+                        label = { Text(L.t("الهدف (20)", "Target (20)")) },
                         singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
@@ -700,13 +732,17 @@ private fun AdminEditAppDialog(
                 ) {
                     Checkbox(checked = isFeatured, onCheckedChange = { isFeatured = it })
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("تمييز كتطبيق VIP في صدارة المجتمع ⭐", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text(
+                        L.t("تمييز كتطبيق رئيسي في صدارة المجتمع ⭐", "Feature as VIP in Community Spotlight ⭐"),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
                 }
 
                 OutlinedTextField(
                     value = webOptInUrl,
                     onValueChange = { webOptInUrl = it },
-                    label = { Text("رابط Google Play Opt-in") },
+                    label = { Text(L.t("رابط الانضمام لاختبار المتجر", "Google Play Opt-in Link")) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -714,7 +750,7 @@ private fun AdminEditAppDialog(
                 OutlinedTextField(
                     value = googleGroupUrl,
                     onValueChange = { googleGroupUrl = it },
-                    label = { Text("رابط Google Group") },
+                    label = { Text(L.t("رابط مجموعة جوجل", "Google Group Link")) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -728,12 +764,12 @@ private fun AdminEditAppDialog(
                     onSave(name.trim(), devName.trim(), category.trim(), iconUrl.trim(), safeTesters, safeTarget, isFeatured, webOptInUrl.trim(), googleGroupUrl.trim())
                 }
             ) {
-                Text("حفظ في السيرفر", fontWeight = FontWeight.Bold)
+                Text(L.t("حفظ في السيرفر", "Save to Server"), fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("إلغاء")
+                Text(L.t("إلغاء", "Cancel"))
             }
         }
     )

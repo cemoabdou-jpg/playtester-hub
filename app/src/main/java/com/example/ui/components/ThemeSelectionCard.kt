@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.theme.ThemeManager
 import com.example.ui.theme.ThemeMode
 import com.example.ui.theme.ThemePalette
+import com.example.ui.util.L
 
 @Composable
 fun ThemeSelectionCard(
@@ -64,13 +65,13 @@ fun ThemeSelectionCard(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            "ثيم ومظهر التطبيق",
+                            L.t("ثيم ومظهر التطبيق", "App Theme & Appearance"),
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            "اختر المظهر واللون المفضل لك",
+                            L.t("اختر المظهر واللون المفضل لك", "Choose your preferred theme and colors"),
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -82,7 +83,7 @@ fun ThemeSelectionCard(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        currentPalette.titleAr,
+                        currentPalette.getTitle(),
                         color = MaterialTheme.colorScheme.primary,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
@@ -95,7 +96,7 @@ fun ThemeSelectionCard(
 
             // 1. Theme Mode: System, Light, Dark
             Text(
-                "نمط الإضاءة:",
+                L.t("نمط الإضاءة:", "Brightness Mode:"),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -134,7 +135,7 @@ fun ThemeSelectionCard(
                             Text(mode.icon, fontSize = 13.sp)
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                mode.titleAr,
+                                mode.getTitle(),
                                 fontSize = 11.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                 color = animatedContentColor
@@ -171,13 +172,13 @@ fun ThemeSelectionCard(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Column {
                                     Text(
-                                        "وضع السواد الفاحم (AMOLED Black)",
+                                        L.t("وضع السواد الفاحم الموفر للطاقة", "AMOLED Pitch Black Mode"),
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        "خلفية سوداء 100% لتوفير البطارية وأقصى تباين",
+                                        L.t("خلفية سوداء كاملة لتوفير البطارية وأقصى تباين", "100% pure black background for battery saving"),
                                         fontSize = 9.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -197,7 +198,7 @@ fun ThemeSelectionCard(
 
             // 2. Color Palettes Selection
             Text(
-                "لوحات الألوان المتاحة (${ThemePalette.values().size} ألوان متميزة):",
+                L.t("لوحات الألوان المتاحة (${ThemePalette.values().size} ألوان متميزة):", "Available Palettes (${ThemePalette.values().size} Themes):"),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -276,14 +277,14 @@ fun ThemeSelectionCard(
 
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        palette.titleAr,
+                                        palette.getTitle(),
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 12.sp,
                                         color = if (isSelected) palette.primaryColor else MaterialTheme.colorScheme.onSurface
                                     )
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(
-                                        palette.descriptionAr,
+                                        palette.getDescription(),
                                         fontSize = 9.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         lineHeight = 12.sp,
@@ -311,13 +312,13 @@ fun ThemeSelectionCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            "معاينة حية للثيم المختار:",
+                            L.t("معاينة حية للثيم المختار:", "Live Theme Preview:"),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            "مباشر",
+                            L.t("مباشر", "Live"),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -337,7 +338,7 @@ fun ThemeSelectionCard(
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(vertical = 6.dp)
                         ) {
-                            Text("زر أساسي", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(L.t("زر أساسي", "Primary"), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
 
                         OutlinedButton(
@@ -346,7 +347,7 @@ fun ThemeSelectionCard(
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(vertical = 6.dp)
                         ) {
-                            Text("زر ثانوي", fontSize = 11.sp)
+                            Text(L.t("زر ثانوي", "Secondary"), fontSize = 11.sp)
                         }
 
                         Surface(
@@ -354,7 +355,7 @@ fun ThemeSelectionCard(
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
-                                "+100 نقطة",
+                                L.t("+100 نقطة", "+100 pts"),
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.tertiary,

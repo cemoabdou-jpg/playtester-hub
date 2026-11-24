@@ -30,6 +30,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.AchievementBadge
 import com.example.data.model.LeaderboardUser
+import com.example.ui.util.L
 import com.example.ui.viewmodel.TesterViewModel
 
 @Composable
@@ -46,11 +47,11 @@ fun LeaderboardBadgesDialog(
 
     var selectedTab by remember { mutableIntStateOf(0) }
 
-    val badges = remember(currentUser, userApps, joinedTests, claimedBadges) {
+    val badges = remember(currentUser, userApps, joinedTests, claimedBadges, L.currentLanguage) {
         viewModel.getBadges(currentUser, userApps, joinedTests)
     }
 
-    val leaderboard = remember(currentUser) {
+    val leaderboard = remember(currentUser, L.currentLanguage) {
         viewModel.getWeeklyLeaderboard(currentUser)
     }
 
@@ -78,7 +79,7 @@ fun LeaderboardBadgesDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "إغلاق")
+                        Icon(Icons.Default.Close, contentDescription = L.t("إغلاق", "Close"))
                     }
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -90,7 +91,7 @@ fun LeaderboardBadgesDialog(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            "لوحة الصدارة والأوسمة",
+                            L.t("لوحة الصدارة والأوسمة", "Leaderboard & Badges"),
                             fontWeight = FontWeight.Bold,
                             fontSize = 17.sp,
                             color = MaterialTheme.colorScheme.onSurface
@@ -138,7 +139,7 @@ fun LeaderboardBadgesDialog(
                         onClick = { selectedTab = 0 },
                         text = {
                             Text(
-                                "🏆 لوحة الصدارة الأسبوعية",
+                                L.t("🏆 لوحة الصدارة الأسبوعية", "🏆 Weekly Leaderboard"),
                                 fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal,
                                 fontSize = 12.sp,
                                 color = if (selectedTab == 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
@@ -150,7 +151,7 @@ fun LeaderboardBadgesDialog(
                         onClick = { selectedTab = 1 },
                         text = {
                             Text(
-                                "🏅 الأوسمة والمكافآت",
+                                L.t("🏅 الأوسمة والمكافآت", "🏅 Badges & Rewards"),
                                 fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal,
                                 fontSize = 12.sp,
                                 color = if (selectedTab == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
@@ -175,7 +176,10 @@ fun LeaderboardBadgesDialog(
                             viewModel.claimBadge(badge.id, badge.coinReward)
                             Toast.makeText(
                                 context,
-                                "🎉 مبارك! تم استلام ${badge.title} وإضافة +${badge.coinReward} عملة!",
+                                L.t(
+                                    "🎉 مبارك! تم استلام ${badge.title} وإضافة +${badge.coinReward} عملة!",
+                                    "🎉 Congrats! Claimed ${badge.title} and added +${badge.coinReward} coins!"
+                                ),
                                 Toast.LENGTH_LONG
                             ).show()
                         },
@@ -194,7 +198,6 @@ private fun LeaderboardTabContent(
     onWatchAd: () -> Unit
 ) {
     val topThree = leaderboard.take(3)
-    val remaining = leaderboard.drop(3)
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -207,7 +210,7 @@ private fun LeaderboardTabContent(
 
         item {
             Text(
-                "الترتيب الأسبوعي لمطوري المجتمع",
+                L.t("الترتيب الأسبوعي لمطوري المجتمع", "Weekly Community Developer Rankings"),
                 fontWeight = FontWeight.Bold,
                 fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -239,14 +242,17 @@ private fun LeaderboardTabContent(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            "🚀 ارتقِ في لوحة الصدارة الآن!",
+                            L.t("🚀 ارتقِ في لوحة الصدارة الآن!", "🚀 Climb the Leaderboard Now!"),
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
                             color = Color(0xFF1565C0)
                         )
                         Spacer(modifier = Modifier.height(3.dp))
                         Text(
-                            "اكسب المزيد من العملات فوراً عبر تحصيل مكافأة المطور اليومية أو اختبار تطبيقات الزملاء",
+                            L.t(
+                                "اكسب المزيد من العملات فوراً عبر تحصيل مكافأة المطور اليومية أو اختبار تطبيقات الزملاء",
+                                "Earn more coins instantly by claiming the daily developer bonus or testing fellow devs' apps"
+                            ),
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -262,7 +268,7 @@ private fun LeaderboardTabContent(
                     ) {
                         Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(15.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("+50 عملة", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(L.t("+50 عملة", "+50 Coins"), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -282,7 +288,7 @@ private fun PodiumCard(topThree: List<LeaderboardUser>) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                "🥇 منصة التتويج الأسبوعية",
+                L.t("🥇 منصة التتويج الأسبوعية", "🥇 Weekly Podium"),
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurface
@@ -339,6 +345,7 @@ private fun PodiumColumn(
     color: Color,
     height: Int
 ) {
+    val displayName = L.translateKnown(user.name)
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.width(95.dp)
@@ -346,14 +353,14 @@ private fun PodiumColumn(
         Text(medal, fontSize = 22.sp)
         Spacer(modifier = Modifier.height(2.dp))
         Text(
-            user.name.substringBefore(" "),
+            displayName.substringBefore(" "),
             fontWeight = FontWeight.Bold,
             fontSize = 11.sp,
             maxLines = 1,
             color = MaterialTheme.colorScheme.onSurface
         )
         Text(
-            "${user.points} عملة",
+            L.t("${user.points} عملة", "${user.points} coins"),
             fontSize = 10.sp,
             fontWeight = FontWeight.Medium,
             color = color
@@ -423,7 +430,7 @@ private fun LeaderboardUserCard(user: LeaderboardUser) {
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            user.name,
+                            L.translateKnown(user.name),
                             fontWeight = if (isMe) FontWeight.Bold else FontWeight.Medium,
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurface
@@ -435,7 +442,7 @@ private fun LeaderboardUserCard(user: LeaderboardUser) {
                                 shape = RoundedCornerShape(6.dp)
                             ) {
                                 Text(
-                                    "أنت",
+                                    L.t("أنت", "You"),
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White,
@@ -445,7 +452,10 @@ private fun LeaderboardUserCard(user: LeaderboardUser) {
                         }
                     }
                     Text(
-                        "${user.badgeTitle} • ${user.testsCompleted} اختبارات مكتملة",
+                        L.t(
+                            "${L.translateKnown(user.badgeTitle)} • ${user.testsCompleted} اختبارات مكتملة",
+                            "${L.translateKnown(user.badgeTitle)} • ${user.testsCompleted} tests completed"
+                        ),
                         fontSize = 10.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -496,7 +506,10 @@ private fun BadgesTabContent(
                     Text("💡", fontSize = 20.sp)
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        "أكمل مهام الاختبار ومساعدة المطورين لفتح الأوسمة وكسب مئات العملات المجانية فوراً!",
+                        L.t(
+                            "أكمل مهام الاختبار ومساعدة المطورين لفتح الأوسمة وكسب مئات العملات المجانية فوراً!",
+                            "Complete testing tasks and support developers to unlock badges and earn hundreds of free coins!"
+                        ),
                         fontSize = 11.sp,
                         color = Color(0xFF00796B),
                         fontWeight = FontWeight.Medium
@@ -562,7 +575,7 @@ private fun BadgeCard(
                                 shape = RoundedCornerShape(6.dp)
                             ) {
                                 Text(
-                                    "+${badge.coinReward} عملة",
+                                    L.t("+${badge.coinReward} عملة", "+${badge.coinReward} coins"),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFFFF8F00),
@@ -595,7 +608,7 @@ private fun BadgeCard(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            "التقدم: ${badge.currentProgress}/${badge.targetProgress}",
+                            L.t("التقدم: ${badge.currentProgress}/${badge.targetProgress}", "Progress: ${badge.currentProgress}/${badge.targetProgress}"),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -626,7 +639,7 @@ private fun BadgeCard(
                         ) {
                             Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("تم الاستلام", fontSize = 11.sp)
+                            Text(L.t("تم الاستلام", "Claimed"), fontSize = 11.sp)
                         }
                     }
                     isComplete -> {
@@ -636,7 +649,7 @@ private fun BadgeCard(
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00875A)),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                         ) {
-                            Text("استلام +${badge.coinReward} عملة 🎉", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(L.t("استلام +${badge.coinReward} عملة 🎉", "Claim +${badge.coinReward} 🎉"), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                     else -> {
@@ -648,7 +661,7 @@ private fun BadgeCard(
                         ) {
                             Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(13.dp))
                             Spacer(modifier = Modifier.width(3.dp))
-                            Text("قيد الإنجاز", fontSize = 10.sp)
+                            Text(L.t("قيد الإنجاز", "In Progress"), fontSize = 10.sp)
                         }
                     }
                 }

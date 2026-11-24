@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,6 +35,7 @@ import com.example.data.model.UserApp
 import com.example.ui.components.AppIconImage
 import com.example.ui.components.EditAppDetailsDialog
 import com.example.ui.components.PRESET_APP_ICONS
+import com.example.ui.util.L
 import com.example.ui.viewmodel.TesterViewModel
 import java.io.ByteArrayOutputStream
 
@@ -66,13 +68,13 @@ fun MyAppsScreen(
             ) {
                 Column {
                     Text(
-                        "مشاريعي قيد الاختبار",
+                        L.t("مشاريعي قيد الاختبار", "My Testing Projects"),
                         fontWeight = FontWeight.Bold,
                         fontSize = 17.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        "${userApps.size} تطبيقات مسجلة ومزامنة مع السيرفر",
+                        L.t("${userApps.size} تطبيقات مسجلة ومزامنة مع السيرفر", "${userApps.size} apps registered & synced with server"),
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -86,7 +88,7 @@ fun MyAppsScreen(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("إضافة تطبيق", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(L.t("إضافة تطبيق", "Add App"), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -135,16 +137,16 @@ fun MyAppsScreen(
                             Column {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        "قام ${latestNotif.testerName} بتجربة تطبيقك",
+                                        L.t("قام ${L.translateKnown(latestNotif.testerName)} بتجربة تطبيقك", "${L.translateKnown(latestNotif.testerName)} tested your app"),
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 12.sp,
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("• جديد", fontSize = 10.sp, color = Color(0xFF00875A), fontWeight = FontWeight.Bold)
+                                    Text(L.t("• جديد", "• New"), fontSize = 10.sp, color = Color(0xFF00875A), fontWeight = FontWeight.Bold)
                                 }
                                 Text(
-                                    "اضغط هنا لفتح حسابه وعرض تطبيقاته والمشاركة في اختبارها 🤝",
+                                    L.t("اضغط هنا لفتح حسابه وعرض تطبيقاته والمشاركة في اختبارها 🤝", "Tap to open their profile, view their apps, and test in return 🤝"),
                                     fontSize = 11.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -152,7 +154,7 @@ fun MyAppsScreen(
                         }
 
                         Icon(
-                            Icons.Default.ArrowForwardIos,
+                            Icons.AutoMirrored.Filled.ArrowForwardIos,
                             contentDescription = null,
                             modifier = Modifier.size(14.dp),
                             tint = MaterialTheme.colorScheme.primary
@@ -183,13 +185,16 @@ fun MyAppsScreen(
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            "لم تسجل أي تطبيق بعد",
+                            L.t("لم تسجل أي تطبيق بعد", "No apps registered yet"),
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            "أضف تطبيقك الآن لتتبع الـ 20 مختبراً واستخراج تقرير التدقيق الرسمي لاجتياز فحص Google Play بنجاح",
+                            L.t(
+                                "أضف تطبيقك الآن لتتبع الـ 20 مختبراً واستخراج تقرير التدقيق الرسمي لاجتياز فحص جوجل بلاي بنجاح",
+                                "Add your app now to track 20 testers and export your official audit report for Google Play review"
+                            ),
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -202,7 +207,7 @@ fun MyAppsScreen(
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("إضافة تطبيقي الأول")
+                            Text(L.t("إضافة تطبيقي الأول", "Add My First App"))
                         }
                     }
                 }
@@ -218,21 +223,21 @@ fun MyAppsScreen(
                     onOpenChangelog = { viewModel.openChangelog(app) },
                     onUpdateTesters = { testers, days ->
                         viewModel.updateAppTesters(app.packageName, testers, days)
-                        Toast.makeText(context, "تم تحديث بيانات المختبرين بنجاح", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, L.t("تم تحديث بيانات المختبرين بنجاح", "Tester data updated successfully"), Toast.LENGTH_SHORT).show()
                     },
                     onPromote = {
                         appToPromote = app
                     },
                     onUnpromote = {
                         viewModel.unpromoteApp(app)
-                        Toast.makeText(context, "تم إلغاء تمييز التطبيق", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, L.t("تم إلغاء تمييز التطبيق", "App spotlight removed"), Toast.LENGTH_SHORT).show()
                     },
                     onUpdateDetails = { name, cat, iconUrl, web, grp ->
                         viewModel.updateAppDetails(app.packageName, name, cat, iconUrl, web, grp)
                     },
                     onDelete = {
                         viewModel.removeUserApp(app)
-                        Toast.makeText(context, "تم حذف التطبيق", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, L.t("تم حذف التطبيق", "App deleted"), Toast.LENGTH_SHORT).show()
                     }
                 )
             }
@@ -246,9 +251,9 @@ fun MyAppsScreen(
                 viewModel.addUserApp(name, pkg, optIn, grp, cat, desc, iconUrl, testersCount, daysCount)
                 if (shouldPromote) {
                     viewModel.promoteAppByPackage(pkg, true)
-                    Toast.makeText(context, "🌟 تمت إضافة $name وترقيته إلى صدارة المجتمع!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, L.t("🌟 تمت إضافة $name وترقيته إلى صدارة المجتمع!", "🌟 $name added and promoted to Community Spotlight!"), Toast.LENGTH_LONG).show()
                 } else {
-                    Toast.makeText(context, "تمت إضافة $name بنجاح!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, L.t("تمت إضافة $name بنجاح!", "$name added successfully!"), Toast.LENGTH_SHORT).show()
                 }
                 showAddAppDialog = false
             }
@@ -270,7 +275,7 @@ fun MyAppsScreen(
                             viewModel.promoteAppWithAd(targetApp)
                             Toast.makeText(
                                 context,
-                                "🌟 تهانينا! تمت ترقية تطبيق ${targetApp.name} إلى صدارة المجتمع بنجاح!",
+                                L.t("🌟 تهانينا! تمت ترقية تطبيق ${targetApp.name} إلى صدارة المجتمع بنجاح!", "🌟 Congrats! ${targetApp.name} promoted to Community Spotlight!"),
                                 Toast.LENGTH_LONG
                             ).show()
                             appToPromote = null
@@ -278,7 +283,7 @@ fun MyAppsScreen(
                     )
                 } else {
                     viewModel.promoteAppWithAd(targetApp)
-                    Toast.makeText(context, "🌟 تمت ترقية التطبيق بنجاح!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, L.t("🌟 تمت ترقية التطبيق بنجاح!", "🌟 App promoted successfully!"), Toast.LENGTH_SHORT).show()
                     appToPromote = null
                 }
             },
@@ -287,7 +292,7 @@ fun MyAppsScreen(
                 if (success) {
                     Toast.makeText(
                         context,
-                        "🌟 تهانينا! تم تمييز تطبيق ${targetApp.name} وخصم 350 عملة!",
+                        L.t("🌟 تهانينا! تم تمييز تطبيق ${targetApp.name} وخصم 350 عملة!", "🌟 Congrats! ${targetApp.name} featured (350 coins spent)!"),
                         Toast.LENGTH_LONG
                     ).show()
                     appToPromote = null
@@ -382,7 +387,7 @@ private fun CleanUserAppCard(
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            if (isCompleted) "مستوفٍ للشروط ✓" else "متبقي ${maxOf(0, 20 - app.currentTesters)} مختبرين",
+                            if (isCompleted) L.t("مستوفٍ للشروط ✓", "Compliant ✓") else L.t("متبقي ${maxOf(0, 20 - app.currentTesters)} مختبرين", "${maxOf(0, 20 - app.currentTesters)} testers left"),
                             color = if (isCompleted) Color(0xFF00796B) else Color(0xFFE65100),
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp,
@@ -396,7 +401,7 @@ private fun CleanUserAppCard(
                     ) {
                         Icon(
                             Icons.Default.Edit,
-                            contentDescription = "تعديل صورة وبيانات التطبيق",
+                            contentDescription = L.t("تعديل صورة وبيانات التطبيق", "Edit App Icon & Details"),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(18.dp)
                         )
@@ -408,7 +413,7 @@ private fun CleanUserAppCard(
                     ) {
                         Icon(
                             Icons.Default.DeleteOutline,
-                            contentDescription = "حذف التطبيق",
+                            contentDescription = L.t("حذف التطبيق", "Delete App"),
                             tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(18.dp)
                         )
@@ -429,9 +434,9 @@ private fun CleanUserAppCard(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceAround
                     ) {
-                        CompactMetricItem("${app.currentTesters}/${app.targetTesters}", "مختبر معتمد", testersColor)
-                        CompactMetricItem("${app.completedDays}/${app.targetDays}", "يوماً مكتملة", daysColor)
-                        CompactMetricItem("$compliancePercent%", "نسبة الامتثال", if (isCompleted) Color(0xFF00875A) else Color(0xFFE65100))
+                        CompactMetricItem("${app.currentTesters}/${app.targetTesters}", L.t("مختبر معتمد", "Verified Testers"), testersColor)
+                        CompactMetricItem("${app.completedDays}/${app.targetDays}", L.t("يوماً مكتملة", "Days Completed"), daysColor)
+                        CompactMetricItem("$compliancePercent%", L.t("نسبة الامتثال", "Compliance"), if (isCompleted) Color(0xFF00875A) else Color(0xFFE65100))
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     LinearProgressIndicator(
@@ -450,7 +455,7 @@ private fun CleanUserAppCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            "الرقم الحقيقي من Play Console:",
+                            L.t("الرقم الحقيقي من لوحة المطور:", "Real Play Console count:"),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -463,7 +468,7 @@ private fun CleanUserAppCard(
                                 },
                                 modifier = Modifier.size(28.dp)
                             ) {
-                                Icon(Icons.Default.Remove, contentDescription = "إنقاص مختبر", modifier = Modifier.size(14.dp))
+                                Icon(Icons.Default.Remove, contentDescription = L.t("إنقاص مختبر", "Decrease tester"), modifier = Modifier.size(14.dp))
                             }
                             Text(
                                 "${app.currentTesters}",
@@ -479,7 +484,7 @@ private fun CleanUserAppCard(
                                 },
                                 modifier = Modifier.size(28.dp)
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = "زيادة مختبر", modifier = Modifier.size(14.dp))
+                                Icon(Icons.Default.Add, contentDescription = L.t("زيادة مختبر", "Increase tester"), modifier = Modifier.size(14.dp))
                             }
                             Spacer(modifier = Modifier.width(6.dp))
                             OutlinedButton(
@@ -490,7 +495,7 @@ private fun CleanUserAppCard(
                             ) {
                                 Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(12.dp))
                                 Spacer(modifier = Modifier.width(3.dp))
-                                Text("تعديل", fontSize = 11.sp)
+                                Text(L.t("تعديل", "Edit"), fontSize = 11.sp)
                             }
                         }
                     }
@@ -517,14 +522,14 @@ private fun CleanUserAppCard(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFF8F00), modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("تطبيق مميز في صدارة المجتمع ⭐", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFFE65100))
+                            Text(L.t("تطبيق مميز في صدارة المجتمع ⭐", "Featured in Community Spotlight ⭐"), fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFFE65100))
                         }
                         TextButton(
                             onClick = onUnpromote,
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
                             modifier = Modifier.height(24.dp)
                         ) {
-                            Text("إلغاء التمييز", fontSize = 10.sp, color = MaterialTheme.colorScheme.outline)
+                            Text(L.t("إلغاء التمييز", "Remove"), fontSize = 10.sp, color = MaterialTheme.colorScheme.outline)
                         }
                     }
                 }
@@ -538,7 +543,7 @@ private fun CleanUserAppCard(
                 ) {
                     Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("ترقية لتطبيق مميز في الصدارة ⭐ (350 عملة أو بإعلان)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
+                    Text(L.t("ترقية لتطبيق مميز في الصدارة ⭐ (350 عملة أو بإعلان)", "Promote to Spotlight ⭐ (350 coins or Ad)"), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
                 }
             }
 
@@ -553,7 +558,7 @@ private fun CleanUserAppCard(
                 Icon(Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    "مصفوفة الـ 14 يوماً ورادار جاهزية Google Play 🛡️",
+                    L.t("مصفوفة الـ 14 يوماً ورادار جاهزية جوجل بلاي 🛡️", "14-Day Matrix & Google Play Readiness Radar 🛡️"),
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp
                 )
@@ -572,7 +577,7 @@ private fun CleanUserAppCard(
                 Icon(Icons.Default.Assessment, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    "استخراج تقرير التدقيق الرسمي (PDF / CSV)",
+                    L.t("استخراج تقرير التدقيق الرسمي المطبوع والجدولي", "Export Official Audit Report (PDF / CSV)"),
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp
                 )
@@ -593,7 +598,7 @@ private fun CleanUserAppCard(
                 ) {
                     Icon(Icons.Default.BugReport, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFFE53935))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("الأعطال", fontSize = 11.sp)
+                    Text(L.t("الأعطال", "Crashes"), fontSize = 11.sp)
                 }
 
                 OutlinedButton(
@@ -604,7 +609,7 @@ private fun CleanUserAppCard(
                 ) {
                     Icon(Icons.Default.People, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFF00875A))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("المختبرون", fontSize = 11.sp)
+                    Text(L.t("المختبرون", "Testers"), fontSize = 11.sp)
                 }
 
                 OutlinedButton(
@@ -615,7 +620,7 @@ private fun CleanUserAppCard(
                 ) {
                     Icon(Icons.Default.EditNote, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("التغييرات", fontSize = 11.sp)
+                    Text(L.t("التغييرات", "Changelog"), fontSize = 11.sp)
                 }
             }
         }
@@ -627,25 +632,28 @@ private fun CleanUserAppCard(
 
         AlertDialog(
             onDismissRequest = { showEditProgressDialog = false },
-            title = { Text("تحديث إحصائيات Google Play Console", fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+            title = { Text(L.t("تحديث إحصائيات لوحة مطوري جوجل بلاي", "Update Google Play Console Stats"), fontWeight = FontWeight.Bold, fontSize = 16.sp) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        "أدخل الرقم الحقيقي للمختبرين وعدد الأيام المسجلة في حسابك بـ Google Play Console لضمان دقة التقرير.",
+                        L.t(
+                            "أدخل الرقم الحقيقي للمختبرين وعدد الأيام المسجلة في حسابك بلوحة مطوري جوجل بلاي لضمان دقة التقرير.",
+                            "Enter the real tester count and days logged in your Google Play Console for an accurate report."
+                        ),
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     OutlinedTextField(
                         value = editTesters,
                         onValueChange = { editTesters = it.filter { ch -> ch.isDigit() } },
-                        label = { Text("عدد المختبرين الفعليين (0 - 50)") },
+                        label = { Text(L.t("عدد المختبرين الفعليين (0 - 50)", "Actual Testers (0 - 50)")) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = editDays,
                         onValueChange = { editDays = it.filter { ch -> ch.isDigit() } },
-                        label = { Text("عدد الأيام المكتملة (1 - 14)") },
+                        label = { Text(L.t("عدد الأيام المكتملة (1 - 14)", "Completed Days (1 - 14)")) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -660,12 +668,12 @@ private fun CleanUserAppCard(
                         showEditProgressDialog = false
                     }
                 ) {
-                    Text("حفظ وتحديث")
+                    Text(L.t("حفظ وتحديث", "Save & Update"))
                 }
             },
             dismissButton = {
                 OutlinedButton(onClick = { showEditProgressDialog = false }) {
-                    Text("إلغاء")
+                    Text(L.t("إلغاء", "Cancel"))
                 }
             }
         )
@@ -674,8 +682,8 @@ private fun CleanUserAppCard(
     if (showConfirmDelete) {
         AlertDialog(
             onDismissRequest = { showConfirmDelete = false },
-            title = { Text("حذف التطبيق") },
-            text = { Text("هل أنت متأكد من حذف ${app.name} من مشاريعك؟") },
+            title = { Text(L.t("حذف التطبيق", "Delete App")) },
+            text = { Text(L.t("هل أنت متأكد من حذف ${app.name} من مشاريعك؟", "Are you sure you want to delete ${app.name} from your projects?")) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -683,12 +691,12 @@ private fun CleanUserAppCard(
                         onDelete()
                     }
                 ) {
-                    Text("حذف", color = MaterialTheme.colorScheme.error)
+                    Text(L.t("حذف", "Delete"), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmDelete = false }) {
-                    Text("إلغاء")
+                    Text(L.t("إلغاء", "Cancel"))
                 }
             }
         )
@@ -734,7 +742,7 @@ private fun PromoteAppFeaturedDialog(
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("ترقية لتطبيق مميز (Spotlight ⭐)", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(L.t("ترقية لتطبيق مميز في الصدارة ⭐", "Promote to Spotlight ⭐"), fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         },
         text = {
@@ -760,7 +768,7 @@ private fun PromoteAppFeaturedDialog(
                         Column {
                             Text(app.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             Text(
-                                "سيتم تثبيت التطبيق في الواجهة العلوية لصفحة المجتمع لجذب 20 مختبراً",
+                                L.t("سيتم تثبيت التطبيق في الواجهة العلوية لصفحة المجتمع لجذب 20 مختبراً", "App will be pinned at the top of the Community tab to attract 20 testers"),
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -776,16 +784,16 @@ private fun PromoteAppFeaturedDialog(
                         .padding(10.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text("✨ مميزات التطبيق المميز:", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFB78103))
-                    Text("• تثبيت في شريط Spotlight الدائري في صدارة المجتمع", fontSize = 11.sp, color = Color(0xFF5D4037))
-                    Text("• إشارة نجمة ذهبية تلفت انتباه جميع المطورين والمختبرين", fontSize = 11.sp, color = Color(0xFF5D4037))
-                    Text("• جمع الـ 20 مختبراً بأضعاف السرعة لاجتياز شرط الـ 14 يوماً", fontSize = 11.sp, color = Color(0xFF5D4037))
+                    Text(L.t("✨ مميزات التطبيق المميز:", "✨ Spotlight Benefits:"), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFB78103))
+                    Text(L.t("• تثبيت في شريط الصدارة الدائري في مقدمة المجتمع", "• Pinned in the top Community Spotlight carousel"), fontSize = 11.sp, color = Color(0xFF5D4037))
+                    Text(L.t("• إشارة نجمة ذهبية تلفت انتباه جميع المطورين والمختبرين", "• Golden star badge catching every developer's eye"), fontSize = 11.sp, color = Color(0xFF5D4037))
+                    Text(L.t("• جمع الـ 20 مختبراً بأضعاف السرعة لاجتياز شرط الـ 14 يوماً", "• Gather 20 testers much faster to pass the 14-day rule"), fontSize = 11.sp, color = Color(0xFF5D4037))
                 }
 
                 Spacer(modifier = Modifier.height(2.dp))
-                Text("اختر طريقة الترقية:", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text(L.t("اختر طريقة الترقية:", "Choose Promotion Method:"), fontWeight = FontWeight.Bold, fontSize = 12.sp)
 
-                // Option 1: Rewarded Ad (Free for developer, profits app owner)
+                // Option 1: Rewarded Ad
                 Button(
                     onClick = onWatchAdToPromote,
                     shape = RoundedCornerShape(12.dp),
@@ -796,12 +804,12 @@ private fun PromoteAppFeaturedDialog(
                     Icon(Icons.Default.PlayCircle, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("مشاهدة إعلان وترقية مجاناً 🎬", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        Text("مشاهدة فيديو سريع لترقية تطبيقك فوراً في الصدارة", fontSize = 10.sp, color = Color.White.copy(alpha = 0.9f))
+                        Text(L.t("مشاهدة إعلان وترقية مجاناً 🎬", "Watch Ad & Promote Free 🎬"), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text(L.t("مشاهدة فيديو سريع لترقية تطبيقك فوراً في الصدارة", "Watch a quick video to feature your app immediately"), fontSize = 10.sp, color = Color.White.copy(alpha = 0.9f))
                     }
                 }
 
-                // Option 2: Pay Coins (Increased cost: 350 coins)
+                // Option 2: Pay Coins
                 if (currentCoins >= 350) {
                     OutlinedButton(
                         onClick = onPayCoinsToPromote,
@@ -811,7 +819,7 @@ private fun PromoteAppFeaturedDialog(
                     ) {
                         Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = Color(0xFFFF8F00), modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("ترقية مقابل 350 عملة (رصيدك: $currentCoins 🪙)", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        Text(L.t("ترقية مقابل 350 عملة (رصيدك: $currentCoins 🪙)", "Promote for 350 Coins (Balance: $currentCoins 🪙)"), fontSize = 12.sp, fontWeight = FontWeight.Medium)
                     }
                 } else {
                     Surface(
@@ -825,8 +833,8 @@ private fun PromoteAppFeaturedDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("رصيدك الحالي: $currentCoins عملة (تكلفة الترقية: 350)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF8F00))
-                                Text("ينقصك ${350 - currentCoins} عملة • شاهد إعلانات لجمعها سريعاً", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(L.t("رصيدك الحالي: $currentCoins عملة (تكلفة الترقية: 350)", "Current Balance: $currentCoins coins (Cost: 350)"), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF8F00))
+                                Text(L.t("ينقصك ${350 - currentCoins} عملة • شاهد إعلانات لجمعها سريعاً", "Need ${350 - currentCoins} more coins • Watch ads to earn fast"), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Button(
                                 onClick = onWatchAdForCoins,
@@ -836,7 +844,7 @@ private fun PromoteAppFeaturedDialog(
                             ) {
                                 Icon(Icons.Default.PlayCircle, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("+50 عملة 🎬", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text(L.t("+50 عملة 🎬", "+50 Coins 🎬"), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -846,7 +854,7 @@ private fun PromoteAppFeaturedDialog(
         confirmButton = {},
         dismissButton = {
             OutlinedButton(onClick = onDismiss) {
-                Text("إلغاء")
+                Text(L.t("إلغاء", "Cancel"))
             }
         }
     )
@@ -862,7 +870,7 @@ private fun AddAppSimpleDialog(
     var iconUrl by remember { mutableStateOf("preset:tools") }
     var optIn by remember { mutableStateOf("") }
     var grp by remember { mutableStateOf("") }
-    var cat by remember { mutableStateOf("أدوات") }
+    var cat by remember { mutableStateOf(L.t("أدوات", "Tools")) }
     var desc by remember { mutableStateOf("") }
     var initialTesters by remember { mutableStateOf("0") }
     var initialDays by remember { mutableStateOf("1") }
@@ -879,8 +887,7 @@ private fun AddAppSimpleDialog(
                 inputStream?.close()
                 if (originalBitmap != null) {
                     val scaled = Bitmap.createScaledBitmap(originalBitmap, 140, 140, true)
-                    
-                    // Save to local internal app files for permanent local access
+
                     try {
                         val iconsDir = java.io.File(context.filesDir, "app_icons").apply { mkdirs() }
                         val safePkg = if (pkg.isNotBlank()) pkg.replace(".", "_") else "custom_${System.currentTimeMillis()}"
@@ -890,7 +897,6 @@ private fun AddAppSimpleDialog(
                         }
                     } catch (_: Exception) {}
 
-                    // Efficient Base64 for Firestore cloud sync
                     val outputStream = ByteArrayOutputStream()
                     scaled.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
                     val bytes = outputStream.toByteArray()
@@ -904,11 +910,11 @@ private fun AddAppSimpleDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("إضافة تطبيق جديد للاختبار", fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+        title = { Text(L.t("إضافة تطبيق جديد للاختبار", "Add New App for Testing"), fontWeight = FontWeight.Bold, fontSize = 16.sp) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    "أدخل تفاصيل تطبيقك لمزامنته مع السيرفر وبدء جمع الـ 20 مختبراً",
+                    L.t("أدخل تفاصيل تطبيقك لمزامنته مع السيرفر وبدء جمع الـ 20 مختبراً", "Enter your app details to sync with server and gather 20 testers"),
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -920,7 +926,7 @@ private fun AddAppSimpleDialog(
                 ) {
                     AppIconImage(
                         iconUrl = iconUrl,
-                        appName = if (name.isNotBlank()) name else "تطبيقي",
+                        appName = if (name.isNotBlank()) name else L.t("تطبيقي", "My App"),
                         category = cat,
                         modifier = Modifier.size(54.dp),
                         shape = RoundedCornerShape(14.dp)
@@ -929,14 +935,14 @@ private fun AddAppSimpleDialog(
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it; errorText = null },
-                        label = { Text("اسم التطبيق") },
+                        label = { Text(L.t("اسم التطبيق", "App Name")) },
                         singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
                 }
 
-                // 3D Store Icon Presets Carousel
-                Text("اختر أيقونة متجر جاهزة ثلاثية الأبعاد (3D):", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                // Store Icon Presets Carousel
+                Text(L.t("اختر أيقونة متجر جاهزة ثلاثية الأبعاد:", "Choose a 3D Store Preset Icon:"), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     contentPadding = PaddingValues(vertical = 2.dp)
@@ -946,7 +952,7 @@ private fun AddAppSimpleDialog(
                         Surface(
                             onClick = {
                                 iconUrl = presetItem.id
-                                cat = presetItem.title
+                                cat = presetItem.getTitle()
                             },
                             shape = RoundedCornerShape(10.dp),
                             color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -976,7 +982,7 @@ private fun AddAppSimpleDialog(
                                 }
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    presetItem.title,
+                                    presetItem.getTitle(),
                                     fontSize = 11.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                     color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
@@ -1004,7 +1010,7 @@ private fun AddAppSimpleDialog(
                     ) {
                         Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("أو ارفع صورتك من المعرض", fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                        Text(L.t("أو ارفع صورتك من المعرض", "Or upload from Gallery"), fontSize = 11.sp, fontWeight = FontWeight.Medium)
                     }
 
                     if (iconUrl.startsWith("data:") || iconUrl.startsWith("http")) {
@@ -1012,7 +1018,7 @@ private fun AddAppSimpleDialog(
                             onClick = { iconUrl = "preset:tools" },
                             modifier = Modifier.size(36.dp)
                         ) {
-                            Icon(Icons.Default.DeleteOutline, contentDescription = "استعادة الأيقونة الافتراضية", tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Default.DeleteOutline, contentDescription = L.t("استعادة الأيقونة الافتراضية", "Restore default icon"), tint = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
@@ -1028,8 +1034,8 @@ private fun AddAppSimpleDialog(
                             optIn = "https://play.google.com/apps/testing/$extracted"
                         }
                     },
-                    label = { Text("اسم الحزمة أو رابط Play Store") },
-                    placeholder = { Text("مثال: com.company.app أو الصق رابط المتجر") },
+                    label = { Text(L.t("اسم الحزمة أو رابط متجر جوجل بلاي", "Package Name or Play Store Link")) },
+                    placeholder = { Text(L.t("مثال: com.company.app أو الصق رابط المتجر", "e.g., com.company.app or paste Store link")) },
                     trailingIcon = {
                         if (pkg.isNotBlank()) {
                             val isValid = com.example.util.AppInstallVerifier.isValidPackageName(pkg)
@@ -1056,14 +1062,14 @@ private fun AddAppSimpleDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = if (isInstalled) "✓ مثبت على جهازك الحالي" else if (isValid) "معرف الحزمة صالح ✓" else "يرجى التأكد من صيغة الحزمة",
+                            text = if (isInstalled) L.t("✓ مثبت على جهازك الحالي", "✓ Installed on your device") else if (isValid) L.t("معرف الحزمة صالح ✓", "Valid package name ✓") else L.t("يرجى التأكد من صيغة الحزمة", "Check package format"),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
                             color = if (isInstalled) Color(0xFF00875A) else if (isValid) Color(0xFF0288D1) else MaterialTheme.colorScheme.error
                         )
                         if (optIn.isNotBlank()) {
                             Text(
-                                "تم توليد رابط Opt-in 🚀",
+                                L.t("تم توليد رابط الانضمام 🚀", "Opt-in link generated 🚀"),
                                 fontSize = 10.sp,
                                 color = Color(0xFF00875A),
                                 fontWeight = FontWeight.Bold
@@ -1083,7 +1089,7 @@ private fun AddAppSimpleDialog(
                             }
                         }
                     },
-                    label = { Text("رابط Google Play Opt-in") },
+                    label = { Text(L.t("رابط الانضمام في جوجل بلاي", "Google Play Opt-in Link")) },
                     placeholder = { Text("https://play.google.com/apps/testing/...") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -1092,11 +1098,14 @@ private fun AddAppSimpleDialog(
                 OutlinedTextField(
                     value = grp,
                     onValueChange = { grp = it },
-                    label = { Text("رابط مجموعة Google Group للمختبرين") },
+                    label = { Text(L.t("رابط مجموعة جوجل للمختبرين", "Testers Google Group Link")) },
                     placeholder = { Text("https://groups.google.com/g/...") },
                     supportingText = {
                         Text(
-                            "ضروري ليتمكن المختبرون من الانضمام بحساباتهم وتحميل التطبيق بدون أخطاء متجر Play",
+                            L.t(
+                                "ضروري ليتمكن المختبرون من الانضمام بحساباتهم وتحميل التطبيق بدون أخطاء متجر بلاي",
+                                "Required so testers can join with their accounts and install without Play Store errors"
+                            ),
                             fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -1109,7 +1118,7 @@ private fun AddAppSimpleDialog(
                     OutlinedTextField(
                         value = initialTesters,
                         onValueChange = { initialTesters = it.filter { ch -> ch.isDigit() } },
-                        label = { Text("المختبرون الفعليون") },
+                        label = { Text(L.t("المختبرون الفعليون", "Actual Testers")) },
                         placeholder = { Text("0") },
                         singleLine = true,
                         modifier = Modifier.weight(1f)
@@ -1117,7 +1126,7 @@ private fun AddAppSimpleDialog(
                     OutlinedTextField(
                         value = initialDays,
                         onValueChange = { initialDays = it.filter { ch -> ch.isDigit() } },
-                        label = { Text("اليوم الحالي (1-14)") },
+                        label = { Text(L.t("اليوم الحالي (1-14)", "Current Day (1-14)")) },
                         placeholder = { Text("1") },
                         singleLine = true,
                         modifier = Modifier.weight(1f)
@@ -1142,8 +1151,8 @@ private fun AddAppSimpleDialog(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Column {
-                            Text("ترقية مميزة فورية في صدارة المجتمع ⭐", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (promoteWithAd) Color(0xFFE65100) else MaterialTheme.colorScheme.onSurface)
-                            Text("مشاهدة إعلان فيديو سريع لدعم المنصة وتثبيت تطبيقك في الصدارة فور النشر 🎬", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(L.t("ترقية مميزة فورية في صدارة المجتمع ⭐", "Instant Community Spotlight Promotion ⭐"), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (promoteWithAd) Color(0xFFE65100) else MaterialTheme.colorScheme.onSurface)
+                            Text(L.t("مشاهدة إعلان فيديو سريع لدعم المنصة وتثبيت تطبيقك في الصدارة فور النشر 🎬", "Watch a quick ad to support the hub and pin your app upon publish 🎬"), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -1157,7 +1166,7 @@ private fun AddAppSimpleDialog(
             Button(
                 onClick = {
                     if (name.isBlank() || pkg.isBlank()) {
-                        errorText = "يرجى كتابة اسم التطبيق واسم الحزمة"
+                        errorText = L.t("يرجى كتابة اسم التطبيق واسم الحزمة", "Please enter app name and package name")
                         return@Button
                     }
                     val formattedOptIn = if (optIn.isNotBlank()) optIn.trim() else "https://play.google.com/apps/testing/${pkg.trim()}"
@@ -1185,15 +1194,15 @@ private fun AddAppSimpleDialog(
                 if (promoteWithAd) {
                     Icon(Icons.Default.PlayCircle, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("نشر مع إعلان وترقية مميزة 🎬")
+                    Text(L.t("نشر مع إعلان وترقية مميزة 🎬", "Publish with Ad & Feature 🎬"))
                 } else {
-                    Text("إضافة ومزامنة السيرفر")
+                    Text(L.t("إضافة ومزامنة السيرفر", "Add & Sync to Server"))
                 }
             }
         },
         dismissButton = {
             OutlinedButton(onClick = onDismiss) {
-                Text("إلغاء")
+                Text(L.t("إلغاء", "Cancel"))
             }
         }
     )

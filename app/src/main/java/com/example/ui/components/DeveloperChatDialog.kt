@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.ReciprocalChatMessage
+import com.example.ui.util.L
 import com.example.ui.viewmodel.TesterViewModel
 
 @Composable
@@ -40,6 +41,7 @@ fun DeveloperChatDialog(
     val messages by viewModel.chatMessages.collectAsState()
     var inputMessage by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
+    val localizedRecipientName = L.translateKnown(recipientName)
 
     // Auto-scroll when new message arrives
     LaunchedEffect(messages.size) {
@@ -49,10 +51,10 @@ fun DeveloperChatDialog(
     }
 
     val quickPrompts = listOf(
-        "🤝 قمت بتجربة تطبيقك للتو! هل يمكنك تجربة تطبيقي؟",
-        "🛡️ نرجو إبقاء التطبيق مثبتاً حتى اكتمال 14 يوماً",
-        "⭐ تقييمي لتطبيقك 5 نجوم، في انتظار رأيك",
-        "🔄 تم رفع تحديث جديد v1.2 يرجى فتحه اليوم"
+        L.t("🤝 قمت بتجربة تطبيقك للتو! هل يمكنك تجربة تطبيقي؟", "🤝 Just tested your app! Could you test mine in return?"),
+        L.t("🛡️ نرجو إبقاء التطبيق مثبتاً حتى اكتمال 14 يوماً", "🛡️ Please keep the app installed for the full 14 days"),
+        L.t("⭐ تقييمي لتطبيقك 5 نجوم، في انتظار رأيك", "⭐ Left a 5-star review, awaiting your feedback"),
+        L.t("🔄 تم رفع تحديث جديد يرجى فتحه اليوم", "🔄 New update published, please open it today")
     )
 
     Dialog(
@@ -89,7 +91,7 @@ fun DeveloperChatDialog(
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
-                                    recipientName.take(1).uppercase(),
+                                    localizedRecipientName.take(1).uppercase(),
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 16.sp
@@ -100,7 +102,7 @@ fun DeveloperChatDialog(
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    recipientName,
+                                    localizedRecipientName,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 14.sp,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -113,7 +115,8 @@ fun DeveloperChatDialog(
                                 ) {}
                             }
                             Text(
-                                if (recipientEmail.isNotBlank()) "$recipientEmail • محادثة حقيقية مباشرة 🟢" else "محادثة سحابية مباشرة 🟢",
+                                if (recipientEmail.isNotBlank()) L.t("$recipientEmail • محادثة حقيقية مباشرة 🟢", "$recipientEmail • Live Direct Chat 🟢")
+                                else L.t("محادثة سحابية مباشرة 🟢", "Live Cloud Chat 🟢"),
                                 fontSize = 10.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -121,7 +124,7 @@ fun DeveloperChatDialog(
                     }
 
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "إغلاق")
+                        Icon(Icons.Default.Close, contentDescription = L.t("إغلاق", "Close"))
                     }
                 }
 
@@ -139,7 +142,7 @@ fun DeveloperChatDialog(
                             Icon(Icons.Default.Apps, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                "بشأن تطبيق: $appName",
+                                L.t("بشأن تطبيق: $appName", "Regarding App: $appName"),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
@@ -167,13 +170,13 @@ fun DeveloperChatDialog(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                "لا توجد رسائل سابقة",
+                                L.t("لا توجد رسائل سابقة", "No previous messages"),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                "أرسل رسالة للتنسيق حول اختبار التطبيق وتبادل الفحص لـ 14 يوماً",
+                                L.t("أرسل رسالة للتنسيق حول اختبار التطبيق وتبادل الفحص لـ 14 يوماً", "Send a message to coordinate 14-day mutual testing"),
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -198,7 +201,7 @@ fun DeveloperChatDialog(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Quick Prompts Row
-                Text("ردود سريعة للتبادل:", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(L.t("ردود سريعة للتبادل:", "Quick Exchange Replies:"), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.height(4.dp))
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -232,7 +235,7 @@ fun DeveloperChatDialog(
                     OutlinedTextField(
                         value = inputMessage,
                         onValueChange = { inputMessage = it },
-                        placeholder = { Text("اكتب رسالة تنسيق مع المطور...", fontSize = 12.sp) },
+                        placeholder = { Text(L.t("اكتب رسالة تنسيق مع المطور...", "Write a message to the developer..."), fontSize = 12.sp) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(20.dp),
                         maxLines = 3
@@ -253,7 +256,7 @@ fun DeveloperChatDialog(
                     ) {
                         Icon(
                             Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "إرسال",
+                            contentDescription = L.t("إرسال", "Send"),
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
@@ -270,9 +273,10 @@ private fun ChatBubble(message: ReciprocalChatMessage) {
     val bubbleColor = if (isMe) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
     val textColor = if (isMe) Color.White else MaterialTheme.colorScheme.onSurface
 
-    val timeFormatted = remember(message.timestamp) {
+    val timeFormatted = remember(message.timestamp, L.currentLanguage) {
         try {
-            val sdf = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault())
+            val locale = if (L.isArabic()) java.util.Locale("ar") else java.util.Locale.ENGLISH
+            val sdf = java.text.SimpleDateFormat("hh:mm a", locale)
             sdf.format(java.util.Date(message.timestamp))
         } catch (_: Exception) {
             ""
@@ -299,7 +303,7 @@ private fun ChatBubble(message: ReciprocalChatMessage) {
                 Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                     if (!isMe) {
                         Text(
-                            message.senderName,
+                            L.translateKnown(message.senderName),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary

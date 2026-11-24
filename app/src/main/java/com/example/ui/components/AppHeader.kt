@@ -63,7 +63,7 @@ fun AppHeader(
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            "PlayTester Hub",
+                            com.example.ui.util.L.t("منصة مختبري التطبيقات", "PlayTester Hub"),
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                             color = MaterialTheme.colorScheme.onSurface
@@ -149,7 +149,7 @@ fun AppHeader(
                     ) {
                         Icon(
                             Icons.Default.Notifications,
-                            contentDescription = "إشعارات المختبرين",
+                            contentDescription = com.example.ui.util.L.t("إشعارات المختبرين", "Tester Notifications"),
                             tint = if (unreadNotificationsCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp)
                         )
@@ -163,7 +163,7 @@ fun AppHeader(
                     ) {
                         Icon(
                             Icons.Default.MoreVert,
-                            contentDescription = "أدوات إضافية",
+                            contentDescription = com.example.ui.util.L.t("أدوات إضافية", "More Tools"),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -173,9 +173,9 @@ fun AppHeader(
                         onDismissRequest = { showMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { 
+                            text = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text("🔔 إشعارات نشاط المختبرين")
+                                    Text(com.example.ui.util.L.t("🔔 إشعارات نشاط المختبرين", "🔔 Tester Activity Notifications"))
                                     if (unreadNotificationsCount > 0) {
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Surface(
@@ -183,7 +183,7 @@ fun AppHeader(
                                             shape = RoundedCornerShape(10.dp)
                                         ) {
                                             Text(
-                                                "$unreadNotificationsCount جديد",
+                                                com.example.ui.util.L.t("$unreadNotificationsCount جديد", "$unreadNotificationsCount New"),
                                                 color = Color.White,
                                                 fontSize = 9.sp,
                                                 fontWeight = FontWeight.Bold,
@@ -200,7 +200,7 @@ fun AppHeader(
                             leadingIcon = { Icon(Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
                         )
                         DropdownMenuItem(
-                            text = { Text("💬 محادثاتي مع المطورين") },
+                            text = { Text(com.example.ui.util.L.t("💬 محادثاتي مع المطورين", "💬 Developer Chats")) },
                             onClick = {
                                 showMenu = false
                                 onOpenDeveloperInbox()
@@ -208,7 +208,7 @@ fun AppHeader(
                             leadingIcon = { Icon(Icons.Default.Chat, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
                         )
                         DropdownMenuItem(
-                            text = { Text("🏆 لوحة الصدارة ومكافآت الأوسمة") },
+                            text = { Text(com.example.ui.util.L.t("🏆 لوحة الصدارة ومكافآت الأوسمة", "🏆 Leaderboard & Badges")) },
                             onClick = {
                                 showMenu = false
                                 onOpenLeaderboard()
@@ -216,7 +216,7 @@ fun AppHeader(
                             leadingIcon = { Text("🏆", fontSize = 16.sp) }
                         )
                         DropdownMenuItem(
-                            text = { Text("🛡️ مصفوفة الـ 14 يوماً ورادار الامتثال") },
+                            text = { Text(com.example.ui.util.L.t("🛡️ مصفوفة الـ 14 يوماً ورادار الامتثال", "🛡️ 14-Day Matrix & Compliance Radar")) },
                             onClick = {
                                 showMenu = false
                                 onOpenComplianceMatrix()
@@ -224,7 +224,7 @@ fun AppHeader(
                             leadingIcon = { Icon(Icons.Default.Verified, contentDescription = null, tint = Color(0xFF00875A)) }
                         )
                         DropdownMenuItem(
-                            text = { Text("📄 تقرير التدقيق الرسمي (Audit)") },
+                            text = { Text(com.example.ui.util.L.t("📄 تقرير التدقيق الرسمي", "📄 Official Audit Report")) },
                             onClick = {
                                 showMenu = false
                                 onOpenAudit()
@@ -232,7 +232,7 @@ fun AppHeader(
                             leadingIcon = { Icon(Icons.Default.Assessment, contentDescription = null, tint = Color(0xFF00875A)) }
                         )
                         DropdownMenuItem(
-                            text = { Text("🚀 جذب المطورين وشبكة التبادل") },
+                            text = { Text(com.example.ui.util.L.t("🚀 جذب المطورين وشبكة التبادل", "🚀 Developer Growth & Referral Hub")) },
                             onClick = {
                                 showMenu = false
                                 onOpenGrowth()
@@ -240,7 +240,7 @@ fun AppHeader(
                             leadingIcon = { Icon(Icons.Default.GroupAdd, contentDescription = null, tint = Color(0xFF1E88E5)) }
                         )
                         DropdownMenuItem(
-                            text = { Text("💎 باقات الـ VIP والتسريع") },
+                            text = { Text(com.example.ui.util.L.t("💎 الباقات المميزة والتسريع", "💎 VIP Plans & Boosts")) },
                             onClick = {
                                 showMenu = false
                                 onOpenMonetization()
@@ -248,7 +248,7 @@ fun AppHeader(
                             leadingIcon = { Icon(Icons.Default.Speed, contentDescription = null, tint = Color(0xFFFFB300)) }
                         )
                         DropdownMenuItem(
-                            text = { Text("🎨 ثيمات وألوان التطبيق") },
+                            text = { Text(com.example.ui.util.L.t("🎨 ثيمات وألوان التطبيق", "🎨 App Themes & Colors")) },
                             onClick = {
                                 showMenu = false
                                 onOpenTheme()
@@ -256,7 +256,7 @@ fun AppHeader(
                             leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
                         )
                         DropdownMenuItem(
-                            text = { Text("🎭 فعاليات وأجواء اللوجو") },
+                            text = { Text(com.example.ui.util.L.t("🎭 فعاليات وأجواء الشعار", "🎭 Logo Events & Effects")) },
                             onClick = {
                                 showMenu = false
                                 onOpenLogoEvents()
@@ -266,19 +266,19 @@ fun AppHeader(
                         if (isOwner) {
                             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                             DropdownMenuItem(
-                                text = { 
+                                text = {
                                     Text(
-                                        "🛡️ لوحة تحكم صاحب المنصة",
+                                        com.example.ui.util.L.t("🛡️ لوحة تحكم صاحب المنصة", "🛡️ Platform Owner Admin Panel"),
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF1E88E5)
-                                    ) 
+                                    )
                                 },
                                 onClick = {
                                     showMenu = false
                                     onOpenAdmin()
                                 },
-                                leadingIcon = { 
-                                    Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = Color(0xFF1E88E5)) 
+                                leadingIcon = {
+                                    Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = Color(0xFF1E88E5))
                                 }
                             )
                         }

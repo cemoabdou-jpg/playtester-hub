@@ -45,6 +45,13 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onStop() {
+        super.onStop()
+        try {
+            com.example.ui.theme.LauncherIconManager.syncWithEvent(this)
+        } catch (_: Throwable) {}
+    }
 }
 
 enum class NavigationTab(val titleAr: String, val titleEn: String, val icon: ImageVector) {
@@ -62,11 +69,14 @@ enum class NavigationTab(val titleAr: String, val titleEn: String, val icon: Ima
 fun MainScreen(viewModel: TesterViewModel) {
     val user by viewModel.currentUser.collectAsState()
 
-    // Mandatory Authentication Gate: Must log in and verify email via OTP to access the platform
-    if (!user.isEmailVerified) {
-        MandatoryAuthScreen(viewModel = viewModel)
-        return
-    }
+    CompositionLocalProvider(
+        LocalLayoutDirection provides (if (L.isArabic()) LayoutDirection.Rtl else LayoutDirection.Ltr)
+    ) {
+        // Mandatory Authentication Gate: Must log in and verify email via OTP to access the platform
+        if (!user.isEmailVerified) {
+            MandatoryAuthScreen(viewModel = viewModel)
+            return@CompositionLocalProvider
+        }
 
     val context = LocalContext.current
     val activity = context as? Activity
@@ -116,9 +126,6 @@ fun MainScreen(viewModel: TesterViewModel) {
     val notifications by viewModel.testerNotifications.collectAsState()
     val unreadNotificationsCount = remember(notifications) { notifications.count { !it.isRead } }
 
-    CompositionLocalProvider(
-        LocalLayoutDirection provides (if (L.isArabic()) LayoutDirection.Rtl else LayoutDirection.Ltr)
-    ) {
         Scaffold(
             topBar = {
                 AppHeader(

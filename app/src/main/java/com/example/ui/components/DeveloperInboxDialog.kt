@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.DeveloperConversation
+import com.example.ui.util.L
 import com.example.ui.viewmodel.TesterViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -79,13 +80,13 @@ fun DeveloperInboxDialog(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                "محادثاتي مع المطورين",
+                                L.t("محادثاتي مع المطورين", "Developer Inbox"),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                "رسائل حقيقية ومباشرة عبر Cloud Firestore",
+                                L.t("رسائل حقيقية ومباشرة عبر السحابة", "Direct live cloud messages"),
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -93,7 +94,7 @@ fun DeveloperInboxDialog(
                     }
 
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "إغلاق")
+                        Icon(Icons.Default.Close, contentDescription = L.t("إغلاق", "Close"))
                     }
                 }
 
@@ -115,14 +116,17 @@ fun DeveloperInboxDialog(
                             )
                             Spacer(modifier = Modifier.height(10.dp))
                             Text(
-                                "لا توجد محادثات حالياً",
+                                L.t("لا توجد محادثات حالياً", "No conversations yet"),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                "تواصل مع أي مطور عبر زر 'محادثة' في مجتمع التطبيقات لتنسيق التبادل وسيرد عليك هنا مباشرة.",
+                                L.t(
+                                    "تواصل مع أي مطور عبر زر 'محادثة' في مجتمع التطبيقات لتنسيق التبادل وسيرد عليك هنا مباشرة.",
+                                    "Message any developer via 'Chat' in the Community tab to coordinate testing and receive replies here."
+                                ),
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -162,11 +166,13 @@ private fun ConversationItem(
     conversation: DeveloperConversation,
     onClick: () -> Unit
 ) {
-    val timeFormatted = remember(conversation.lastTimestamp) {
+    val localizedName = L.translateKnown(conversation.otherParticipantName)
+    val timeFormatted = remember(conversation.lastTimestamp, L.currentLanguage) {
         if (conversation.lastTimestamp <= 0L) ""
         else {
             try {
-                val sdf = SimpleDateFormat("dd/MM hh:mm a", Locale.getDefault())
+                val locale = if (L.isArabic()) Locale("ar") else Locale.ENGLISH
+                val sdf = SimpleDateFormat("dd/MM hh:mm a", locale)
                 sdf.format(Date(conversation.lastTimestamp))
             } catch (_: Exception) {
                 ""
@@ -191,7 +197,7 @@ private fun ConversationItem(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
-                        conversation.otherParticipantName.take(1).uppercase(),
+                        localizedName.take(1).uppercase(),
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
@@ -208,7 +214,7 @@ private fun ConversationItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        conversation.otherParticipantName,
+                        localizedName,
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurface
@@ -224,7 +230,7 @@ private fun ConversationItem(
 
                 if (conversation.appName != null && conversation.appName.isNotBlank()) {
                     Text(
-                        "تطبيق: ${conversation.appName}",
+                        L.t("تطبيق: ${conversation.appName}", "App: ${conversation.appName}"),
                         fontSize = 10.sp,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Medium
@@ -232,7 +238,7 @@ private fun ConversationItem(
                 }
 
                 Text(
-                    conversation.lastMessage.ifBlank { "انقر لفتح المحادثة" },
+                    conversation.lastMessage.ifBlank { L.t("انقر لفتح المحادثة", "Tap to open chat") },
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

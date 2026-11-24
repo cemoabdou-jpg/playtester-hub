@@ -3,6 +3,7 @@ package com.example.data.repository
 import com.example.data.local.AppDao
 import com.example.data.model.*
 import com.example.data.remote.FirestoreService
+import com.example.ui.util.L
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
@@ -54,10 +55,10 @@ class TesterRepository(
         webOptInUrl: String,
         androidOptInUrl: String,
         googleGroupUrl: String,
-        category: String = "تطبيق",
+        category: String = L.t("تطبيق", "App"),
         description: String = "",
         iconUrl: String = "",
-        developerName: String = "المطور المعتمد",
+        developerName: String = L.t("المطور المعتمد", "Verified Developer"),
         developerEmail: String = "",
         userId: String = "user_default",
         initialTesters: Int = 0,
@@ -113,14 +114,14 @@ class TesterRepository(
                 DailyTestLog(
                     id = "log_${packageName}_1_$testerIndex",
                     appId = packageName,
-                    testerName = "مختبر معتمد #$testerIndex",
+                    testerName = L.t("مختبر معتمد #$testerIndex", "Verified Tester #$testerIndex"),
                     testerEmail = "tester$testerIndex@playtesterhub.com",
                     deviceModel = listOf("Pixel 8", "Galaxy S23", "Xiaomi 13", "OnePlus 11")[testerIndex % 4],
                     osVersion = "Android 14 (API 34)",
                     dayNumber = safeDays,
                     checkInTimestamp = System.currentTimeMillis() - ((count - testerIndex) * 1800000L),
                     sessionDurationMinutes = 15,
-                    notes = "جلسة اختبار تفاعلية ناجحة وموثقة"
+                    notes = L.t("جلسة اختبار تفاعلية ناجحة وموثقة", "Verified interactive test session completed")
                 )
             }
             appDao.insertDailyTestLogs(logs)
@@ -147,14 +148,14 @@ class TesterRepository(
                 DailyTestLog(
                     id = "log_${packageName}_${days}_$testerIndex",
                     appId = packageName,
-                    testerName = "مختبر معتمد #$testerIndex",
+                    testerName = L.t("مختبر معتمد #$testerIndex", "Verified Tester #$testerIndex"),
                     testerEmail = "tester$testerIndex@playtesterhub.com",
                     deviceModel = listOf("Pixel 8", "Galaxy S23", "Xiaomi 13", "OnePlus 11")[testerIndex % 4],
                     osVersion = "Android 14 (API 34)",
                     dayNumber = days,
                     checkInTimestamp = System.currentTimeMillis() - ((count - testerIndex) * 3600000L),
                     sessionDurationMinutes = 15,
-                    notes = "جلسة اختبار معتمدة ونشطة في Google Play"
+                    notes = L.t("جلسة اختبار معتمدة ونشطة في جوجل بلاي", "Verified active test session on Google Play")
                 )
             }
             appDao.insertDailyTestLogs(logs)
@@ -232,14 +233,14 @@ class TesterRepository(
         val log = DailyTestLog(
             id = "log_${packageName}_${newDays}_${System.currentTimeMillis()}",
             appId = packageName,
-            testerName = "المطور المعتمد",
+            testerName = L.t("المطور المعتمد", "Verified Developer"),
             testerEmail = "cemoabdou@gmail.com",
             deviceModel = android.os.Build.MODEL ?: "Android Device",
             osVersion = "Android ${android.os.Build.VERSION.RELEASE}",
             dayNumber = newDays,
             checkInTimestamp = now,
             sessionDurationMinutes = 15,
-            notes = "جلسة اختبار يومية نشطة (+25 عملة)"
+            notes = L.t("جلسة اختبار يومية نشطة (+25 عملة)", "Active daily test session (+25 coins)")
         )
         appDao.insertDailyTestLogs(listOf(log))
         return newDays
@@ -257,7 +258,7 @@ class TesterRepository(
         val item = TesterFeedback(
             id = "fb_${appId}_${System.currentTimeMillis()}",
             appId = appId,
-            testerName = "مختبر معتمد",
+            testerName = L.t("مختبر معتمد", "Verified Tester"),
             rating = rating,
             comment = comment,
             createdAt = System.currentTimeMillis()

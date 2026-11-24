@@ -7,10 +7,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 
+import com.example.ui.util.L
+
 enum class ThemeMode(val titleAr: String, val titleEn: String, val icon: String) {
     SYSTEM("تلقائي", "System", "⚙️"),
     LIGHT("فاتح", "Light", "☀️"),
-    DARK("داكن", "Dark", "🌙")
+    DARK("داكن", "Dark", "🌙");
+
+    fun getTitle(): String = L.t(titleAr, titleEn)
 }
 
 enum class ThemePalette(
@@ -21,7 +25,8 @@ enum class ThemePalette(
     val secondaryColor: Color,
     val darkPrimaryColor: Color,
     val accentColor: Color,
-    val descriptionAr: String
+    val descriptionAr: String,
+    val descriptionEn: String
 ) {
     PLAY_GREEN(
         id = "play_green",
@@ -31,7 +36,8 @@ enum class ThemePalette(
         secondaryColor = Color(0xFF00A86B),
         darkPrimaryColor = Color(0xFF00C853),
         accentColor = Color(0xFFFFB300),
-        descriptionAr = "المظهر الكلاسيكي المعتمد لمتجر جوجل بلاي"
+        descriptionAr = "المظهر الكلاسيكي المعتمد لمتجر جوجل بلاي",
+        descriptionEn = "Classic official Google Play Store appearance"
     ),
     DEEP_OCEAN(
         id = "deep_ocean",
@@ -41,7 +47,8 @@ enum class ThemePalette(
         secondaryColor = Color(0xFF0288D1),
         darkPrimaryColor = Color(0xFF42A5F5),
         accentColor = Color(0xFF26C6DA),
-        descriptionAr = "طابع برمجي وهندسي احترافي هادئ"
+        descriptionAr = "طابع برمجي وهندسي احترافي هادئ",
+        descriptionEn = "Calm professional developer & engineering style"
     ),
     SUNSET_GOLD(
         id = "sunset_gold",
@@ -51,7 +58,8 @@ enum class ThemePalette(
         secondaryColor = Color(0xFFF59E0B),
         darkPrimaryColor = Color(0xFFFFB300),
         accentColor = Color(0xFF10B981),
-        descriptionAr = "طابع الأوسمة الذهبية ولوحة المتصدرين"
+        descriptionAr = "طابع الأوسمة الذهبية ولوحة المتصدرين",
+        descriptionEn = "Golden honors and leaderboard champion theme"
     ),
     NEON_VIOLET(
         id = "neon_violet",
@@ -61,7 +69,8 @@ enum class ThemePalette(
         secondaryColor = Color(0xFFA855F7),
         darkPrimaryColor = Color(0xFFC084FC),
         accentColor = Color(0xFFF43F5E),
-        descriptionAr = "مظهر عصري للألعاب وتطبيقات المستقبل"
+        descriptionAr = "مظهر عصري للألعاب وتطبيقات المستقبل",
+        descriptionEn = "Modern vibrant style for games and futuristic apps"
     ),
     CRIMSON_RUBY(
         id = "crimson_ruby",
@@ -71,7 +80,8 @@ enum class ThemePalette(
         secondaryColor = Color(0xFFF43F5E),
         darkPrimaryColor = Color(0xFFFB7185),
         accentColor = Color(0xFFF59E0B),
-        descriptionAr = "مظهر جريء وعالي الطاقة للمطورين"
+        descriptionAr = "مظهر جريء وعالي الطاقة للمطورين",
+        descriptionEn = "Bold, high-energy palette for active creators"
     ),
     NORDIC_TEAL(
         id = "nordic_teal",
@@ -81,8 +91,12 @@ enum class ThemePalette(
         secondaryColor = Color(0xFF14B8A6),
         darkPrimaryColor = Color(0xFF2DD4BF),
         accentColor = Color(0xFF6366F1),
-        descriptionAr = "ألوان هادئة ونقية ومريحة للعينين"
-    )
+        descriptionAr = "ألوان هادئة ونقية ومريحة للعينين",
+        descriptionEn = "Clean, serene, eye-friendly tones"
+    );
+
+    fun getTitle(): String = L.t(titleAr, titleEn)
+    fun getDescription(): String = L.t(descriptionAr, descriptionEn)
 }
 
 object ThemeManager {

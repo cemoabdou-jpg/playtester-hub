@@ -58,7 +58,7 @@ fun ProfileSettingsScreen(
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
-                                currentUser.displayName.firstOrNull()?.toString() ?: "م",
+                                L.translateKnown(currentUser.displayName).firstOrNull()?.toString() ?: L.t("م", "D"),
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 18.sp
@@ -68,7 +68,7 @@ fun ProfileSettingsScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            currentUser.displayName,
+                            L.translateKnown(currentUser.displayName),
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                             color = MaterialTheme.colorScheme.onSurface
@@ -118,7 +118,7 @@ fun ProfileSettingsScreen(
                                 shape = RoundedCornerShape(10.dp)
                             ) {
                                 Text(
-                                    L.t("VIP نشط", "VIP Active"),
+                                    L.t("عضوية مميزة نشطة", "VIP Active"),
                                     color = Color(0xFFFF8F00),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
@@ -171,7 +171,7 @@ fun ProfileSettingsScreen(
                             Column {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        "لوحة تحكم صاحب المنصة",
+                                        L.t("لوحة تحكم صاحب المنصة", "Platform Owner Control Panel"),
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 14.sp,
                                         color = Color(0xFF1565C0)
@@ -182,7 +182,7 @@ fun ProfileSettingsScreen(
                                         shape = RoundedCornerShape(4.dp)
                                     ) {
                                         Text(
-                                            "مسؤول",
+                                            L.t("مسؤول", "Admin"),
                                             color = Color.White,
                                             fontSize = 9.sp,
                                             fontWeight = FontWeight.Bold,
@@ -191,7 +191,10 @@ fun ProfileSettingsScreen(
                                     }
                                 }
                                 Text(
-                                    "إدارة وتعديل وحذف وتمييز جميع تطبيقات السيرفر",
+                                    L.t(
+                                        "إدارة وتعديل وحذف وتمييز جميع تطبيقات السيرفر",
+                                        "Manage, edit, feature, or remove all server apps"
+                                    ),
                                     fontSize = 11.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -229,7 +232,10 @@ fun ProfileSettingsScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                "الحساب مؤكد بالبريد الإلكتروني (OTP) ✓",
+                                L.t(
+                                    "الحساب مؤكد بالبريد الإلكتروني ✓",
+                                    "Account Verified via Email (OTP) ✓"
+                                ),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF1B5E20)
@@ -246,7 +252,7 @@ fun ProfileSettingsScreen(
                         shape = RoundedCornerShape(8.dp),
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                     ) {
-                        Text("تسجيل خروج", fontSize = 11.sp)
+                        Text(L.t("تسجيل خروج", "Sign Out"), fontSize = 11.sp)
                     }
                 }
             }
@@ -262,7 +268,7 @@ fun ProfileSettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text(
-                        "إدارة الحساب والجلسة:",
+                        L.t("إدارة الحساب والجلسة:", "Account & Session Management:"),
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurface
@@ -281,8 +287,17 @@ fun ProfileSettingsScreen(
                                 Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = Color(0xFF1976D2), modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Column {
-                                    Text("أنت مسجل حالياً بصفتك: صاحب المنصة 👑", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0D47A1))
-                                    Text("البريد الإلكتروني المعتمد: ${currentUser.email}", fontSize = 11.sp, color = Color(0xFF1565C0))
+                                    Text(
+                                        L.t("أنت مسجل حالياً بصفتك: صاحب المنصة 👑", "Signed in as: Platform Owner 👑"),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF0D47A1)
+                                    )
+                                    Text(
+                                        L.t("البريد الإلكتروني المعتمد: ${currentUser.email}", "Verified email: ${currentUser.email}"),
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF1565C0)
+                                    )
                                 }
                             }
                         }
@@ -294,7 +309,10 @@ fun ProfileSettingsScreen(
                         ) {
                             Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("معاينة مظهر المستخدم العادي (حساب تجريبي)", fontSize = 12.sp)
+                            Text(
+                                L.t("معاينة مظهر المستخدم العادي (حساب تجريبي)", "Preview Standard User View (Demo Account)"),
+                                fontSize = 12.sp
+                            )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
@@ -305,7 +323,11 @@ fun ProfileSettingsScreen(
                         ) {
                             Icon(Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("تسجيل الخروج والعودة لشاشة الدخول الإلزامية", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                L.t("تسجيل الخروج والعودة لشاشة الدخول الإلزامية", "Sign Out & Return to Sign-In Gate"),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     } else {
                         Button(
@@ -316,7 +338,11 @@ fun ProfileSettingsScreen(
                         ) {
                             Icon(Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("تسجيل الخروج (العودة لشاشة الدخول الإلزامية)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                L.t("تسجيل الخروج والعودة لشاشة الدخول الإلزامية", "Sign Out & Return to Sign-In Gate"),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
@@ -333,7 +359,7 @@ fun ProfileSettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text(
-                        "الخدمات التنفيذية والأدوات:",
+                        L.t("الخدمات التنفيذية والأدوات:", "Executive Services & Tools:"),
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurface
@@ -351,7 +377,7 @@ fun ProfileSettingsScreen(
                         ) {
                             Icon(Icons.Default.Assessment, contentDescription = null, modifier = Modifier.size(15.dp), tint = Color(0xFF00875A))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("تقرير التدقيق", fontSize = 11.sp)
+                            Text(L.t("تقرير التدقيق", "Audit Report"), fontSize = 11.sp)
                         }
                         OutlinedButton(
                             modifier = Modifier.weight(1f),
@@ -361,7 +387,7 @@ fun ProfileSettingsScreen(
                         ) {
                             Icon(Icons.Default.Speed, contentDescription = null, modifier = Modifier.size(15.dp), tint = Color(0xFFFFB300))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("باقات VIP", fontSize = 11.sp)
+                            Text(L.t("الباقات المميزة", "VIP Plans"), fontSize = 11.sp)
                         }
                         OutlinedButton(
                             modifier = Modifier.weight(1f),
@@ -371,7 +397,7 @@ fun ProfileSettingsScreen(
                         ) {
                             Icon(Icons.Default.GroupAdd, contentDescription = null, modifier = Modifier.size(15.dp), tint = Color(0xFF1E88E5))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("دعوة مطورين", fontSize = 11.sp)
+                            Text(L.t("دعوة مطورين", "Invite Devs"), fontSize = 11.sp)
                         }
                     }
                 }
@@ -409,7 +435,7 @@ fun ProfileSettingsScreen(
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    "لوحة الصدارة ومكافآت الأوسمة",
+                                    L.t("لوحة الصدارة ومكافآت الأوسمة", "Leaderboard & Badge Rewards"),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 14.sp,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -420,7 +446,7 @@ fun ProfileSettingsScreen(
                                     shape = RoundedCornerShape(6.dp)
                                 ) {
                                     Text(
-                                        "+مكافآت فورية",
+                                        L.t("+مكافآت فورية", "+Instant Rewards"),
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White,
@@ -430,7 +456,10 @@ fun ProfileSettingsScreen(
                             }
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                "تحقق من رتبتك الأسبوعية واستلم مكافآت أوسمة الإنجاز",
+                                L.t(
+                                    "تحقق من رتبتك الأسبوعية واستلم مكافآت أوسمة الإنجاز",
+                                    "Check your weekly rank and claim achievement badge bonuses"
+                                ),
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -438,7 +467,7 @@ fun ProfileSettingsScreen(
                     }
 
                     Text(
-                        "‹",
+                        L.t("‹", "›"),
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.outline
@@ -478,7 +507,7 @@ fun ProfileSettingsScreen(
                             }
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                "مكافأة الحضور والنشاط اليومي:",
+                                L.t("مكافأة الحضور والنشاط اليومي:", "Daily Attendance & Activity Bonus:"),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -490,7 +519,7 @@ fun ProfileSettingsScreen(
                             shape = RoundedCornerShape(6.dp)
                         ) {
                             Text(
-                                "+50 نقطة",
+                                L.t("+50 نقطة", "+50 Coins"),
                                 color = Color(0xFF2E7D32),
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
@@ -501,7 +530,10 @@ fun ProfileSettingsScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        "سجّل حضورك اليومي وشارك في اختبار التطبيقات لكسب عملات مجانية لترويج تطبيقاتك واستقطاب 20 مختبراً حقيقياً.",
+                        L.t(
+                            "سجّل حضورك اليومي وشارك في اختبار التطبيقات لكسب عملات مجانية لترويج تطبيقاتك واستقطاب 20 مختبراً حقيقياً.",
+                            "Check in daily and test peer apps to earn free coins for promoting your apps and attracting 20 real testers."
+                        ),
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = 16.sp
@@ -515,9 +547,23 @@ fun ProfileSettingsScreen(
                         onClick = {
                             val success = viewModel.claimDailyBonus()
                             if (success) {
-                                Toast.makeText(context, "🎉 مبروك! حصلت على +50 نقطة مكافأة نشاط يومي!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    L.t(
+                                        "🎉 مبروك! حصلت على +50 نقطة مكافأة نشاط يومي!",
+                                        "🎉 Congrats! You received +50 daily activity coins!"
+                                    ),
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             } else {
-                                Toast.makeText(context, "لقد استلمت مكافأة اليوم مسبقاً! عد غداً للمزيد.", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    L.t(
+                                        "لقد استلمت مكافأة اليوم مسبقاً! عد غداً للمزيد.",
+                                        "You already claimed today's bonus! Come back tomorrow."
+                                    ),
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
                         },
                         shape = RoundedCornerShape(10.dp),
@@ -534,7 +580,11 @@ fun ProfileSettingsScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            if (isBonusClaimed) "تم استلام مكافأة اليوم بنجاح ✓ (عد غداً)" else "استلام مكافأة اليوم (+50 نقطة)",
+                            if (isBonusClaimed) {
+                                L.t("تم استلام مكافأة اليوم بنجاح ✓ (عد غداً)", "Today's Bonus Claimed ✓ (Come back tomorrow)")
+                            } else {
+                                L.t("استلام مكافأة اليوم (+50 نقطة)", "Claim Daily Bonus (+50 Coins)")
+                            },
                             color = if (isBonusClaimed) Color(0xFF00875A) else Color.Black,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
@@ -599,9 +649,20 @@ fun ProfileSettingsScreen(
                         if (granted) {
                             com.example.util.DailyReminderScheduler.setReminderEnabled(context, true)
                             isReminderOn = true
-                            Toast.makeText(context, "تم تفعيل الإشعارات بنجاح 🔔", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                L.t("تم تفعيل الإشعارات بنجاح 🔔", "Notifications enabled successfully 🔔"),
+                                Toast.LENGTH_SHORT
+                            ).show()
                         } else {
-                            Toast.makeText(context, "يرجى السماح بالإشعارات من إعدادات الهاتف لتلقي التذكير اليومي", Toast.LENGTH_LONG).show()
+                            Toast.makeText(
+                                context,
+                                L.t(
+                                    "يرجى السماح بالإشعارات من إعدادات الهاتف لتلقي التذكير اليومي",
+                                    "Please allow notifications in device settings to receive daily reminders"
+                                ),
+                                Toast.LENGTH_LONG
+                            ).show()
                         }
                     }
 
@@ -614,10 +675,17 @@ fun ProfileSettingsScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = Color(0xFF00875A), modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("تذكير الاختبار اليومي (8:00 م)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text(
+                                    L.t("تذكير الاختبار اليومي (8:00 م)", "Daily Testing Reminder (8:00 PM)"),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
+                                )
                             }
                             Text(
-                                "تنبيه يومي للحفاظ على سلسلة الـ 14 يوماً ومساعدة المطورين",
+                                L.t(
+                                    "تنبيه يومي للحفاظ على سلسلة 14 يوماً ومساعدة المطورين",
+                                    "Daily alert to keep your 14-day streak and support developers"
+                                ),
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -630,7 +698,15 @@ fun ProfileSettingsScreen(
                                 } else {
                                     com.example.util.DailyReminderScheduler.setReminderEnabled(context, enable)
                                     isReminderOn = enable
-                                    Toast.makeText(context, if (enable) "تم تفعيل التذكير اليومي (8:00 مساءً) ⏰" else "تم إيقاف التذكير", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        if (enable) {
+                                            L.t("تم تفعيل التذكير اليومي (8:00 مساءً) ⏰", "Daily reminder enabled (8:00 PM) ⏰")
+                                        } else {
+                                            L.t("تم إيقاف التذكير", "Daily reminder disabled")
+                                        },
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                             }
                         )
@@ -651,7 +727,11 @@ fun ProfileSettingsScreen(
                     ) {
                         Icon(Icons.Default.Notifications, contentDescription = null, modifier = Modifier.size(15.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("إرسال إشعار تجريبي الآن للتأكد 🔔", fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                        Text(
+                            L.t("إرسال إشعار تجريبي الآن للتأكد 🔔", "Send Test Notification Now 🔔"),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
             }

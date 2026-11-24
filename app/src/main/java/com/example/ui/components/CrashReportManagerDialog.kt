@@ -20,6 +20,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.CrashReport
 import com.example.data.model.UserApp
+import com.example.ui.util.L
 
 @Composable
 fun CrashReportManagerDialog(
@@ -51,17 +52,21 @@ fun CrashReportManagerDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
+                        Icon(Icons.Default.Close, contentDescription = L.t("إغلاق", "Close"))
                     }
                     Text(
-                        "🛠️ مركز تتبع الأعطال والانهيارات (Crash / ANR)",
+                        L.t("🛠️ مركز تتبع الأعطال والانهيارات", "🛠️ Crash & ANR Tracker"),
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleLarge
                     )
                     IconButton(onClick = {
-                        Toast.makeText(context, "سجل الأخطاء محدث ومتزامن مع تقارير الاختبار", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            L.t("سجل الأخطاء محدث ومتزامن مع تقارير الاختبار", "Crash logs synced with test reports"),
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "تحديث")
+                        Icon(Icons.Default.Refresh, contentDescription = L.t("تحديث", "Refresh"))
                     }
                 }
 
@@ -77,15 +82,15 @@ fun CrashReportManagerDialog(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("${crashes.size}", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                            Text("إجمالي التقارير", fontSize = 11.sp, color = Color.Gray)
+                            Text(L.t("إجمالي التقارير", "Total Reports"), fontSize = 11.sp, color = Color.Gray)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("${crashes.count { it.status == "RESOLVED" }}", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF00875A))
-                            Text("تم حلها وموثقة", fontSize = 11.sp, color = Color.Gray)
+                            Text(L.t("تم حلها وموثقة", "Resolved & Logged"), fontSize = 11.sp, color = Color.Gray)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("${crashes.count { it.status != "RESOLVED" }}", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFFE53935))
-                            Text("قيد الانتظار", fontSize = 11.sp, color = Color.Gray)
+                            Text(L.t("قيد الانتظار", "Pending"), fontSize = 11.sp, color = Color.Gray)
                         }
                     }
                 }
@@ -107,7 +112,7 @@ fun CrashReportManagerDialog(
                                         shape = RoundedCornerShape(6.dp)
                                     ) {
                                         Text(
-                                            if (crash.status == "RESOLVED") "تم الحل" else "نشط",
+                                            if (crash.status == "RESOLVED") L.t("تم الحل", "Resolved") else L.t("نشط", "Active"),
                                             color = if (crash.status == "RESOLVED") Color(0xFF2E7D32) else Color(0xFFC62828),
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
@@ -116,7 +121,14 @@ fun CrashReportManagerDialog(
                                     }
                                 }
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text("الجهاز: ${crash.deviceModel} | النظام: ${crash.osVersion} | النسخة: ${crash.appVersion}", fontSize = 11.sp, color = Color.Gray)
+                                Text(
+                                    L.t(
+                                        "الجهاز: ${crash.deviceModel} | النظام: ${crash.osVersion} | النسخة: ${crash.appVersion}",
+                                        "Device: ${crash.deviceModel} | OS: ${crash.osVersion} | Version: ${crash.appVersion}"
+                                    ),
+                                    fontSize = 11.sp,
+                                    color = Color.Gray
+                                )
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Surface(
                                     color = MaterialTheme.colorScheme.surfaceVariant,
@@ -133,14 +145,19 @@ fun CrashReportManagerDialog(
 
                                 if (crash.status == "RESOLVED") {
                                     Spacer(modifier = Modifier.height(6.dp))
-                                    Text("ملاحظة الحل الموثقة: ${crash.resolutionNote}", fontSize = 12.sp, color = Color(0xFF00796B), fontWeight = FontWeight.Medium)
+                                    Text(
+                                        L.t("ملاحظة الحل الموثقة: ${crash.resolutionNote}", "Resolution Note: ${crash.resolutionNote}"),
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF00796B),
+                                        fontWeight = FontWeight.Medium
+                                    )
                                 } else {
                                     Spacer(modifier = Modifier.height(8.dp))
                                     if (resolvingCrashId == crash.id) {
                                         OutlinedTextField(
                                             value = resolutionText,
                                             onValueChange = { resolutionText = it },
-                                            label = { Text("اكتب سبب الحل (Fix Notes)") },
+                                            label = { Text(L.t("اكتب سبب الحل وخطوات الإصلاح", "Write resolution & fix notes")) },
                                             modifier = Modifier.fillMaxWidth()
                                         )
                                         Spacer(modifier = Modifier.height(6.dp))
@@ -151,14 +168,14 @@ fun CrashReportManagerDialog(
                                                         onResolveCrash(crash.id, resolutionText)
                                                         resolvingCrashId = null
                                                         resolutionText = ""
-                                                        Toast.makeText(context, "تم توثيق حل المشكلة بنجاح!", Toast.LENGTH_SHORT).show()
+                                                        Toast.makeText(context, L.t("تم توثيق حل المشكلة بنجاح!", "Crash fix logged successfully!"), Toast.LENGTH_SHORT).show()
                                                     }
                                                 }
                                             ) {
-                                                Text("حفظ التوثيق")
+                                                Text(L.t("حفظ التوثيق", "Save Log"))
                                             }
                                             OutlinedButton(onClick = { resolvingCrashId = null }) {
-                                                Text("إلغاء")
+                                                Text(L.t("إلغاء", "Cancel"))
                                             }
                                         }
                                     } else {
@@ -168,7 +185,7 @@ fun CrashReportManagerDialog(
                                         ) {
                                             Icon(Icons.Default.Done, contentDescription = null, modifier = Modifier.size(16.dp))
                                             Spacer(modifier = Modifier.width(4.dp))
-                                            Text("توثيق الحل في تقرير التدقيق")
+                                            Text(L.t("توثيق الحل في تقرير التدقيق", "Log Fix in Audit Report"))
                                         }
                                     }
                                 }
@@ -183,7 +200,7 @@ fun CrashReportManagerDialog(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = onDismiss
                 ) {
-                    Text("إغلاق")
+                    Text(L.t("إغلاق", "Close"))
                 }
             }
         }

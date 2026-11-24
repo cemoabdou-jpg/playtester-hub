@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.TesterNotification
+import com.example.ui.util.L
 import com.example.ui.viewmodel.TesterViewModel
 
 @Composable
@@ -56,12 +57,12 @@ fun NotificationsCenterDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onDismiss, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Default.Close, contentDescription = "إغلاق")
+                        Icon(Icons.Default.Close, contentDescription = L.t("إغلاق", "Close"))
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                "إشعارات نشاط المختبرين",
+                                L.t("إشعارات نشاط المختبرين", "Tester Activity Notifications"),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -85,7 +86,7 @@ fun NotificationsCenterDialog(
                             }
                         }
                         Text(
-                            "الأشخاص الذين قاموا بتجربة تطبيقاتك",
+                            L.t("الأشخاص الذين قاموا بتجربة تطبيقاتك", "Testers who joined and tested your apps"),
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -96,7 +97,7 @@ fun NotificationsCenterDialog(
                             onClick = { viewModel.markAllNotificationsAsRead() },
                             contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
                         ) {
-                            Text("قراءة الكل", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(L.t("قراءة الكل", "Read All"), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                     } else {
                         Spacer(modifier = Modifier.size(36.dp))
@@ -120,8 +121,12 @@ fun NotificationsCenterDialog(
                                 tint = MaterialTheme.colorScheme.outline
                             )
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("لا توجد إشعارات جديدة حالياً", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            Text("ستظهر هنا تنبيهات عندما يختبر أحد تطبيقك", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(L.t("لا توجد إشعارات جديدة حالياً", "No new notifications right now"), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(
+                                L.t("ستظهر هنا تنبيهات عندما يختبر أحد تطبيقك", "Alerts will appear here when someone tests your app"),
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 } else {
@@ -177,7 +182,7 @@ fun NotificationsCenterDialog(
                                             Column {
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                                     Text(
-                                                        notif.testerName,
+                                                        L.translateKnown(notif.testerName),
                                                         fontWeight = FontWeight.Bold,
                                                         fontSize = 13.sp,
                                                         color = MaterialTheme.colorScheme.onSurface
@@ -204,7 +209,7 @@ fun NotificationsCenterDialog(
                                             shape = RoundedCornerShape(6.dp)
                                         ) {
                                             Text(
-                                                notif.testerBadge,
+                                                L.translateKnown(notif.testerBadge),
                                                 color = Color(0xFFD97706),
                                                 fontSize = 9.sp,
                                                 fontWeight = FontWeight.Bold,
@@ -230,7 +235,11 @@ fun NotificationsCenterDialog(
                                                 )
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Text(
-                                                    if (isActionTested) "قام بتجربة واختبار تطبيقك بنجاح ✓" else "انضم لاختبار تطبيقك في Google Play",
+                                                    if (isActionTested) {
+                                                        L.t("قام بتجربة واختبار تطبيقك بنجاح ✓", "Successfully tested your app ✓")
+                                                    } else {
+                                                        L.t("انضم لاختبار تطبيقك في متجر جوجل بلاي", "Joined your app test on Google Play")
+                                                    },
                                                     fontWeight = FontWeight.Bold,
                                                     fontSize = 11.sp,
                                                     color = if (isActionTested) Color(0xFF00875A) else Color(0xFF1E88E5)
@@ -238,14 +247,14 @@ fun NotificationsCenterDialog(
                                             }
                                             Spacer(modifier = Modifier.height(4.dp))
                                             Text(
-                                                notif.message,
+                                                L.translateKnown(notif.message),
                                                 fontSize = 11.sp,
                                                 color = MaterialTheme.colorScheme.onSurface,
                                                 lineHeight = 16.sp
                                             )
                                             Spacer(modifier = Modifier.height(4.dp))
                                             Text(
-                                                "الجهاز: ${notif.deviceModel}",
+                                                L.t("الجهاز: ${notif.deviceModel}", "Device: ${notif.deviceModel}"),
                                                 fontSize = 10.sp,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -268,7 +277,10 @@ fun NotificationsCenterDialog(
                                         Icon(Icons.Default.AccountBox, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
-                                            "عرض حساب المختبر وتطبيقاته والمشاركة في اختبارها ↗",
+                                            L.t(
+                                                "عرض حساب المختبر وتطبيقاته والمشاركة في اختبارها ↗",
+                                                "View Tester Profile & Reciprocal Apps ↗"
+                                            ),
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 11.sp
                                         )
@@ -286,7 +298,7 @@ fun NotificationsCenterDialog(
                     onClick = onDismiss,
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("إغلاق")
+                    Text(L.t("إغلاق", "Close"))
                 }
             }
         }

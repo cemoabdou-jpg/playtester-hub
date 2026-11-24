@@ -39,10 +39,13 @@ class PlayTesterApplication : Application() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val channel = NotificationChannel(
                     "playtester_channel",
-                    "PlayTester Notifications",
+                    com.example.ui.util.L.t("إشعارات منصة المختبرين", "PlayTester Notifications"),
                     NotificationManager.IMPORTANCE_DEFAULT
                 ).apply {
-                    description = "Daily reminders and testing updates"
+                    description = com.example.ui.util.L.t(
+                        "تذكيرات يومية وتحديثات الاختبار المغلق",
+                        "Daily reminders and closed testing updates"
+                    )
                 }
                 val manager = getSystemService(NotificationManager::class.java)
                 manager?.createNotificationChannel(channel)

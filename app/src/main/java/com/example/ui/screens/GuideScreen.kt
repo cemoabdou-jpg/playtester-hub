@@ -11,6 +11,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import com.example.ui.util.L
+
 @Composable
 fun GuideScreen() {
     LazyColumn(
@@ -30,13 +32,19 @@ fun GuideScreen() {
             ) {
                 Column {
                     Text(
-                        "📘 دليل اجتياز متطلبات Google Play",
+                        L.t(
+                            "📘 دليل اجتياز متطلبات متجر جوجل بلاي",
+                            "📘 Google Play Closed Testing Guide"
+                        ),
                         fontWeight = FontWeight.Bold,
                         fontSize = 17.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        "خطوات معتمدة لتفادي الرفض واستيفاء الـ 14 يوماً",
+                        L.t(
+                            "خطوات معتمدة لتفادي الرفض واستيفاء 14 يوماً",
+                            "Proven steps to avoid rejection & pass 14 continuous days"
+                        ),
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -47,29 +55,44 @@ fun GuideScreen() {
         item {
             CleanGuideCard(
                 stepNum = "1",
-                title = "إعداد مسار الاختبار المغلق (Closed Track)",
-                desc = "أنشئ مسار اختبار مغلق في Google Play Console وأضف رابط مجموعة Google Group للمختبرين لتمكين التحميل."
+                title = L.t("إعداد مسار الاختبار المغلق", "Set Up Closed Testing Track"),
+                desc = L.t(
+                    "أنشئ مسار اختبار مغلق في لوحة مطوري جوجل بلاي وأضف رابط مجموعة جوجل للمختبرين لتمكين التحميل.",
+                    "Create a closed testing track in Google Play Console and link your tester Google Group to enable opt-in downloads."
+                )
             )
         }
         item {
             CleanGuideCard(
                 stepNum = "2",
-                title = "جمع الـ 20 مختبراً وتأكيد الـ Opt-in",
-                desc = "يجب على 20 مختبراً على الأقل النقر على رابط الانضمام وتثبيت التطبيق على أجهزتهم الحقيقية."
+                title = L.t("جمع 20 مختبراً وتأكيد الانضمام", "Recruit 20 Opted-In Testers"),
+                desc = L.t(
+                    "يجب على 20 مختبراً على الأقل النقر على رابط الانضمام وتثبيت التطبيق على أجهزتهم الحقيقية.",
+                    "At least 20 real testers must open your opt-in invitation URL and install the app on physical Android devices."
+                )
             )
         }
         item {
             CleanGuideCard(
                 stepNum = "3",
-                title = "التفاعل المستمر لـ 14 يوماً متواصلة",
-                desc = "لا يكفي مجرد التثبيت؛ يقوم نظام PlayTester Hub بتذكير المختبرين بفتح التطبيق يومياً لضمان نشاط الحسابات."
+                title = L.t("التفاعل المستمر لـ 14 يوماً متواصلة", "Daily Active Engagement for 14 Days"),
+                desc = L.t(
+                    "لا يكفي مجرد التثبيت؛ يقوم نظام المنصة بتذكير المختبرين بفتح التطبيق يومياً لضمان نشاط الحسابات.",
+                    "Installing alone isn't enough; PlayTester Hub reminds testers daily to open and interact with your app consistently."
+                )
             )
         }
         item {
             CleanGuideCard(
                 stepNum = "4",
-                title = "استخراج تقرير التدقيق الرسمي والتقديم للإنتاج",
-                desc = "استخدم زر 'تقرير التدقيق الرسمي' في PlayTester Hub لإرفاق مستند الإثبات والإجابة على استبيان Google بنجاح."
+                title = L.t(
+                    "استخراج تقرير التدقيق الرسمي والتقديم للإنتاج",
+                    "Export Audit Dossier & Apply for Production"
+                ),
+                desc = L.t(
+                    "استخدم زر تقرير التدقيق الرسمي في المنصة لإرفاق مستند الإثبات والإجابة على استبيان المراجعة بنجاح.",
+                    "Use the Official Audit Report tool in PlayTester Hub to export verification proofs and answer the Play Console questionnaire."
+                )
             )
         }
     }

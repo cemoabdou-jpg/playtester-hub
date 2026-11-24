@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.ui.util.L
 import com.example.util.AdMobConfig
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -104,7 +105,7 @@ fun DailyLuckySpinDialog(
         val hours = TimeUnit.MILLISECONDS.toHours(ms)
         val minutes = TimeUnit.MILLISECONDS.toMinutes(ms) % 60
         val seconds = TimeUnit.MILLISECONDS.toSeconds(ms) % 60
-        return String.format("%02d:%02d:%02d", hours, minutes, seconds)
+        return String.format(java.util.Locale.US, "%02d:%02d:%02d", hours, minutes, seconds)
     }
 
     fun executeSpin(targetSliceIndex: Int, earnedCoins: Int) {
@@ -162,11 +163,11 @@ fun DailyLuckySpinDialog(
                         enabled = !isSpinning,
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "إغلاق")
+                        Icon(Icons.Default.Close, contentDescription = L.t("إغلاق", "Close"))
                     }
 
                     Text(
-                        "عجلة الحظ اليومية 🎡",
+                        L.t("عجلة الحظ اليومية 🎡", "Daily Lucky Spin 🎡"),
                         fontWeight = FontWeight.Black,
                         fontSize = 18.sp,
                         color = MaterialTheme.colorScheme.onSurface
@@ -177,7 +178,7 @@ fun DailyLuckySpinDialog(
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = if (canSpinFree) "1 لفة مجانية" else formatRemaining(remainingTimeMs),
+                            text = if (canSpinFree) L.t("1 لفة مجانية", "1 Free Spin") else formatRemaining(remainingTimeMs),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (canSpinFree) Color(0xFFE65100) else Color.Gray,
@@ -189,9 +190,15 @@ fun DailyLuckySpinDialog(
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = if (canSpinFree) {
-                        "لف العجلة يومياً مجاناً، أو شاهد إعلاناً للحصول على لفات إضافية غير محدودة!"
+                        L.t(
+                            "لف العجلة يومياً مجاناً، أو شاهد إعلاناً للحصول على لفات إضافية غير محدودة!",
+                            "Spin the wheel daily for free, or watch an ad for unlimited extra spins!"
+                        )
                     } else {
-                        "استهلكت اللفة اليومية المجانية! شاهد إعلاناً للّف الآن أو انتظر انتهاء الوقت."
+                        L.t(
+                            "استهلكت اللفة اليومية المجانية! شاهد إعلاناً للّف الآن أو انتظر انتهاء الوقت.",
+                            "Daily free spin used! Watch an ad to spin now or wait for the timer."
+                        )
                     },
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -332,13 +339,13 @@ fun DailyLuckySpinDialog(
                         ) {
                             Column {
                                 Text(
-                                    "🎉 مبروك! كسبت $lastWonCoins عملة!",
+                                    L.t("🎉 مبروك! كسبت $lastWonCoins عملة!", "🎉 Congrats! You won $lastWonCoins coins!"),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp,
                                     color = Color(0xFF2E7D32)
                                 )
                                 Text(
-                                    "أضيفت لرصيدك في الحساب",
+                                    L.t("أضيفت لرصيدك في الحساب", "Added to your account balance"),
                                     fontSize = 10.sp,
                                     color = Color(0xFF388E3C)
                                 )
@@ -373,7 +380,7 @@ fun DailyLuckySpinDialog(
                                 modifier = Modifier.height(30.dp)
                             ) {
                                 Text(
-                                    text = if (isDoubleClaimed) "تمت المضاعفة ✓" else "ضاعفها (2x) 🎬",
+                                    text = if (isDoubleClaimed) L.t("تمت المضاعفة ✓", "Doubled ✓") else L.t("ضاعفها الآن 🎬", "Double (2x) 🎬"),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -404,7 +411,7 @@ fun DailyLuckySpinDialog(
                             modifier = Modifier.weight(1f),
                             contentPadding = PaddingValues(vertical = 10.dp)
                         ) {
-                            Text("تدوير مجاني 🎡", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text(L.t("تدوير مجاني 🎡", "Free Spin 🎡"), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
                     }
 
@@ -433,7 +440,7 @@ fun DailyLuckySpinDialog(
                     ) {
                         Icon(Icons.Default.PlayCircle, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("لفة إضافية (إعلان 🎬)", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text(L.t("لفة إضافية (إعلان 🎬)", "Extra Spin (Ad 🎬)"), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
             }

@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.local.AppDatabase
 import com.example.data.model.*
 import com.example.data.repository.TesterRepository
+import com.example.ui.util.L
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -156,7 +157,7 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
             _currentUser.value = AuthUser(
                 uid = if (isOwner) "owner_cemoabdou" else "user_${savedEmail.hashCode()}",
                 email = savedEmail,
-                displayName = savedName ?: if (isOwner) "صاحب المنصة (عبدالرحمن)" else "مطور معتمد",
+                displayName = savedName?.let { L.translateKnown(it) } ?: if (isOwner) L.t("صاحب المنصة (عبدالرحمن)", "Platform Owner (Abdelrahman)") else L.t("مطور معتمد", "Verified Developer"),
                 points = if (isOwner) 9999 else prefs.getInt("user_points", 0),
                 isVip = isOwner,
                 isEmailVerified = true
@@ -336,7 +337,7 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
     fun confirmVerificationCode(enteredCode: String): Boolean {
         if (enteredCode.trim() == _verificationCode.value && _verificationCode.value.isNotBlank()) {
             val email = _pendingEmail.value.trim()
-            val name = if (_pendingName.value.isNotBlank()) _pendingName.value.trim() else "مطور معتمد"
+            val name = if (_pendingName.value.isNotBlank()) _pendingName.value.trim() else L.t("مطور معتمد", "Verified Developer")
             val isOwner = email.equals(PLATFORM_OWNER_EMAIL, ignoreCase = true)
 
             prefs.edit()
@@ -349,7 +350,7 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
                 it.copy(
                     uid = if (isOwner) "owner_cemoabdou" else "user_${email.hashCode()}",
                     email = email,
-                    displayName = if (isOwner) "صاحب المنصة (عبدالرحمن)" else name,
+                    displayName = if (isOwner) L.t("صاحب المنصة (عبدالرحمن)", "Platform Owner (Abdelrahman)") else name,
                     isEmailVerified = true,
                     isVip = isOwner,
                     points = if (isOwner) 9999 else prefs.getInt("user_points", 0)
@@ -411,7 +412,7 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         pkg: String,
         optIn: String,
         grp: String,
-        cat: String = "تطبيق",
+        cat: String = L.t("تطبيق", "App"),
         desc: String = "",
         iconUrl: String = "",
         initialTesters: Int = 0,
@@ -506,7 +507,7 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
 
     fun loginAsOwner() {
         val email = PLATFORM_OWNER_EMAIL
-        val name = "صاحب المنصة (عبدالرحمن)"
+        val name = L.t("صاحب المنصة (عبدالرحمن)", "Platform Owner (Abdelrahman)")
         prefs.edit()
             .putString("user_email", email)
             .putString("user_name", name)
@@ -544,7 +545,7 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
 
     fun logoutToRegularUser() {
         val email = "developer@testerhub.com"
-        val name = "مطور تجريبي"
+        val name = L.t("مطور تجريبي", "Beta Developer")
         prefs.edit()
             .putString("user_email", email)
             .putString("user_name", name)
@@ -605,17 +606,24 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         }
 
         val completedCount = matchedApps.sumOf { it.currentTesters }.coerceAtLeast(1)
-        val badge = if (matchedApps.any { it.isFeatured }) "مطور مميز 💎" else "مطور معتمد ⭐"
+        val badge = if (matchedApps.any { it.isFeatured }) {
+            L.t("مطور مميز 💎", "Featured Developer 💎")
+        } else {
+            L.t("مطور معتمد ⭐", "Verified Developer ⭐")
+        }
 
         _selectedTesterProfile.value = TesterProfileData(
-            name = cleanName.ifBlank { "مطور مسجل" },
+            name = L.translateKnown(cleanName.ifBlank { L.t("مطور مسجل", "Registered Developer") }),
             email = cleanEmail,
             badge = badge,
             rating = 5.0f,
             testsCompleted = completedCount,
             reputationPoints = completedCount * 50,
-            deviceModel = "جهاز أندرويد معتمد",
-            bio = "مطور مسجل في مجتمع PlayTester Hub. يشارك في اختبار التطبيقات وتبادل الفحص للوصول إلى شرط الـ 14 يوماً و 20 مختبراً 🤝",
+            deviceModel = L.t("جهاز أندرويد معتمد", "Verified Android Device"),
+            bio = L.t(
+                "مطور مسجل في مجتمع منصة المختبرين، يشارك في اختبار التطبيقات وتبادل الفحص للوصول إلى شرط 14 يوماً و20 مختبراً 🤝",
+                "Registered developer in PlayTester Hub, actively exchanging tests to reach the 14-day / 20-tester requirement 🤝"
+            ),
             apps = matchedApps
         )
         _showTesterProfileDialog.value = true
@@ -695,7 +703,11 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
                 context.startActivity(browserIntent)
             }
         } catch (_: Exception) {
-            android.widget.Toast.makeText(context, "تم تسجيل اختبار ${test.appName} بنجاح (+25 عملة)", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(
+                context,
+                L.t("تم تسجيل اختبار ${test.appName} بنجاح (+25 عملة)", "Test recorded for ${test.appName} (+25 coins)"),
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
@@ -741,8 +753,8 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         return listOf(
             AchievementBadge(
                 id = "badge_perfect_tester",
-                title = "وسام المختبر المثالي",
-                description = "فتح واختبار تطبيقات الآخرين لـ 7 أيام متتالية",
+                title = L.t("وسام المختبر المثالي", "Perfect Tester Badge"),
+                description = L.t("فتح واختبار تطبيقات الآخرين لـ 7 أيام متتالية", "Open and test peers' apps for 7 consecutive days"),
                 emoji = "🏅",
                 coinReward = 150,
                 currentProgress = minOf(7, maxDaysCompleted),
@@ -752,8 +764,8 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
             ),
             AchievementBadge(
                 id = "badge_bug_hunter",
-                title = "وسام صائد الأخطاء",
-                description = "تقديم ملاحظات أعطال واختبار استقرار التطبيقات",
+                title = L.t("وسام صائد الأخطاء", "Bug Hunter Badge"),
+                description = L.t("تقديم ملاحظات أعطال واختبار استقرار التطبيقات", "Submit stability feedback and report app issues"),
                 emoji = "🐛",
                 coinReward = 100,
                 currentProgress = if (isBugHunterUnlocked) 1 else 0,
@@ -763,8 +775,8 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
             ),
             AchievementBadge(
                 id = "badge_verified_dev",
-                title = "وسام المطور المعتمد",
-                description = "إكمال 20 مختبراً معتمداً لتطبيقك في Google Play",
+                title = L.t("وسام المطور المعتمد", "Verified Developer Badge"),
+                description = L.t("إكمال 20 مختبراً معتمداً لتطبيقك في متجر جوجل بلاي", "Reach 20 verified testers for your app on Google Play"),
                 emoji = "🚀",
                 coinReward = 200,
                 currentProgress = minOf(20, maxTesters),
@@ -774,8 +786,8 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
             ),
             AchievementBadge(
                 id = "badge_active_supporter",
-                title = "وسام الداعم النشط",
-                description = "الانضمام لاختبار 3 تطبيقات زملاء في المجتمع",
+                title = L.t("وسام الداعم النشط", "Active Supporter Badge"),
+                description = L.t("الانضمام لاختبار 3 تطبيقات زملاء في المجتمع", "Join closed testing for 3 community peer apps"),
                 emoji = "🌟",
                 coinReward = 75,
                 currentProgress = minOf(3, maxOf(user.testsCount, joined.size)),
@@ -785,8 +797,8 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
             ),
             AchievementBadge(
                 id = "badge_featured_promoter",
-                title = "وسام نجم الصدارة",
-                description = "ترقية تطبيقك إلى الصدارة لجذب المختبرين بأولوية",
+                title = L.t("وسام نجم الصدارة", "Spotlight Star Badge"),
+                description = L.t("ترقية تطبيقك إلى الصدارة لجذب المختبرين بأولوية", "Promote your app to Spotlight to attract priority testers"),
                 emoji = "👑",
                 coinReward = 100,
                 currentProgress = if (isPromoterUnlocked) 1 else 0,
@@ -805,11 +817,15 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
             val key = currentUser.email.ifBlank { currentUser.displayName }
             devMap[key] = LeaderboardUser(
                 rank = 1,
-                name = currentUser.displayName,
+                name = L.translateKnown(currentUser.displayName),
                 email = currentUser.email,
                 testsCompleted = currentUser.testsCount,
                 points = currentUser.points,
-                badgeTitle = if (currentUser.isPlatformOwner) "صاحب المنصة 👑" else "مطور نشط ⭐",
+                badgeTitle = if (currentUser.isPlatformOwner) {
+                    L.t("صاحب المنصة 👑", "Platform Owner 👑")
+                } else {
+                    L.t("مطور نشط ⭐", "Active Developer ⭐")
+                },
                 isCurrentUser = true
             )
         }
@@ -817,17 +833,21 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         // 2. Add real developers who uploaded apps to community
         communityApps.value.forEach { app ->
             val devName = app.developerName.trim()
-            if (devName.isNotBlank() && devName != "المطور المعتمد") {
+            if (devName.isNotBlank() && devName != "المطور المعتمد" && devName != "Verified Developer") {
                 val isSelf = currentUser.displayName.equals(devName, ignoreCase = true)
                 if (!isSelf && !devMap.containsKey(devName)) {
                     val safeEmail = "${devName.lowercase().replace(" ", "").replace("[^a-zA-Z0-9]".toRegex(), "")}@developer.com"
                     devMap[devName] = LeaderboardUser(
                         rank = 0,
-                        name = devName,
+                        name = L.translateKnown(devName),
                         email = safeEmail,
                         testsCompleted = app.currentTesters,
                         points = app.currentTesters * 50,
-                        badgeTitle = if (app.isFeatured) "مطور مميز 💎" else "مطور معتمد ⭐",
+                        badgeTitle = if (app.isFeatured) {
+                            L.t("مطور مميز 💎", "Featured Developer 💎")
+                        } else {
+                            L.t("مطور معتمد ⭐", "Verified Developer ⭐")
+                        },
                         isCurrentUser = false
                     )
                 }
@@ -917,7 +937,7 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
 
             ComplianceDay(
                 dayNumber = day,
-                dateLabel = "اليوم $day",
+                dateLabel = L.t("اليوم $day", "Day $day"),
                 activeTestersCount = testers,
                 targetTesters = target,
                 avgSessionMinutes = avgMins,
@@ -925,16 +945,24 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
                 isCompleted = isDone,
                 isToday = isToday,
                 notes = when {
-                    isDone -> "تم استيفاء شرط الفحص اليومي وجلسات الاختبار موثقة"
-                    isToday -> "جلسة اليوم جارية - النشاط في المستوى المطلوب"
-                    else -> "مجدول للمتابعة اليومية"
+                    isDone -> L.t(
+                        "تم استيفاء شرط الفحص اليومي وجلسات الاختبار موثقة",
+                        "Daily inspection threshold met and test sessions verified"
+                    )
+                    isToday -> L.t(
+                        "جلسة اليوم جارية - النشاط في المستوى المطلوب",
+                        "Today's session active - engagement on target"
+                    )
+                    else -> L.t(
+                        "مجدول للمتابعة اليومية",
+                        "Scheduled for daily follow-up"
+                    )
                 }
             )
         }
     }
 
     fun getQuestionnaireAnswers(app: UserApp): List<GooglePlayQuestionnaireAnswer> {
-        val appName = app.name
         val testersCount = maxOf(app.currentTesters, 21)
         val days = maxOf(app.completedDays, 14)
 
@@ -943,21 +971,21 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
                 questionNumber = 1,
                 questionTitleAr = "كيف قمت بتجنيد وتأهيل المختبرين للاختبار المغلق؟",
                 questionTitleEn = "How did you recruit testers for your closed testing track?",
-                recommendedAnswerAr = "قمنا باستقطاب $testersCount مختبراً معتمداً من مجتمع المطورين المتخصص PlayTester Hub عبر مجموعة Google Groups الرسمية ورابط الدعوة المعتمد. تم اختيار مختبرين يستخدمون أجهزة أندرويد حقيقية متنوعة تشمل Samsung وGoogle Pixel وXiaomi بنظام Android 12 فما فوق لضمان تغطية بيئات تشغيل متعددة.",
-                recommendedAnswerEn = "We recruited $testersCount verified Android developers through the professional developer exchange community PlayTester Hub via our official Google Group and closed test opt-in URL. Testers utilized diverse physical Android devices (Samsung Galaxy, Google Pixel, Xiaomi) across Android 12 to 14 to validate multi-vendor stability."
+                recommendedAnswerAr = "قمنا باستقطاب $testersCount مختبراً معتمداً من مجتمع المطورين المتخصص عبر مجموعة جوجل الرسمية ورابط الدعوة المعتمد. تم اختيار مختبرين يستخدمون أجهزة أندرويد حقيقية متنوعة تشمل أجهزة سامسونج وجوجل بكسل وشاومي بنظام أندرويد 12 فما فوق لضمان تغطية بيئات تشغيل متعددة.",
+                recommendedAnswerEn = "We recruited $testersCount verified Android developers through the PlayTester Hub professional developer exchange community via our official Google Group and closed test opt-in URL. Testers utilized diverse physical Android devices (Samsung Galaxy, Google Pixel, Xiaomi) across Android 12 to 14 to validate multi-vendor stability."
             ),
             GooglePlayQuestionnaireAnswer(
                 questionNumber = 2,
                 questionTitleAr = "ما مستوى التفاعل والمشاركة الذي أظهره المختبرون خلال فترة الـ 14 يوماً؟",
                 questionTitleEn = "What level of engagement did you observe during the 14 continuous days?",
-                recommendedAnswerAr = "حافظ المختبرون على تفاعل متواصل على مدار $days يوماً مستمرة بمعدل جلسات تجاوز 14 دقيقة للجلسة الواحدة. أظهرت سجلات القياس (Telemetry) تشغيل المسارات الأساسية في التطبيق، واختبار الوضع الأفقي والعمودي، ومحاكاة انقطاع الاتصال بالإنترنت، واختبار العودة من الخلفية دون حدوث أي تجميد (ANR).",
+                recommendedAnswerAr = "حافظ المختبرون على تفاعل متواصل على مدار $days يوماً مستمرة بمعدل جلسات تجاوز 14 دقيقة للجلسة الواحدة. أظهرت سجلات القياس تشغيل المسارات الأساسية في التطبيق، واختبار الوضع الأفقي والعمودي، ومحاكاة انقطاع الاتصال بالإنترنت، واختبار العودة من الخلفية دون حدوث أي تجمد أو توقف للاستجابة.",
                 recommendedAnswerEn = "Testers engaged in active testing over $days consecutive days with average daily session lengths exceeding 14 minutes. Real device telemetry verified key user flows, screen rotation handling, backgrounding/resuming lifecycle states, and network connectivity transitions with zero Application Not Responding (ANR) events."
             ),
             GooglePlayQuestionnaireAnswer(
                 questionNumber = 3,
                 questionTitleAr = "ما هي الملاحظات التي تلقيتها وما التعديلات التي قمت بإجرائها قبل التقديم للإنتاج؟",
                 questionTitleEn = "What feedback did you receive and what changes did you implement based on it?",
-                recommendedAnswerAr = "تلقينا تقييمات تفصيلية تركزت على تحسين هوامش الحواف Edge-to-Edge وتجاوب الأزرار في الشاشات الصغيرة. قمنا بحل تقريري كراش في حالات معالجة البيانات غير المتوقعة، وأصدرنا تحديثاً داخلياً برقم النسخة v1.2 رفع سرعة الاستجابة بنسبة 25% ونال رضا المختبرين بالإجماع.",
+                recommendedAnswerAr = "تلقينا تقييمات تفصيلية تركزت على تحسين هوامش العرض على الحواف الكاملة وتجاوب الأزرار في الشاشات الصغيرة. قمنا بحل تقريري تعطل في حالات معالجة البيانات غير المتوقعة، وأصدرنا تحديثاً داخلياً رفع سرعة الاستجابة بنسبة 25% ونال رضا المختبرين بالإجماع.",
                 recommendedAnswerEn = "Testers provided structured UX and stability feedback regarding edge-to-edge padding and touch target responsiveness on compact displays. We addressed 2 edge-case crash reports, refactored data initialization flows, and published an updated release build which resolved the issues and achieved 100% test completion."
             )
         )
@@ -977,16 +1005,19 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
     fun completeActiveTestSession(
         test: JoinedTest,
         durationMinutes: Int = 15,
-        notes: String = "جلسة فحص شاملة موثقة بنجاح"
+        notes: String = L.t("جلسة فحص شاملة موثقة بنجاح", "Comprehensive QA inspection verified successfully")
     ) {
         viewModelScope.launch {
+            val resolvedTesterName = _currentUser.value.displayName.ifBlank {
+                L.t("مطور معتمد", "Verified Developer")
+            }
             val log = DailyTestLog(
                 id = "log_${System.currentTimeMillis()}_${(1000..9999).random()}",
                 appId = test.appId,
-                testerName = _currentUser.value.displayName.ifBlank { "مطور معتمد" },
+                testerName = resolvedTesterName,
                 testerEmail = _currentUser.value.email.ifBlank { "dev.tester@testerhub.com" },
-                deviceModel = "Android Device (Verified)",
-                osVersion = "Android 14 (API 34)",
+                deviceModel = L.t("جهاز أندرويد معتمد", "Verified Android Device"),
+                osVersion = L.t("أندرويد 14", "Android 14 (API 34)"),
                 dayNumber = (test.daysCompleted + 1).coerceAtMost(14),
                 checkInTimestamp = System.currentTimeMillis(),
                 sessionDurationMinutes = durationMinutes,
@@ -1007,16 +1038,19 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
             // Add reciprocal notification
             val newNotif = TesterNotification(
                 id = "notif_verified_${System.currentTimeMillis()}",
-                testerName = _currentUser.value.displayName.ifBlank { "مطور معتمد" },
+                testerName = resolvedTesterName,
                 testerEmail = _currentUser.value.email.ifBlank { "dev.tester@testerhub.com" },
-                testerBadge = "مختبر محترف ⚡",
+                testerBadge = L.t("مختبر محترف ⚡", "Pro Tester ⚡"),
                 appName = test.appName,
                 appPackageName = test.packageName,
                 timestamp = System.currentTimeMillis(),
                 actionType = "TESTED",
-                deviceModel = "Verified Physical Device",
+                deviceModel = L.t("جهاز فعلي موثق", "Verified Physical Device"),
                 isRead = false,
-                message = "أتم جلسة اختبار متقدمة وموثقة لمدة $durationMinutes دقيقة لتطبيق ${test.appName}."
+                message = L.t(
+                    "أتم جلسة اختبار متقدمة وموثقة لمدة $durationMinutes دقيقة لتطبيق ${test.appName}.",
+                    "Completed a verified $durationMinutes-minute QA session for ${test.appName}."
+                )
             )
             _testerNotifications.update { listOf(newNotif) + it }
 
@@ -1076,7 +1110,7 @@ class TesterViewModel(application: Application) : AndroidViewModel(application) 
         attachedAppPackage: String? = null
     ) {
         if (text.isBlank()) return
-        val myName = _currentUser.value.displayName.ifBlank { "مطور معتمد" }
+        val myName = _currentUser.value.displayName.ifBlank { L.t("مطور معتمد", "Verified Developer") }
         val myEmail = _currentUser.value.email.ifBlank { "dev.tester@testerhub.com" }
         val recipientEmail = _activeChatRecipientEmail.value
         val recipientName = _activeChatRecipientName.value

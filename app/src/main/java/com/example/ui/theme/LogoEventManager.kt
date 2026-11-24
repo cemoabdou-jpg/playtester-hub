@@ -2,16 +2,20 @@ package com.example.ui.theme
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.icu.util.IslamicCalendar
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import com.example.ui.util.L
 import java.util.Calendar
 
 enum class LogoEvent(
     val id: String,
     val titleAr: String,
+    val titleEn: String,
     val subtitleAr: String,
+    val subtitleEn: String,
     val badgeEmoji: String,
     val primaryColor: Color,
     val glowColor: Color,
@@ -20,7 +24,9 @@ enum class LogoEvent(
     AUTO(
         id = "auto",
         titleAr = "تلقائي حسب المناسبة والتقويم",
+        titleEn = "Auto by Season & Calendar",
         subtitleAr = "يكتشف الأعياد والمواسم والأيام المميزة تلقائياً",
+        subtitleEn = "Automatically detects holidays, seasons, and special days",
         badgeEmoji = "✨",
         primaryColor = Color(0xFF00875A),
         glowColor = Color(0xFF00E676),
@@ -29,7 +35,9 @@ enum class LogoEvent(
     RAMADAN(
         id = "ramadan",
         titleAr = "رمضان المبارك",
+        titleEn = "Blessed Ramadan",
         subtitleAr = "هلال ذهبي وفانوس مضيء ونجوم متلألئة",
+        subtitleEn = "Golden crescent, glowing lantern, and twinkling stars",
         badgeEmoji = "🌙",
         primaryColor = Color(0xFFFFB300),
         glowColor = Color(0xFFFFD54F),
@@ -38,7 +46,9 @@ enum class LogoEvent(
     EID(
         id = "eid",
         titleAr = "أفراح العيد والمناسبات",
+        titleEn = "Eid & Celebrations",
         subtitleAr = "ألعاب نارية واحتفالية بهيجة ومفرقعات",
+        subtitleEn = "Festive fireworks, confetti, and joyful sparkles",
         badgeEmoji = "🎉",
         primaryColor = Color(0xFFE91E63),
         glowColor = Color(0xFFFF4081),
@@ -47,7 +57,9 @@ enum class LogoEvent(
     GOLD_RUSH(
         id = "gold_rush",
         titleAr = "موسم مضاعفة النقاط والعملات",
+        titleEn = "Double Coin Rush Season",
         subtitleAr = "هالة ذهبية نارية وعملات تطفو بنشاط",
+        subtitleEn = "Fiery golden aura with floating reward coins",
         badgeEmoji = "🪙",
         primaryColor = Color(0xFFFF9100),
         glowColor = Color(0xFFFFD700),
@@ -56,7 +68,9 @@ enum class LogoEvent(
     TECH_RADAR(
         id = "tech_radar",
         titleAr = "رادار الاختبار الذكي (14 يوماً)",
+        titleEn = "14-Day Smart Test Radar",
         subtitleAr = "أمواج مسح زرقاء وتقنية نيون مستقبلية",
+        subtitleEn = "Blue radar waves with futuristic neon accents",
         badgeEmoji = "⚡",
         primaryColor = Color(0xFF00B0FF),
         glowColor = Color(0xFF00E5FF),
@@ -65,7 +79,9 @@ enum class LogoEvent(
     ROYAL_OWNER(
         id = "royal_owner",
         titleAr = "التاج الملكي والدرع الموثق",
+        titleEn = "Royal Crown & Verified Shield",
         subtitleAr = "هالة أرجوانية ملكية مع بريق التاج الذهبي",
+        subtitleEn = "Royal purple aura with shimmering golden crown",
         badgeEmoji = "👑",
         primaryColor = Color(0xFF7C3AED),
         glowColor = Color(0xFFA855F7),
@@ -74,12 +90,17 @@ enum class LogoEvent(
     NEW_YEAR(
         id = "new_year",
         titleAr = "احتفال العام والثلج الماسي",
+        titleEn = "New Year & Diamond Snow",
         subtitleAr = "بلورات ثلجية وبريق ماسي متلألئ",
+        subtitleEn = "Crystalline snowflakes and sparkling diamond glow",
         badgeEmoji = "❄️",
         primaryColor = Color(0xFF00BCD4),
         glowColor = Color(0xFFE0F7FA),
         secondaryColor = Color(0xFF80DEEA)
-    )
+    );
+
+    fun getTitle(): String = L.t(titleAr, titleEn)
+    fun getSubtitle(): String = L.t(subtitleAr, subtitleEn)
 }
 
 object LogoEventManager {
@@ -102,33 +123,53 @@ object LogoEventManager {
         } catch (_: Throwable) {}
     }
 
-    fun setEvent(event: LogoEvent) {
+    fun setEvent(event: LogoEvent, context: Context? = null) {
         selectedEvent = event
         prefs?.edit()?.putString(KEY_SELECTED_EVENT, event.id)?.apply()
+        if (context != null) {
+            LauncherIconManager.syncWithEvent(
+                context = context,
+                event = if (event == LogoEvent.AUTO) getEffectiveEvent() else event
+            )
+        }
     }
 
     /**
-     * Determines the live active event (evaluating AUTO against calendar and days)
+     * Determines the live active event (evaluating AUTO against Hijri & Gregorian calendars and weekends).
      */
     fun getEffectiveEvent(): LogoEvent {
         if (selectedEvent != LogoEvent.AUTO) return selectedEvent
 
+        // 1. Accurate Hijri Calendar detection (Ramadan, Eid al-Fitr, Eid al-Adha)
+        try {
+            val hijri = IslamicCalendar()
+            val hijriMonth = hijri.get(IslamicCalendar.MONTH) // 0-based: Ramadan = 8, Shawwal = 9, Dhu al-Hijjah = 11
+            val hijriDay = hijri.get(IslamicCalendar.DAY_OF_MONTH)
+
+            if (hijriMonth == IslamicCalendar.RAMADAN) {
+                return LogoEvent.RAMADAN
+            }
+            if (hijriMonth == IslamicCalendar.SHAWWAL && hijriDay in 1..5) {
+                return LogoEvent.EID
+            }
+            if (hijriMonth == IslamicCalendar.DHU_AL_HIJJAH && hijriDay in 9..13) {
+                return LogoEvent.EID
+            }
+        } catch (_: Throwable) {
+            // Fallback handled below if ICU IslamicCalendar fails on any device
+        }
+
+        // 2. Gregorian seasonal events & weekly Gold Rush
         val calendar = Calendar.getInstance()
-        val month = calendar.get(Calendar.MONTH) // 0-based: 0 = Jan, 1 = Feb, 2 = Mar...
+        val month = calendar.get(Calendar.MONTH)
         val dayOfMonth = calendar.get(Calendar.DAY_OF_MONTH)
         val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
 
-        // Ramadan / Eid approximation
-        if ((month == Calendar.FEBRUARY && dayOfMonth >= 20) || (month == Calendar.MARCH && dayOfMonth <= 30)) {
-            return LogoEvent.RAMADAN
-        }
-        if ((month == Calendar.MARCH && dayOfMonth > 28) || (month == Calendar.APRIL && dayOfMonth <= 7)) {
-            return LogoEvent.EID
-        }
         if ((month == Calendar.DECEMBER && dayOfMonth >= 24) || (month == Calendar.JANUARY && dayOfMonth <= 7)) {
             return LogoEvent.NEW_YEAR
         }
-        // Weekend Coin Rush (Thursday night, Friday, Saturday)
+
+        // Weekend Coin Rush (Friday & Saturday)
         if (dayOfWeek == Calendar.FRIDAY || dayOfWeek == Calendar.SATURDAY) {
             return LogoEvent.GOLD_RUSH
         }

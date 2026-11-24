@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.ui.util.L
 import kotlinx.coroutines.delay
 
 @Composable
@@ -85,10 +86,10 @@ fun EmailVerificationDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.Close, contentDescription = "إغلاق")
+                        Icon(Icons.Default.Close, contentDescription = L.t("إغلاق", "Close"))
                     }
                     Text(
-                        if (!isCodeSentStep) "إنشاء حساب وتأكيد الاشتراك" else "تأكيد رمز البريد الإلكتروني",
+                        if (!isCodeSentStep) L.t("إنشاء حساب وتأكيد الاشتراك", "Create Account & Verify") else L.t("تأكيد رمز البريد الإلكتروني", "Verify Email Code"),
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
                         color = MaterialTheme.colorScheme.onSurface
@@ -117,7 +118,10 @@ fun EmailVerificationDialog(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        "أدخل بياناتك وسيتم إرسال رمز تحقق سري (OTP) إلى بريدك الإلكتروني لتأكيد التسجيل.",
+                        L.t(
+                            "أدخل بياناتك وسيتم إرسال رمز تحقق سري إلى بريدك الإلكتروني لتأكيد التسجيل.",
+                            "Enter your details to receive a secret OTP verification code via email."
+                        ),
                         fontSize = 12.sp,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -129,7 +133,7 @@ fun EmailVerificationDialog(
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text("الاسم الكامل أو اسم المطور") },
+                        label = { Text(L.t("الاسم الكامل أو اسم المطور", "Full Name or Developer Name")) },
                         leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
@@ -140,7 +144,7 @@ fun EmailVerificationDialog(
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
-                        label = { Text("البريد الإلكتروني") },
+                        label = { Text(L.t("البريد الإلكتروني", "Email Address")) },
                         leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         singleLine = true,
@@ -152,7 +156,7 @@ fun EmailVerificationDialog(
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = { Text("كلمة المرور") },
+                        label = { Text(L.t("كلمة المرور", "Password")) },
                         leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -177,24 +181,24 @@ fun EmailVerificationDialog(
                             .height(48.dp),
                         onClick = {
                             if (email.isBlank() || !email.contains("@")) {
-                                errorMessage = "يرجى إدخال بريد إلكتروني صحيح"
+                                errorMessage = L.t("يرجى إدخال بريد إلكتروني صحيح", "Please enter a valid email address")
                                 return@Button
                             }
                             if (name.isBlank()) {
-                                errorMessage = "يرجى كتابة اسمك"
+                                errorMessage = L.t("يرجى كتابة اسمك", "Please enter your name")
                                 return@Button
                             }
                             errorMessage = null
                             onSendCode(email.trim(), name.trim())
                             isCodeSentStep = true
-                            Toast.makeText(context, "تم إرسال رمز التحقق إلى $email", Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, L.t("تم إرسال رمز التحقق إلى $email", "Verification code sent to $email"), Toast.LENGTH_LONG).show()
                         },
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("إرسال رمز التأكيد للايميل", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text(L.t("إرسال رمز التأكيد للبريد", "Send Verification Code"), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 } else {
                     Surface(
@@ -215,7 +219,7 @@ fun EmailVerificationDialog(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        "تم إرسال رمز التحقق المكون من 6 أرقام إلى:",
+                        L.t("تم إرسال رمز التحقق المكون من 6 أرقام إلى:", "We sent a 6-digit verification code to:"),
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -244,7 +248,7 @@ fun EmailVerificationDialog(
                                 Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    "رمز التحقق المرسل: $currentCode",
+                                    L.t("رمز التحقق المرسل: $currentCode", "Sent Code: $currentCode"),
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF1B5E20)
@@ -254,12 +258,12 @@ fun EmailVerificationDialog(
                                 onClick = {
                                     enteredOtp = currentCode
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    clipboard.setPrimaryClip(ClipData.newPlainText("OTP", currentCode))
-                                    Toast.makeText(context, "تم تعبئة الرمز تلقائياً", Toast.LENGTH_SHORT).show()
+                                    clipboard.setPrimaryClip(ClipData.newPlainText(L.t("رمز التحقق", "OTP"), currentCode))
+                                    Toast.makeText(context, L.t("تم تعبئة الرمز تلقائياً", "Code auto-filled"), Toast.LENGTH_SHORT).show()
                                 },
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                             ) {
-                                Text("تعبئة تلقائية", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text(L.t("تعبئة تلقائية", "Auto Fill"), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -274,7 +278,7 @@ fun EmailVerificationDialog(
                                 errorMessage = null
                             }
                         },
-                        label = { Text("أدخل الرمز المكون من 6 أرقام") },
+                        label = { Text(L.t("أدخل الرمز المكون من 6 أرقام", "Enter 6-digit code")) },
                         placeholder = { Text("• • • • • •") },
                         singleLine = true,
                         textStyle = LocalTextStyle.current.copy(
@@ -304,14 +308,14 @@ fun EmailVerificationDialog(
                             .height(48.dp),
                         onClick = {
                             if (enteredOtp.length != 6) {
-                                errorMessage = "يرجى كتابة الرمز كاملاً (6 أرقام)"
+                                errorMessage = L.t("يرجى كتابة الرمز كاملاً (6 أرقام)", "Please enter the full 6-digit code")
                                 return@Button
                             }
                             val success = onConfirmCode(enteredOtp)
                             if (success) {
-                                Toast.makeText(context, "🎉 تم تأكيد الاشتراك بنجاح وإضافة +100 نقطة لحسابك!", Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, L.t("🎉 تم تأكيد الاشتراك بنجاح وإضافة +100 نقطة لحسابك!", "🎉 Account verified! +100 coins added!"), Toast.LENGTH_LONG).show()
                             } else {
-                                errorMessage = "الرمز المدخل غير صحيح، يرجى المحاولة مجدداً"
+                                errorMessage = L.t("الرمز المدخل غير صحيح، يرجى المحاولة مجدداً", "Invalid code, please try again")
                             }
                         },
                         shape = RoundedCornerShape(12.dp),
@@ -319,7 +323,7 @@ fun EmailVerificationDialog(
                     ) {
                         Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("تأكيد الاشتراك وتفعيل الحساب", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text(L.t("تأكيد الاشتراك وتفعيل الحساب", "Confirm & Activate Account"), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -333,21 +337,21 @@ fun EmailVerificationDialog(
                             onClick = { isCodeSentStep = false },
                             contentPadding = PaddingValues(0.dp)
                         ) {
-                            Text("تعديل البريد الإلكتروني", fontSize = 11.sp)
+                            Text(L.t("تعديل البريد الإلكتروني", "Change Email"), fontSize = 11.sp)
                         }
 
                         TextButton(
                             onClick = {
                                 if (canResend) {
                                     onSendCode(email, name)
-                                    Toast.makeText(context, "تمت إعادة إرسال رمز جديد بنجاح", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, L.t("تمت إعادة إرسال رمز جديد بنجاح", "New code sent successfully"), Toast.LENGTH_SHORT).show()
                                 }
                             },
                             enabled = canResend,
                             contentPadding = PaddingValues(0.dp)
                         ) {
                             Text(
-                                if (canResend) "إعادة إرسال الرمز" else "إعادة الإرسال بعد (${resendCountdown} ث)",
+                                if (canResend) L.t("إعادة إرسال الرمز", "Resend Code") else L.t("إعادة الإرسال بعد (${resendCountdown} ث)", "Resend in (${resendCountdown}s)"),
                                 fontSize = 11.sp,
                                 color = if (canResend) MaterialTheme.colorScheme.primary else Color.Gray
                             )

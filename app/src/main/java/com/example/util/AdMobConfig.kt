@@ -145,7 +145,14 @@ object AdMobConfig {
         onAdClosed: () -> Unit = {}
     ) {
         if (isRunningInEmulator()) {
-            Toast.makeText(activity, "محاكاة: تم تخطي الإعلان البيني بنجاح", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                activity,
+                com.example.ui.util.L.t(
+                    "محاكاة: تم تخطي الإعلان البيني بنجاح",
+                    "Simulation: Interstitial ad skipped successfully"
+                ),
+                Toast.LENGTH_SHORT
+            ).show()
             onAdClosed()
             return
         }
@@ -181,7 +188,14 @@ object AdMobConfig {
         onDismissedOrFailed: () -> Unit = {}
     ) {
         if (isRunningInEmulator()) {
-            Toast.makeText(activity, "🎉 تمت مشاهدة إعلان المكافأة واحتساب +50 نقطة!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                activity,
+                com.example.ui.util.L.t(
+                    "🎉 تمت مشاهدة إعلان المكافأة واحتساب +50 نقطة!",
+                    "🎉 Rewarded ad watched! +50 points credited!"
+                ),
+                Toast.LENGTH_SHORT
+            ).show()
             onRewardEarned(50)
             onDismissedOrFailed()
             return
@@ -254,7 +268,10 @@ fun AdBannerView(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "مساحة إعلانية نشطة (Google AdMob Banner)",
+                        com.example.ui.util.L.t(
+                            "مساحة إعلانية نشطة",
+                            "Active Ad Space"
+                        ),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -265,7 +282,7 @@ fun AdBannerView(
                     shape = RoundedCornerShape(4.dp)
                 ) {
                     Text(
-                        "AdMob",
+                        com.example.ui.util.L.t("إعلان", "Ad"),
                         color = Color(0xFF00875A),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,

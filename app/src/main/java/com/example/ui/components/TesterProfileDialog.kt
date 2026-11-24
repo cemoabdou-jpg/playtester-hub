@@ -29,6 +29,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.CommunityApp
 import com.example.data.model.TesterProfileData
+import com.example.ui.util.L
 import com.example.ui.viewmodel.TesterViewModel
 
 @Composable
@@ -39,6 +40,7 @@ fun TesterProfileDialog(
 ) {
     val context = LocalContext.current
     val joinedTests by viewModel.joinedTests.collectAsState()
+    val displayName = L.translateKnown(profile.name)
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -58,17 +60,16 @@ fun TesterProfileDialog(
                     .fillMaxSize()
                     .padding(20.dp)
             ) {
-                // Top Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onDismiss, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Default.Close, contentDescription = "إغلاق")
+                        Icon(Icons.Default.Close, contentDescription = L.t("إغلاق", "Close"))
                     }
                     Text(
-                        "الملف الشخصي للمختبر",
+                        L.t("الملف الشخصي للمختبر", "Tester Profile"),
                         fontWeight = FontWeight.Bold,
                         fontSize = 17.sp,
                         color = MaterialTheme.colorScheme.onSurface
@@ -78,7 +79,7 @@ fun TesterProfileDialog(
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            "تبادل معتمد 🤝",
+                            L.t("تبادل معتمد 🤝", "Verified Swap 🤝"),
                             color = Color(0xFF00875A),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
@@ -93,7 +94,6 @@ fun TesterProfileDialog(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    // Profile Header Card
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -106,7 +106,6 @@ fun TesterProfileDialog(
                                     .padding(16.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                // Avatar with initial letter and active badge
                                 Box(contentAlignment = Alignment.BottomEnd) {
                                     Surface(
                                         shape = CircleShape,
@@ -115,7 +114,7 @@ fun TesterProfileDialog(
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
                                             Text(
-                                                text = profile.name.firstOrNull()?.toString() ?: "م",
+                                                text = displayName.firstOrNull()?.toString() ?: L.t("م", "T"),
                                                 color = Color.White,
                                                 fontSize = 26.sp,
                                                 fontWeight = FontWeight.ExtraBold
@@ -133,7 +132,7 @@ fun TesterProfileDialog(
                                 Spacer(modifier = Modifier.height(10.dp))
 
                                 Text(
-                                    profile.name,
+                                    displayName,
                                     fontSize = 17.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -152,7 +151,7 @@ fun TesterProfileDialog(
                                     shape = RoundedCornerShape(10.dp)
                                 ) {
                                     Text(
-                                        profile.badge,
+                                        L.translateKnown(profile.badge),
                                         color = Color(0xFFD97706),
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
@@ -162,22 +161,21 @@ fun TesterProfileDialog(
 
                                 Spacer(modifier = Modifier.height(12.dp))
 
-                                // Quick Metrics Row
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceEvenly
                                 ) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Text("${profile.testsCompleted}", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
-                                        Text("اختبار مكتمل", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(L.t("اختبار مكتمل", "Tests Done"), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Text("★ ${profile.rating}", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFFFF8F00))
-                                        Text("تقييم النشاط", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(L.t("تقييم النشاط", "Activity Rating"), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Text("${profile.reputationPoints}", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFF00875A))
-                                        Text("نقاط السمعة", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(L.t("نقاط السمعة", "Reputation"), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
 
@@ -194,7 +192,11 @@ fun TesterProfileDialog(
                                     ) {
                                         Icon(Icons.Default.PhoneAndroid, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("جهاز الاختبار المسجل: ${profile.deviceModel}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(
+                                            L.t("جهاز الاختبار المسجل: ${profile.deviceModel}", "Registered Test Device: ${profile.deviceModel}"),
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
                                 }
 
@@ -215,38 +217,44 @@ fun TesterProfileDialog(
                                 ) {
                                     Icon(Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("💬 فتح محادثة تنسيق التبادل المباشر", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        L.t("💬 فتح محادثة تنسيق التبادل المباشر", "💬 Open Direct Test Swap Chat"),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
                             }
                         }
                     }
 
-                    // Section Title: Developer Apps for Reciprocal Testing
                     item {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Apps, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    "تطبيقات هذا المطور (المتاحة للاختبار):",
+                                    L.t("تطبيقات هذا المطور (المتاحة للاختبار):", "Developer's Apps (Available to Test):"),
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                             Text(
-                                "${profile.apps.size} تطبيق",
+                                L.t("${profile.apps.size} تطبيق", "${profile.apps.size} apps"),
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                         Text(
-                            "بادر باختبار تطبيقه بالمثل لإكمال شرط الـ 14 يوماً معاً وكسب نقاط إضافية 🤝",
+                            L.t(
+                                "بادر باختبار تطبيقه بالمثل لإكمال شرط الـ 14 يوماً معاً وكسب نقاط إضافية 🤝",
+                                "Test their app in return to complete the 14-day requirement together & earn bonus coins 🤝"
+                            ),
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -267,7 +275,14 @@ fun TesterProfileDialog(
                                 ) {
                                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF00875A), modifier = Modifier.size(36.dp))
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    Text("أكمل هذا المطور متطلبات تطبيقاته أو لا توجد لديه تطبيقات معلقة حالياً", fontSize = 12.sp, textAlign = TextAlign.Center)
+                                    Text(
+                                        L.t(
+                                            "أكمل هذا المطور متطلبات تطبيقاته أو لا توجد لديه تطبيقات معلقة حالياً",
+                                            "This developer has no pending apps requiring tests right now"
+                                        ),
+                                        fontSize = 12.sp,
+                                        textAlign = TextAlign.Center
+                                    )
                                 }
                             }
                         }
@@ -308,7 +323,7 @@ fun TesterProfileDialog(
                                                     color = MaterialTheme.colorScheme.onSurface
                                                 )
                                                 Text(
-                                                    "${app.category} • ${app.packageName}",
+                                                    "${L.localizeCategory(app.category)} • ${app.packageName}",
                                                     fontSize = 10.sp,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
@@ -320,7 +335,7 @@ fun TesterProfileDialog(
                                             shape = RoundedCornerShape(8.dp)
                                         ) {
                                             Text(
-                                                "+${app.pointsReward} عملة",
+                                                L.t("+${app.pointsReward} عملة", "+${app.pointsReward} coins"),
                                                 color = Color(0xFFFF8F00),
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 11.sp,
@@ -331,18 +346,17 @@ fun TesterProfileDialog(
 
                                     Spacer(modifier = Modifier.height(10.dp))
 
-                                    // Metrics Row
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
                                         Text(
-                                            "المختبرون الحاليون: ${app.currentTesters} / ${app.targetTesters}",
+                                            L.t("المختبرون الحاليون: ${app.currentTesters} / ${app.targetTesters}", "Current Testers: ${app.currentTesters} / ${app.targetTesters}"),
                                             fontSize = 11.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                         Text(
-                                            "المدة المطلوبة: ${app.requiredDays} يوماً",
+                                            L.t("المدة المطلوبة: ${app.requiredDays} يوماً", "Required: ${app.requiredDays} days"),
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.primary
@@ -367,7 +381,12 @@ fun TesterProfileDialog(
                                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                                         Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF00796B), modifier = Modifier.size(16.dp))
                                                         Spacer(modifier = Modifier.width(4.dp))
-                                                        Text("أنت منضم لاختباره بالفعل ✓", color = Color(0xFF00796B), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                                        Text(
+                                                            L.t("أنت منضم لاختباره بالفعل ✓", "Already Joined ✓"),
+                                                            color = Color(0xFF00796B),
+                                                            fontSize = 12.sp,
+                                                            fontWeight = FontWeight.Bold
+                                                        )
                                                     }
                                                 }
                                             }
@@ -382,7 +401,7 @@ fun TesterProfileDialog(
                                                             }
                                                             context.startActivity(intent)
                                                         } catch (_: Exception) {
-                                                            Toast.makeText(context, "الرابط: $url", Toast.LENGTH_SHORT).show()
+                                                            Toast.makeText(context, L.t("الرابط: $url", "Link: $url"), Toast.LENGTH_SHORT).show()
                                                         }
                                                     }
                                                 },
@@ -392,7 +411,7 @@ fun TesterProfileDialog(
                                             ) {
                                                 Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp))
                                                 Spacer(modifier = Modifier.width(4.dp))
-                                                Text("فتح الرابط", fontSize = 11.sp)
+                                                Text(L.t("فتح الرابط", "Open Link"), fontSize = 11.sp)
                                             }
                                         }
                                     } else {
@@ -405,7 +424,10 @@ fun TesterProfileDialog(
                                                 if (joined) {
                                                     Toast.makeText(
                                                         context,
-                                                        "🎉 تم الانضمام لاختبار تطبيق ${app.name} بنجاح! شكراً على تبادل الدعم (+${app.pointsReward} عملة)",
+                                                        L.t(
+                                                            "🎉 تم الانضمام لاختبار تطبيق ${app.name} بنجاح! شكراً على تبادل الدعم (+${app.pointsReward} عملة)",
+                                                            "🎉 Joined ${app.name} test! Thanks for mutual support (+${app.pointsReward} coins)"
+                                                        ),
                                                         Toast.LENGTH_LONG
                                                     ).show()
                                                     val url = app.androidOptInUrl.ifBlank { app.webOptInUrl }
@@ -418,7 +440,11 @@ fun TesterProfileDialog(
                                                         } catch (_: Exception) {}
                                                     }
                                                 } else {
-                                                    Toast.makeText(context, "أنت منضم بالفعل لاختبار هذا التطبيق", Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(
+                                                        context,
+                                                        L.t("أنت منضم بالفعل لاختبار هذا التطبيق", "You have already joined this app test"),
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
                                                 }
                                             },
                                             shape = RoundedCornerShape(10.dp),
@@ -427,7 +453,7 @@ fun TesterProfileDialog(
                                             Icon(Icons.Default.Handshake, contentDescription = null, modifier = Modifier.size(16.dp))
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Text(
-                                                "🚀 انضم لاختبار تطبيقه الآن (تبادل الاختبار)",
+                                                L.t("🚀 انضم لاختبار تطبيقه الآن (تبادل الاختبار)", "🚀 Join Their App Test Now (Swap)"),
                                                 fontSize = 12.sp,
                                                 fontWeight = FontWeight.Bold
                                             )
@@ -446,7 +472,7 @@ fun TesterProfileDialog(
                     onClick = onDismiss,
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("إغلاق الملف الشخصي")
+                    Text(L.t("إغلاق الملف الشخصي", "Close Profile"))
                 }
             }
         }

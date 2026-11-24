@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.data.model.CommunityApp
 import com.example.data.model.DeveloperConversation
 import com.example.data.model.ReciprocalChatMessage
+import com.example.ui.util.L
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -46,13 +47,16 @@ class FirestoreService {
 
                             val name = doc.getString("name") ?: ""
                             val pkg = doc.getString("packageName") ?: doc.id
-                            val dev = doc.getString("developerName") ?: "مطور معتمد"
+                            val dev = doc.getString("developerName") ?: L.t("مطور معتمد", "Verified Developer")
                             val devEmail = doc.getString("developerEmail")
                                 ?: doc.getString("userEmail")
                                 ?: doc.getString("email")
                                 ?: "${dev.lowercase().replace(" ", "").replace("[^a-zA-Z0-9]".toRegex(), "")}@gmail.com"
-                            val cat = doc.getString("category") ?: "تطبيق"
-                            val desc = doc.getString("description") ?: "تطبيق قيد الاختبار المغلق لـ 14 يوماً"
+                            val cat = doc.getString("category") ?: L.t("تطبيق", "App")
+                            val desc = doc.getString("description") ?: L.t(
+                                "تطبيق قيد الاختبار المغلق لـ 14 يوماً",
+                                "App in 14-day closed testing track"
+                            )
 
                             val icon = extractIconFromDoc(doc)
 
@@ -167,7 +171,7 @@ class FirestoreService {
         category: String,
         description: String,
         iconUrl: String = "",
-        developerName: String = "المطور المعتمد",
+        developerName: String = L.t("المطور المعتمد", "Verified Developer"),
         developerEmail: String = "",
         userId: String = "user_default",
         initialTesters: Int = 1
@@ -179,7 +183,10 @@ class FirestoreService {
             "developerEmail" to developerEmail,
             "userId" to userId,
             "category" to category,
-            "description" to if (description.isNotBlank()) description else "تطبيق قيد الاختبار المغلق لـ 14 يوماً",
+            "description" to if (description.isNotBlank()) description else L.t(
+                "تطبيق قيد الاختبار المغلق لـ 14 يوماً",
+                "App in 14-day closed testing track"
+            ),
             "iconUrl" to iconUrl,
             "icon" to iconUrl,
             "imageUrl" to iconUrl,
@@ -375,7 +382,7 @@ class FirestoreService {
                             try {
                                 ReciprocalChatMessage(
                                     id = doc.id,
-                                    senderName = doc.getString("senderName") ?: "مطور",
+                                    senderName = doc.getString("senderName") ?: L.t("مطور", "Developer"),
                                     senderEmail = doc.getString("senderEmail") ?: "",
                                     message = doc.getString("message") ?: "",
                                     timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis(),
@@ -474,7 +481,7 @@ class FirestoreService {
                                 val otherEmail = participants.mapNotNull { it?.toString() }
                                     .firstOrNull { !it.equals(cleanEmail, ignoreCase = true) } ?: cleanEmail
                                 val names = doc.get("participantNames") as? Map<*, *>
-                                val otherName = names?.get(otherEmail)?.toString() ?: "مطور"
+                                val otherName = names?.get(otherEmail)?.toString() ?: L.t("مطور", "Developer")
                                 val lastMsg = doc.getString("lastMessage") ?: ""
                                 val lastTime = doc.getLong("lastTimestamp") ?: 0L
                                 val lastSender = doc.getString("lastSenderEmail") ?: ""

@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
 import coil.request.ImageRequest
+import com.example.ui.util.L
 import kotlin.math.absoluteValue
 
 // In-memory cache for decoded Base64 and local bitmaps
@@ -40,22 +41,25 @@ private val bitmapMemoryCache = LruCache<String, Bitmap>(60)
 
 data class PresetIconOption(
     val id: String,
-    val title: String,
+    val titleAr: String,
+    val titleEn: String,
     val icon: ImageVector,
     val gradient: List<Color>
-)
+) {
+    fun getTitle(): String = L.t(titleAr, titleEn)
+}
 
 val PRESET_APP_ICONS = listOf(
-    PresetIconOption("preset:games", "ألعاب", Icons.Default.SportsEsports, listOf(Color(0xFF8B5CF6), Color(0xFF6D28D9))),
-    PresetIconOption("preset:tools", "أدوات", Icons.Default.Build, listOf(Color(0xFF3B82F6), Color(0xFF1D4ED8))),
-    PresetIconOption("preset:productivity", "إنتاجية", Icons.Default.TaskAlt, listOf(Color(0xFF10B981), Color(0xFF047857))),
-    PresetIconOption("preset:social", "تواصل", Icons.Default.Forum, listOf(Color(0xFFEC4899), Color(0xFFBE185D))),
-    PresetIconOption("preset:education", "تعليم", Icons.Default.School, listOf(Color(0xFFF59E0B), Color(0xFFD97706))),
-    PresetIconOption("preset:finance", "مال وأعمال", Icons.Default.AccountBalance, listOf(Color(0xFF059669), Color(0xFF065F46))),
-    PresetIconOption("preset:health", "صحة ورياضة", Icons.Default.Favorite, listOf(Color(0xFFEF4444), Color(0xFFB91C1C))),
-    PresetIconOption("preset:shopping", "تسوق ومتاجر", Icons.Default.ShoppingBag, listOf(Color(0xFFF97316), Color(0xFFC2410C))),
-    PresetIconOption("preset:media", "ميديا وفيديو", Icons.Default.PlayCircle, listOf(Color(0xFF06B6D4), Color(0xFF0E7490))),
-    PresetIconOption("preset:code", "تطوير وبرمجة", Icons.Default.Code, listOf(Color(0xFF475569), Color(0xFF1E293B)))
+    PresetIconOption("preset:games", "ألعاب", "Games", Icons.Default.SportsEsports, listOf(Color(0xFF8B5CF6), Color(0xFF6D28D9))),
+    PresetIconOption("preset:tools", "أدوات", "Tools", Icons.Default.Build, listOf(Color(0xFF3B82F6), Color(0xFF1D4ED8))),
+    PresetIconOption("preset:productivity", "إنتاجية", "Productivity", Icons.Default.TaskAlt, listOf(Color(0xFF10B981), Color(0xFF047857))),
+    PresetIconOption("preset:social", "تواصل", "Social", Icons.Default.Forum, listOf(Color(0xFFEC4899), Color(0xFFBE185D))),
+    PresetIconOption("preset:education", "تعليم", "Education", Icons.Default.School, listOf(Color(0xFFF59E0B), Color(0xFFD97706))),
+    PresetIconOption("preset:finance", "مال وأعمال", "Finance & Business", Icons.Default.AccountBalance, listOf(Color(0xFF059669), Color(0xFF065F46))),
+    PresetIconOption("preset:health", "صحة ورياضة", "Health & Fitness", Icons.Default.Favorite, listOf(Color(0xFFEF4444), Color(0xFFB91C1C))),
+    PresetIconOption("preset:shopping", "تسوق ومتاجر", "Shopping", Icons.Default.ShoppingBag, listOf(Color(0xFFF97316), Color(0xFFC2410C))),
+    PresetIconOption("preset:media", "ميديا وفيديو", "Media & Video", Icons.Default.PlayCircle, listOf(Color(0xFF06B6D4), Color(0xFF0E7490))),
+    PresetIconOption("preset:code", "تطوير وبرمجة", "Developer Tools", Icons.Default.Code, listOf(Color(0xFF475569), Color(0xFF1E293B)))
 )
 
 @Composable

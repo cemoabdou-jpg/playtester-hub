@@ -1,33 +1,41 @@
 package com.example.ui.components
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Celebration
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Celebration
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.ui.theme.LauncherIconManager
 import com.example.ui.theme.LogoEvent
 import com.example.ui.theme.LogoEventManager
+import com.example.ui.util.L
 
 @Composable
 fun LogoEventSelectionDialog(
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
     var selectedEvent by remember { mutableStateOf(LogoEventManager.selectedEvent) }
+    val liveAutoEvent = remember(selectedEvent) {
+        if (selectedEvent == LogoEvent.AUTO) LogoEventManager.getEffectiveEvent() else selectedEvent
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -67,13 +75,13 @@ fun LogoEventSelectionDialog(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                "تأثيرات وأجواء اللوجو",
+                                L.t("تأثيرات وأجواء الشعار", "Logo Events & Effects"),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                "تفاعل اللوجو الحي طبقا للمناسبات والأحداث",
+                                L.t("تفاعل الشعار والأيقونة الخارجية طبقاً للأحداث", "Dynamic logo & external app icon by season & event"),
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -84,11 +92,53 @@ fun LogoEventSelectionDialog(
                         onClick = onDismiss,
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "إغلاق", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(Icons.Default.Close, contentDescription = L.t("إغلاق", "Close"), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Auto External Launcher Icon Status Banner
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = liveAutoEvent.primaryColor.copy(alpha = 0.10f),
+                    border = BorderStroke(1.dp, liveAutoEvent.primaryColor.copy(alpha = 0.35f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = liveAutoEvent.primaryColor,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                L.t(
+                                    "الأيقونة الخارجية تتكيف تلقائياً",
+                                    "External Launcher Icon Adapts Automatically"
+                                ),
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 11.5.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                L.t(
+                                    "المظهر النشط حالياً: ${liveAutoEvent.getTitle()} ${liveAutoEvent.badgeEmoji}",
+                                    "Active theme now: ${liveAutoEvent.getTitle()} ${liveAutoEvent.badgeEmoji}"
+                                ),
+                                fontSize = 10.5.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // List of Events
                 LazyColumn(
@@ -99,6 +149,11 @@ fun LogoEventSelectionDialog(
                 ) {
                     items(LogoEvent.values()) { event ->
                         val isSelected = selectedEvent == event
+                        val previewEvent = if (event == LogoEvent.AUTO) {
+                            LogoEventManager.getEffectiveEvent()
+                        } else {
+                            event
+                        }
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -116,10 +171,11 @@ fun LogoEventSelectionDialog(
                                     .padding(horizontal = 14.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Dynamic mini preview
+                                // Dynamic mini preview for each specific event
                                 DynamicEventLogo(
                                     size = 32.dp,
-                                    showBadge = true
+                                    showBadge = true,
+                                    overrideEvent = previewEvent
                                 )
 
                                 Spacer(modifier = Modifier.width(12.dp))
@@ -127,7 +183,7 @@ fun LogoEventSelectionDialog(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(
-                                            event.titleAr,
+                                            event.getTitle(),
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 13.sp,
                                             color = MaterialTheme.colorScheme.onSurface
@@ -136,7 +192,7 @@ fun LogoEventSelectionDialog(
                                         Text(event.badgeEmoji, fontSize = 13.sp)
                                     }
                                     Text(
-                                        event.subtitleAr,
+                                        event.getSubtitle(),
                                         fontSize = 11.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         lineHeight = 15.sp
@@ -158,7 +214,23 @@ fun LogoEventSelectionDialog(
                 // Save button
                 Button(
                     onClick = {
-                        LogoEventManager.setEvent(selectedEvent)
+                        LogoEventManager.setEvent(selectedEvent, context)
+                        LauncherIconManager.syncWithEvent(
+                            context = context,
+                            event = if (selectedEvent == LogoEvent.AUTO) {
+                                LogoEventManager.getEffectiveEvent()
+                            } else {
+                                selectedEvent
+                            }
+                        )
+                        Toast.makeText(
+                            context,
+                            L.t(
+                                "تم تطبيق المظهر وتحديث الأيقونة الخارجية بنجاح ✨",
+                                "Theme applied & external app icon updated ✨"
+                            ),
+                            Toast.LENGTH_SHORT
+                        ).show()
                         onDismiss()
                     },
                     modifier = Modifier
@@ -169,7 +241,7 @@ fun LogoEventSelectionDialog(
                 ) {
                     Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("حفظ وتطبيق المظهر المختار", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text(L.t("حفظ وتطبيق المظهر المختار", "Save & Apply Effect"), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
         }

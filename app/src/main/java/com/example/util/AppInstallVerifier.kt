@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.widget.Toast
+import com.example.ui.util.L
 
 object AppInstallVerifier {
 
@@ -46,11 +47,19 @@ object AppInstallVerifier {
                 context.startActivity(launchIntent)
                 true
             } catch (e: Exception) {
-                Toast.makeText(context, "تعذر تشغيل التطبيق: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    L.t("تعذر تشغيل التطبيق: ${e.localizedMessage}", "Unable to launch app: ${e.localizedMessage}"),
+                    Toast.LENGTH_SHORT
+                ).show()
                 false
             }
         } else {
-            Toast.makeText(context, "التطبيق ليس مثبتاً على جهازك حالياً", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context,
+                L.t("التطبيق ليس مثبتاً على جهازك حالياً", "This app is not currently installed on your device"),
+                Toast.LENGTH_SHORT
+            ).show()
             false
         }
     }
@@ -73,7 +82,11 @@ object AppInstallVerifier {
             }
             context.startActivity(intent)
         } catch (e: Exception) {
-            Toast.makeText(context, "تعذر فتح الرابط: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context,
+                L.t("تعذر فتح الرابط: ${e.localizedMessage}", "Unable to open link: ${e.localizedMessage}"),
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
@@ -96,10 +109,21 @@ object AppInstallVerifier {
             }
             context.startActivity(intent)
             if (trimmed.isBlank()) {
-                Toast.makeText(context, "تم فتح مجموعة المختبرين العامة (PlayTester Hub) لعدم توفر رابط مخصص من المطور", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    context,
+                    L.t(
+                        "تم فتح مجموعة المختبرين العامة للمنصة لعدم توفر رابط مخصص من المطور",
+                        "Opened the public PlayTester Hub tester group since no custom developer group link was provided"
+                    ),
+                    Toast.LENGTH_LONG
+                ).show()
             }
         } catch (e: Exception) {
-            Toast.makeText(context, "تعذر فتح رابط المجموعة: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context,
+                L.t("تعذر فتح رابط المجموعة: ${e.localizedMessage}", "Unable to open group link: ${e.localizedMessage}"),
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 

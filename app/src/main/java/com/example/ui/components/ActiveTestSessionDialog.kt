@@ -27,6 +27,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.JoinedTest
 import com.example.data.model.QAInspectionCheck
+import com.example.ui.util.L
 import com.example.ui.viewmodel.TesterViewModel
 import kotlinx.coroutines.delay
 
@@ -41,19 +42,59 @@ fun ActiveTestSessionDialog(
     // Session duration: 15 minutes = 900 seconds
     var secondsElapsed by remember { mutableIntStateOf(120) } // Starts with 2 mins pre-active for quick verification
     var isTimerRunning by remember { mutableStateOf(true) }
-    var userNotes by remember { mutableStateOf("تم اختبار التنقل بين الشاشات واستقرار الواجهة بشكل ممتاز.") }
-
-    var checks by remember {
+    var userNotes by remember {
         mutableStateOf(
-            listOf(
-                QAInspectionCheck("chk_1", "فحص بدء التشغيل وسلامة الشاشة الأولى", "التأكد من عدم وجود وميض أو تأخير عند بدء التشغيل", isChecked = true),
-                QAInspectionCheck("chk_2", "تجربة التدوير الأفقي والعمودي", "التحقق من عدم إعادة تحميل البيانات أو فقدان الحالة", isChecked = true),
-                QAInspectionCheck("chk_3", "اختبار التمرير والتنقل بين الواجهات", "فحص سلاسة القوائم واستجابة اللمس 48dp", isChecked = false),
-                QAInspectionCheck("chk_4", "محاكاة وضع الخلفية والرجوع", "وضع التطبيق في الخلفية والعودة إليه دون إعادة تشغيل", isChecked = false),
-                QAInspectionCheck("chk_5", "التأكد من خلو الجلسة من التجميد (ANR)", "عدم وجود أي بطء في معالجة المدخلات", isChecked = false)
+            L.t(
+                "تم اختبار التنقل بين الشاشات واستقرار الواجهة بشكل ممتاز.",
+                "Tested screen navigation and UI stability smoothly."
             )
         )
     }
+
+    var checkStates by remember {
+        mutableStateOf(
+            mapOf(
+                "chk_1" to true,
+                "chk_2" to true,
+                "chk_3" to false,
+                "chk_4" to false,
+                "chk_5" to false
+            )
+        )
+    }
+
+    val checks = listOf(
+        QAInspectionCheck(
+            "chk_1",
+            L.t("فحص بدء التشغيل وسلامة الشاشة الأولى", "Cold start & first screen stability check"),
+            L.t("التأكد من عدم وجود وميض أو تأخير عند بدء التشغيل", "Verify zero flicker or freeze during launch"),
+            isChecked = checkStates["chk_1"] == true
+        ),
+        QAInspectionCheck(
+            "chk_2",
+            L.t("تجربة التدوير الأفقي والعمودي", "Portrait & landscape rotation test"),
+            L.t("التحقق من عدم إعادة تحميل البيانات أو فقدان الحالة", "Ensure data reloads and UI state stay intact"),
+            isChecked = checkStates["chk_2"] == true
+        ),
+        QAInspectionCheck(
+            "chk_3",
+            L.t("اختبار التمرير والتنقل بين الواجهات", "Scroll smoothness & navigation test"),
+            L.t("فحص سلاسة القوائم واستجابة عناصر اللمس", "Verify list scrolling and touch target responsiveness"),
+            isChecked = checkStates["chk_3"] == true
+        ),
+        QAInspectionCheck(
+            "chk_4",
+            L.t("محاكاة وضع الخلفية والرجوع", "Background & resume lifecycle check"),
+            L.t("وضع التطبيق في الخلفية والعودة إليه دون إعادة تشغيل", "Send app to background and resume without restarting"),
+            isChecked = checkStates["chk_4"] == true
+        ),
+        QAInspectionCheck(
+            "chk_5",
+            L.t("التأكد من خلو الجلسة من تجميد الاستجابة", "Check session for zero app freezes"),
+            L.t("عدم وجود أي بطء في معالجة المدخلات", "Ensure zero input lag or UI thread stalls"),
+            isChecked = checkStates["chk_5"] == true
+        )
+    )
 
     LaunchedEffect(isTimerRunning) {
         while (isTimerRunning) {
@@ -64,13 +105,13 @@ fun ActiveTestSessionDialog(
 
     val minutes = secondsElapsed / 60
     val seconds = secondsElapsed % 60
-    val formattedTime = "%02d:%02d".format(minutes, seconds)
+    val formattedTime = "%02d:%02d".format(java.util.Locale.US, minutes, seconds)
 
     val currentPhase = when {
-        minutes < 4 -> "المرحلة 1: فحص الإطلاق الأولي والمسار السريع (Smoke Test)"
-        minutes < 8 -> "المرحلة 2: اختبار الوظائف العميقة وحالات الاستثناء"
-        minutes < 12 -> "المرحلة 3: فحص التحمل وتدوير الشاشة والحواف"
-        else -> "المرحلة 4: تقييم تجربة المستخدم وتوثيق الجلسة الرسمية"
+        minutes < 4 -> L.t("المرحلة 1: فحص التشغيل السريع والاستقرار الأولي", "Phase 1: Initial Launch & Smoke Test")
+        minutes < 8 -> L.t("المرحلة 2: اختبار الوظائف العميقة وحالات الاستثناء", "Phase 2: Deep Feature & Edge-Case Testing")
+        minutes < 12 -> L.t("المرحلة 3: فحص التحمل وتدوير الشاشة والحواف", "Phase 3: Stress, Rotation & Edge-to-Edge Check")
+        else -> L.t("المرحلة 4: تقييم تجربة المستخدم وتوثيق الجلسة الرسمية", "Phase 4: UX Evaluation & Official Log")
     }
 
     Dialog(
@@ -117,13 +158,13 @@ fun ActiveTestSessionDialog(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                "مرافق جلسة الاختبار التفاعلية",
+                                L.t("مرافق جلسة الاختبار التفاعلية", "Interactive Test Session Companion"),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                "تطبيق: ${test.appName}",
+                                L.t("تطبيق: ${test.appName}", "App: ${test.appName}"),
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -131,7 +172,7 @@ fun ActiveTestSessionDialog(
                     }
 
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "إغلاق")
+                        Icon(Icons.Default.Close, contentDescription = L.t("إغلاق", "Close"))
                     }
                 }
 
@@ -194,15 +235,15 @@ fun ActiveTestSessionDialog(
                                     modifier = Modifier.size(14.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text(if (isTimerRunning) "إيقاف مؤقت" else "استئناف", fontSize = 11.sp)
+                                Text(if (isTimerRunning) L.t("إيقاف مؤقت", "Pause") else L.t("استئناف", "Resume"), fontSize = 11.sp)
                             }
 
-                            // Fast simulation button for developer testing convenience
+                            // Fast simulation button
                             Button(
                                 onClick = {
                                     secondsElapsed = 900
-                                    checks = checks.map { it.copy(isChecked = true) }
-                                    Toast.makeText(context, "⚡ تم تسريع الجلسة لـ 15 دقيقة بنجاح!", Toast.LENGTH_SHORT).show()
+                                    checkStates = checkStates.keys.associateWith { true }
+                                    Toast.makeText(context, L.t("⚡ تم تسريع الجلسة لـ 15 دقيقة بنجاح!", "⚡ Session fast-forwarded to 15 mins!"), Toast.LENGTH_SHORT).show()
                                 },
                                 shape = RoundedCornerShape(8.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF8F00)),
@@ -211,7 +252,7 @@ fun ActiveTestSessionDialog(
                             ) {
                                 Icon(Icons.Default.Speed, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("تسريع للاكتمال (+15 د)", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text(L.t("تسريع للاكتمال (+15 د)", "Complete (+15m)"), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -221,7 +262,7 @@ fun ActiveTestSessionDialog(
 
                 // QA Checklist
                 Text(
-                    "قائمة التحقق الموصى بها لضمان قبول Google Play:",
+                    L.t("قائمة التحقق الموصى بها لضمان قبول جوجل بلاي:", "Recommended QA Checklist for Google Play Approval:"),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -241,8 +282,8 @@ fun ActiveTestSessionDialog(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(10.dp))
                                 .clickable {
-                                    checks = checks.map {
-                                        if (it.id == checkItem.id) it.copy(isChecked = !it.isChecked) else it
+                                    checkStates = checkStates.toMutableMap().apply {
+                                        put(checkItem.id, !(this[checkItem.id] ?: false))
                                     }
                                 },
                             color = if (checkItem.isChecked) Color(0xFF00875A).copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
@@ -255,8 +296,8 @@ fun ActiveTestSessionDialog(
                                 Checkbox(
                                     checked = checkItem.isChecked,
                                     onCheckedChange = { checked ->
-                                        checks = checks.map {
-                                            if (it.id == checkItem.id) it.copy(isChecked = checked) else it
+                                        checkStates = checkStates.toMutableMap().apply {
+                                            put(checkItem.id, checked)
                                         }
                                     },
                                     colors = CheckboxDefaults.colors(checkedColor = Color(0xFF00875A))
@@ -284,7 +325,7 @@ fun ActiveTestSessionDialog(
                         OutlinedTextField(
                             value = userNotes,
                             onValueChange = { userNotes = it },
-                            label = { Text("ملاحظات الجلسة وتجربة المستخدم (اختياري)", fontSize = 11.sp) },
+                            label = { Text(L.t("ملاحظات الجلسة وتجربة المستخدم (اختياري)", "Session & UX notes (optional)"), fontSize = 11.sp) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp),
                             minLines = 2,
@@ -302,9 +343,9 @@ fun ActiveTestSessionDialog(
                         viewModel.completeActiveTestSession(
                             test = test,
                             durationMinutes = duration,
-                            notes = userNotes.ifBlank { "جلسة فحص موثقة ومستوفية لشروط Google Play" }
+                            notes = userNotes.ifBlank { L.t("جلسة فحص موثقة ومستوفية لشروط جوجل بلاي", "Verified test session compliant with Google Play") }
                         )
-                        Toast.makeText(context, "🎉 رائع! تم توثيق الجلسة وإضافة +50 عملة لرصيدك بنجاح!", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, L.t("🎉 رائع! تم توثيق الجلسة وإضافة +50 عملة لرصيدك بنجاح!", "🎉 Great! Session verified and +50 coins added!"), Toast.LENGTH_LONG).show()
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
@@ -313,7 +354,7 @@ fun ActiveTestSessionDialog(
                 ) {
                     Icon(Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("توثيق الجلسة وكسب +50 عملة 🪙", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(L.t("توثيق الجلسة وكسب +50 عملة 🪙", "Verify Session & Earn +50 Coins 🪙"), fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }

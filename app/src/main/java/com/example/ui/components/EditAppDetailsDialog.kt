@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.UserApp
+import com.example.ui.util.L
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -41,7 +42,7 @@ fun EditAppDetailsDialog(
 ) {
     val context = LocalContext.current
     var name by remember { mutableStateOf(app.name) }
-    var category by remember { mutableStateOf(if (app.appCategory.isNotBlank()) app.appCategory else "أدوات") }
+    var category by remember { mutableStateOf(if (app.appCategory.isNotBlank()) L.localizeCategory(app.appCategory) else L.t("أدوات", "Tools")) }
     var iconUrl by remember { mutableStateOf(app.iconUrl) }
     var webOptInUrl by remember { mutableStateOf(app.webOptInUrl) }
     var googleGroupUrl by remember { mutableStateOf(app.googleGroupUrl) }
@@ -74,11 +75,11 @@ fun EditAppDetailsDialog(
                     scaled.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
                     val bytes = outputStream.toByteArray()
                     iconUrl = "data:image/jpeg;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP)
-                    Toast.makeText(context, "تم تحديد الأيقونة بنجاح من المعرض!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, L.t("تم تحديد الأيقونة بنجاح من المعرض!", "Icon selected from gallery!"), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 iconUrl = uri.toString()
-                Toast.makeText(context, "تم حفظ مسار الصورة", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, L.t("تم حفظ مسار الصورة", "Image path saved"), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -94,7 +95,7 @@ fun EditAppDetailsDialog(
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("تعديل صورة وبيانات التطبيق", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Text(L.t("تعديل صورة وبيانات التطبيق", "Edit App Icon & Details"), fontWeight = FontWeight.Bold, fontSize = 17.sp)
             }
         },
         text = {
@@ -105,7 +106,10 @@ fun EditAppDetailsDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    "يمكنك تغيير أيقونة التطبيق برفع صورة حقيقية من هاتفك أو اختيار أيقونة متجر 3D لتظهر لكافة المطورين في المجتمع.",
+                    L.t(
+                        "يمكنك تغيير أيقونة التطبيق برفع صورة حقيقية من هاتفك أو اختيار أيقونة متجر جاهزة لتظهر لكافة المطورين في المجتمع.",
+                        "Update your app icon from your phone gallery or pick a 3D store preset visible to everyone."
+                    ),
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -133,7 +137,7 @@ fun EditAppDetailsDialog(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                "معاينة أيقونة التطبيق الحالية",
+                                L.t("معاينة أيقونة التطبيق الحالية", "Current App Icon Preview"),
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -165,11 +169,11 @@ fun EditAppDetailsDialog(
                 ) {
                     Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("رفع صورة جديدة من معرض الهاتف", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text(L.t("رفع صورة جديدة من معرض الهاتف", "Upload New Image from Gallery"), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
 
-                // 3D Store Icon Presets
-                Text("أو اختر أيقونة متجر جاهزة ثلاثية الأبعاد (3D):", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                // Store Icon Presets
+                Text(L.t("أو اختر أيقونة متجر جاهزة ثلاثية الأبعاد:", "Or choose a 3D Store preset icon:"), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(vertical = 2.dp)
@@ -179,7 +183,7 @@ fun EditAppDetailsDialog(
                         Surface(
                             onClick = {
                                 iconUrl = presetItem.id
-                                category = presetItem.title
+                                category = presetItem.getTitle()
                             },
                             shape = RoundedCornerShape(10.dp),
                             color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -209,7 +213,7 @@ fun EditAppDetailsDialog(
                                 }
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    presetItem.title,
+                                    presetItem.getTitle(),
                                     fontSize = 11.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                     color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
@@ -225,7 +229,7 @@ fun EditAppDetailsDialog(
                     onValueChange = {
                         if (it.isNotBlank()) iconUrl = it.trim()
                     },
-                    label = { Text("أو رابط صورة مباشر (URL / Google Drive)") },
+                    label = { Text(L.t("أو رابط صورة مباشر", "Or Direct Image URL")) },
                     placeholder = { Text("https://example.com/icon.png") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -237,7 +241,7 @@ fun EditAppDetailsDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("اسم التطبيق") },
+                    label = { Text(L.t("اسم التطبيق", "App Name")) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -246,8 +250,8 @@ fun EditAppDetailsDialog(
                 OutlinedTextField(
                     value = category,
                     onValueChange = { category = it },
-                    label = { Text("تصنيف التطبيق") },
-                    placeholder = { Text("مثال: ألعاب، أدوات، إنتاجية") },
+                    label = { Text(L.t("تصنيف التطبيق", "App Category")) },
+                    placeholder = { Text(L.t("مثال: ألعاب، أدوات، إنتاجية", "e.g., Games, Tools, Productivity")) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -256,7 +260,7 @@ fun EditAppDetailsDialog(
                 OutlinedTextField(
                     value = webOptInUrl,
                     onValueChange = { webOptInUrl = it },
-                    label = { Text("رابط Google Play Opt-in") },
+                    label = { Text(L.t("رابط الانضمام في جوجل بلاي", "Google Play Opt-in Link")) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -265,11 +269,14 @@ fun EditAppDetailsDialog(
                 OutlinedTextField(
                     value = googleGroupUrl,
                     onValueChange = { googleGroupUrl = it },
-                    label = { Text("رابط مجموعة Google Group للمختبرين") },
+                    label = { Text(L.t("رابط مجموعة جوجل للمختبرين", "Testers Google Group Link")) },
                     placeholder = { Text("https://groups.google.com/g/...") },
                     supportingText = {
                         Text(
-                            "ضروري ليتمكن المختبرون من الانضمام بحساباتهم وتحميل التطبيق بدون أخطاء متجر Play",
+                            L.t(
+                                "ضروري ليتمكن المختبرون من الانضمام بحساباتهم وتحميل التطبيق بدون أخطاء المتجر",
+                                "Required so testers can join with their accounts and install without Play Store errors"
+                            ),
                             fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -283,23 +290,23 @@ fun EditAppDetailsDialog(
             Button(
                 onClick = {
                     if (name.isBlank()) {
-                        Toast.makeText(context, "يرجى إدخال اسم التطبيق", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, L.t("يرجى إدخال اسم التطبيق", "Please enter app name"), Toast.LENGTH_SHORT).show()
                         return@Button
                     }
                     isSaving = true
                     onSave(name.trim(), category.trim(), iconUrl.trim(), webOptInUrl.trim(), googleGroupUrl.trim())
-                    Toast.makeText(context, "🎉 تم تحديث بيانات وأيقونة التطبيق ومزامنتها بنجاح!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, L.t("🎉 تم تحديث بيانات وأيقونة التطبيق ومزامنتها بنجاح!", "🎉 App icon & details updated & synced!"), Toast.LENGTH_LONG).show()
                 },
                 shape = RoundedCornerShape(10.dp)
             ) {
                 Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("حفظ التعديلات ومزامنة الأيقونة", fontWeight = FontWeight.Bold)
+                Text(L.t("حفظ التعديلات ومزامنة الأيقونة", "Save & Sync Icon"), fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("إلغاء")
+                Text(L.t("إلغاء", "Cancel"))
             }
         }
     )

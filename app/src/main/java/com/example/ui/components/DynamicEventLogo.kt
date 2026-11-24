@@ -41,9 +41,11 @@ fun DynamicEventLogo(
     size: Dp = 38.dp,
     isOwner: Boolean = false,
     showBadge: Boolean = true,
+    overrideEvent: LogoEvent? = null,
     onClick: (() -> Unit)? = null
 ) {
-    val activeEvent = if (isOwner) LogoEvent.ROYAL_OWNER else LogoEventManager.getEffectiveEvent()
+    val activeEvent = overrideEvent
+        ?: if (isOwner) LogoEvent.ROYAL_OWNER else LogoEventManager.getEffectiveEvent()
 
     // 1. Continuous Animations (Rotation, Pulse, Shimmer, Glow)
     val infiniteTransition = rememberInfiniteTransition(label = "DynamicLogoEffects")
@@ -289,10 +291,20 @@ fun DynamicEventLogo(
                         )
                 )
 
-                // High-Res App Icon Image (R.drawable.app_icon_logo)
+                val iconRes = when (activeEvent) {
+                    LogoEvent.RAMADAN -> R.drawable.app_icon_ramadan
+                    LogoEvent.EID -> R.drawable.app_icon_eid
+                    LogoEvent.GOLD_RUSH -> R.drawable.app_icon_gold_rush
+                    LogoEvent.TECH_RADAR -> R.drawable.app_icon_tech_radar
+                    LogoEvent.ROYAL_OWNER -> R.drawable.app_icon_royal_owner
+                    LogoEvent.NEW_YEAR -> R.drawable.app_icon_new_year
+                    LogoEvent.AUTO -> R.drawable.app_icon_logo
+                }
+
+                // High-Res Event-Matched App Icon Image
                 Image(
-                    painter = painterResource(id = R.drawable.app_icon_logo),
-                    contentDescription = "شعار PlayTester Hub",
+                    painter = painterResource(id = iconRes),
+                    contentDescription = com.example.ui.util.L.t("شعار منصة مختبري التطبيقات", "PlayTester Hub Logo"),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxSize()

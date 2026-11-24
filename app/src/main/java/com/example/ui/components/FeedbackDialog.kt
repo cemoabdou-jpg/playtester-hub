@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.util.L
 
 @Composable
 fun FeedbackDialog(
@@ -24,15 +25,15 @@ fun FeedbackDialog(
     onSubmit: (rating: Int, comment: String) -> Unit
 ) {
     var rating by remember { mutableStateOf(5) }
-    var selectedTag by remember { mutableStateOf("يعمل بسلاسة وبدون أي أخطاء ✓") }
+    var selectedTagIndex by remember { mutableIntStateOf(0) }
     var comment by remember { mutableStateOf("") }
 
     val quickTags = listOf(
-        "يعمل بسلاسة وبدون أي أخطاء ✓",
-        "تصميم جذاب وسهل الاستخدام 🎨",
-        "متوافق تماماً مع أندرويد 14 📱",
-        "لوحظ بطء طفيف في التحميل ⚡",
-        "تطبيق رائع وواعد في المتجر 🌟"
+        L.t("يعمل بسلاسة وبدون أي أخطاء ✓", "Runs smoothly with zero crashes ✓"),
+        L.t("تصميم جذاب وسهل الاستخدام 🎨", "Attractive UI & easy to use 🎨"),
+        L.t("متوافق تماماً مع أندرويد الحديث 📱", "Fully compatible with modern Android 📱"),
+        L.t("لوحظ بطء طفيف في التحميل ⚡", "Slight loading delay noticed ⚡"),
+        L.t("تطبيق رائع وواعد في المتجر 🌟", "Great and promising app 🌟")
     )
 
     AlertDialog(
@@ -47,8 +48,12 @@ fun FeedbackDialog(
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
-                    Text("تقييم $appName", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    Text("ملاحظات حقيقية للمطور لاجتياز Google Play", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(L.t("تقييم $appName", "Rate $appName"), fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text(
+                        L.t("ملاحظات حقيقية للمطور لاجتياز جوجل بلاي", "Real feedback for developer to pass Google Play"),
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         },
@@ -67,7 +72,7 @@ fun FeedbackDialog(
                         ) {
                             Icon(
                                 if (starIndex <= rating) Icons.Default.Star else Icons.Outlined.Star,
-                                contentDescription = "$starIndex نجوم",
+                                contentDescription = L.t("$starIndex نجوم", "$starIndex stars"),
                                 tint = if (starIndex <= rating) Color(0xFFFFB300) else MaterialTheme.colorScheme.outline,
                                 modifier = Modifier.size(30.dp)
                             )
@@ -75,14 +80,14 @@ fun FeedbackDialog(
                     }
                 }
 
-                Text("اختر ملاحظة سريعة:", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                Text(L.t("اختر ملاحظة سريعة:", "Choose quick feedback:"), fontWeight = FontWeight.Bold, fontSize = 11.sp)
 
                 // Quick tags
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    quickTags.forEach { tag ->
-                        val isSelected = selectedTag == tag
+                    quickTags.forEachIndexed { index, tag ->
+                        val isSelected = selectedTagIndex == index
                         Surface(
-                            onClick = { selectedTag = tag },
+                            onClick = { selectedTagIndex = index },
                             shape = RoundedCornerShape(8.dp),
                             color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                             border = if (isSelected) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
@@ -102,8 +107,8 @@ fun FeedbackDialog(
                 OutlinedTextField(
                     value = comment,
                     onValueChange = { comment = it },
-                    label = { Text("ملاحظة إضافية (اختياري)") },
-                    placeholder = { Text("اكتب رأيك للمطور هنا...") },
+                    label = { Text(L.t("ملاحظة إضافية (اختياري)", "Extra comment (optional)")) },
+                    placeholder = { Text(L.t("اكتب رأيك للمطور هنا...", "Write your feedback here...")) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -114,7 +119,7 @@ fun FeedbackDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        "🎁 ستحصل على +15 عملة تشجيعية فور إرسال تقييمك!",
+                        L.t("🎁 ستحصل على +15 عملة تشجيعية فور إرسال تقييمك!", "🎁 You'll earn +15 bonus coins upon submitting feedback!"),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF2E7D32),
@@ -126,17 +131,18 @@ fun FeedbackDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val fullComment = if (comment.isNotBlank()) "$selectedTag - $comment" else selectedTag
+                    val chosenTag = quickTags.getOrElse(selectedTagIndex) { quickTags.first() }
+                    val fullComment = if (comment.isNotBlank()) "$chosenTag - $comment" else chosenTag
                     onSubmit(rating, fullComment)
                 },
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text("إرسال التقييم (+15 عملة)")
+                Text(L.t("إرسال التقييم (+15 عملة)", "Submit Rating (+15 Coins)"))
             }
         },
         dismissButton = {
             OutlinedButton(onClick = onDismiss) {
-                Text("إلغاء")
+                Text(L.t("إلغاء", "Cancel"))
             }
         }
     )

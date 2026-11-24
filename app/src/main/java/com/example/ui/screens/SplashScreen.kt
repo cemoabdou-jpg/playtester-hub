@@ -24,14 +24,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Icon
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.LogoEvent
 import com.example.ui.theme.LogoEventManager
+import com.example.ui.util.L
 import com.playtesterhub.app.R
 import kotlinx.coroutines.delay
 
@@ -78,6 +81,9 @@ fun SplashScreen(
         onTimeout()
     }
 
+    CompositionLocalProvider(
+        LocalLayoutDirection provides (if (L.isArabic()) LayoutDirection.Rtl else LayoutDirection.Ltr)
+    ) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -167,7 +173,7 @@ fun SplashScreen(
                         )
                         coil.compose.AsyncImage(
                             model = R.drawable.app_icon_logo,
-                            contentDescription = "أيقونة التطبيق - PlayTester Hub",
+                            contentDescription = L.t("أيقونة التطبيق - منصة مختبري التطبيقات", "App Icon - PlayTester Hub"),
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .fillMaxSize()
@@ -181,8 +187,8 @@ fun SplashScreen(
 
             // App Name & Branding
             Text(
-                text = "PlayTester Hub",
-                fontSize = 30.sp,
+                text = L.t("منصة مختبري التطبيقات", "PlayTester Hub"),
+                fontSize = 28.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White,
                 letterSpacing = 0.5.sp
@@ -196,7 +202,10 @@ fun SplashScreen(
                 border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF00E676).copy(alpha = 0.35f))
             ) {
                 Text(
-                    text = "منصة اختبارات Google Play Console المعتمدة",
+                    text = L.t(
+                        "منصة اختبارات متجر جوجل بلاي المعتمدة",
+                        "Official Google Play Console Testing Platform"
+                    ),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF69F0AE),
@@ -207,7 +216,10 @@ fun SplashScreen(
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = "20 مختبراً حقيقياً • 14 يوماً متواصلة • تقارير تدقيق رسمية",
+                text = L.t(
+                    "20 مختبراً حقيقياً • 14 يوماً متواصلة • تقارير تدقيق رسمية",
+                    "20 Real Testers • 14 Consecutive Days • Official Audit Reports"
+                ),
                 fontSize = 12.sp,
                 color = Color.White.copy(alpha = 0.75f),
                 textAlign = TextAlign.Center
@@ -246,7 +258,10 @@ fun SplashScreen(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 Text(
-                    text = "جاري تهيئة بيئة الاختبار ومزامنة المجتمع...",
+                    text = L.t(
+                        "جاري تهيئة بيئة الاختبار ومزامنة المجتمع...",
+                        "Initializing test environment & syncing community..."
+                    ),
                     fontSize = 11.sp,
                     color = Color.White.copy(alpha = 0.6f),
                     textAlign = TextAlign.Center
@@ -256,12 +271,16 @@ fun SplashScreen(
 
         // Bottom Footer
         Text(
-            text = "Google Play Closed Testing Compliance v2.4",
+            text = L.t(
+                "امتثال الاختبار المغلق لمتجر جوجل بلاي • الإصدار 2.4",
+                "Google Play Closed Testing Compliance • v2.4"
+            ),
             fontSize = 10.sp,
             color = Color.White.copy(alpha = 0.35f),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 24.dp)
         )
+    }
     }
 }

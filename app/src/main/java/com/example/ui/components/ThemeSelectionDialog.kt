@@ -47,7 +47,7 @@ fun ThemeSelectionDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("تم وحفظ المظهر")
+                    Text(com.example.ui.util.L.t("تم وحفظ المظهر", "Done & Save Theme"))
                 }
             }
         }

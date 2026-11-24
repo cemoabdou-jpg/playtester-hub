@@ -149,7 +149,10 @@ fun MyTestingScreen(
                                 Icon(Icons.Default.Celebration, contentDescription = null, tint = Color(0xFFE65100), modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    "🎉 أحسنت! كسبت +25 عملة لاختبار ${app.appName}",
+                                    L.t(
+                                        "🎉 أحسنت! كسبت +25 عملة لاختبار ${app.appName}",
+                                        "🎉 Well done! Earned +25 coins testing ${app.appName}"
+                                    ),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.sp,
                                     color = Color(0xFFE65100)
@@ -159,7 +162,7 @@ fun MyTestingScreen(
                                 onClick = { lastTestedAppForDouble = null },
                                 modifier = Modifier.size(24.dp)
                             ) {
-                                Icon(Icons.Default.Close, contentDescription = "إغلاق", tint = Color.Gray, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Close, contentDescription = L.t("إغلاق", "Close"), tint = Color.Gray, modifier = Modifier.size(16.dp))
                             }
                         }
 
@@ -174,7 +177,14 @@ fun MyTestingScreen(
                                             activity = activity,
                                             onRewardEarned = {
                                                 viewModel.doubleTestReward(25)
-                                                Toast.makeText(context, "🌟 رائع! تمت مضاعفة مكافأتك إلى 50 عملة!", Toast.LENGTH_LONG).show()
+                                                Toast.makeText(
+                                                    context,
+                                                    L.t(
+                                                        "🌟 رائع! تمت مضاعفة مكافأتك إلى 50 عملة!",
+                                                        "🌟 Awesome! Your reward was doubled to 50 coins!"
+                                                    ),
+                                                    Toast.LENGTH_LONG
+                                                ).show()
                                                 lastTestedAppForDouble = null
                                             }
                                         )
@@ -190,7 +200,11 @@ fun MyTestingScreen(
                             ) {
                                 Icon(Icons.Default.PlayCircle, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("ضاعفها إلى 50 عملة الآن (2x) 🎬", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text(
+                                    L.t("ضاعفها إلى 50 عملة الآن 🎬", "Double to 50 Coins Now (2x) 🎬"),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
 
                             OutlinedButton(
@@ -203,7 +217,7 @@ fun MyTestingScreen(
                             ) {
                                 Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFF8F00), modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("تقييم التطبيق (+15)", fontSize = 11.sp)
+                                Text(L.t("تقييم التطبيق (+15)", "Rate App (+15)"), fontSize = 11.sp)
                             }
                         }
                     }
@@ -232,13 +246,27 @@ fun MyTestingScreen(
                         )
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
-                            if (selectedSubTab == "ACTIVE") "لا توجد تطبيقات قيد الاختبار حالياً" else "لم تكمل أي تطبيق بعد (14 يوماً)",
+                            if (selectedSubTab == "ACTIVE") {
+                                L.t("لا توجد تطبيقات قيد الاختبار حالياً", "No active tests right now")
+                            } else {
+                                L.t("لم تكمل أي تطبيق بعد (14 يوماً)", "No completed 14-day tests yet")
+                            },
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            if (selectedSubTab == "ACTIVE") "تصفح شاشة المجتمع وانضم لاختبار تطبيقات المطورين لكسب العملات" else "استمر في فتح تطبيقاتك الحالية يومياً حتى تصل إلى 14 يوماً مكتملة",
+                            if (selectedSubTab == "ACTIVE") {
+                                L.t(
+                                    "تصفح شاشة المجتمع وانضم لاختبار تطبيقات المطورين لكسب العملات",
+                                    "Browse the Community tab and join developers' apps to earn coins"
+                                )
+                            } else {
+                                L.t(
+                                    "استمر في فتح تطبيقاتك الحالية يومياً حتى تصل إلى 14 يوماً مكتملة",
+                                    "Keep opening your active apps daily until you reach 14 completed days"
+                                )
+                            },
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -307,7 +335,7 @@ fun MyTestingScreen(
                                             )
                                             Spacer(modifier = Modifier.width(3.dp))
                                             Text(
-                                                if (isInstalled) "مثبت على جهازك ✓" else "يحتاج تثبيت",
+                                                if (isInstalled) L.t("مثبت على جهازك ✓", "Installed ✓") else L.t("يحتاج تثبيت", "Needs Install"),
                                                 fontSize = 9.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = if (isInstalled) Color(0xFF2E7D32) else Color(0xFFE65100)
@@ -319,7 +347,7 @@ fun MyTestingScreen(
                                         shape = RoundedCornerShape(6.dp)
                                     ) {
                                         Text(
-                                            "+25 عملة يومياً 🪙",
+                                            L.t("+25 عملة يومياً 🪙", "+25 coins/day 🪙"),
                                             fontSize = 9.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = Color(0xFFFF8F00),
@@ -413,7 +441,7 @@ fun MyTestingScreen(
                                     shape = RoundedCornerShape(10.dp),
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp)
                                 ) {
-                                    Icon(Icons.Default.Launch, contentDescription = "تشغيل", modifier = Modifier.size(15.dp))
+                                    Icon(Icons.Default.Launch, contentDescription = L.t("تشغيل", "Launch"), modifier = Modifier.size(15.dp))
                                 }
                             }
 
@@ -423,7 +451,7 @@ fun MyTestingScreen(
                                     .size(38.dp)
                                     .background(Color(0xFFFFB300).copy(alpha = 0.12f), RoundedCornerShape(10.dp))
                             ) {
-                                Icon(Icons.Default.Star, contentDescription = "تقييم", tint = Color(0xFFFF8F00), modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Star, contentDescription = L.t("تقييم", "Rate"), tint = Color(0xFFFF8F00), modifier = Modifier.size(18.dp))
                             }
                         }
                     }
@@ -440,7 +468,14 @@ fun MyTestingScreen(
             onDismiss = { appForFeedback = null },
             onSubmit = { rating, comment ->
                 viewModel.submitFeedback(feedbackTarget.packageName, rating, comment)
-                Toast.makeText(context, "🌟 شكراً لك! تم إرسال تقييمك وإضافة +15 عملة لرصيدك!", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    context,
+                    L.t(
+                        "🌟 شكراً لك! تم إرسال تقييمك وإضافة +15 عملة لرصيدك!",
+                        "🌟 Thank you! Your feedback was submitted (+15 coins)!"
+                    ),
+                    Toast.LENGTH_LONG
+                ).show()
                 appForFeedback = null
             }
         )

@@ -38,6 +38,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.PLATFORM_OWNER_EMAIL
 import com.example.ui.components.DynamicEventLogo
+import com.example.ui.util.AppLanguage
+import com.example.ui.util.L
 import com.example.ui.viewmodel.TesterViewModel
 import kotlinx.coroutines.delay
 
@@ -92,7 +94,38 @@ fun MandatoryAuthScreen(
                     .padding(horizontal = 24.dp, vertical = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(modifier = Modifier.height(16.dp))
+                // Language Switcher Bar at top of Auth Screen
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            FilterChip(
+                                selected = L.isArabic(),
+                                onClick = { L.setLanguage(AppLanguage.ARABIC) },
+                                label = { Text("العربية", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                            FilterChip(
+                                selected = !L.isArabic(),
+                                onClick = { L.setLanguage(AppLanguage.ENGLISH) },
+                                label = { Text("English", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // App Brand & Dynamic Event Logo
                 DynamicEventLogo(
@@ -103,14 +136,17 @@ fun MandatoryAuthScreen(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 Text(
-                    text = "PlayTester Hub",
+                    text = L.t("منصة مختبري التطبيقات", "PlayTester Hub"),
                     fontSize = 24.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
 
                 Text(
-                    text = "منصة تبادل المختبرين الرسمية لـ Google Play",
+                    text = L.t(
+                        "منصة تبادل المختبرين الرسمية لمتجر جوجل بلاي",
+                        "Official Google Play Closed Testing Community"
+                    ),
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -135,7 +171,10 @@ fun MandatoryAuthScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "تسجيل الدخول إلزامي بالبريد الإلكتروني وتأكيد OTP",
+                            text = L.t(
+                                "تسجيل الدخول إلزامي بالبريد الإلكتروني ورمز التحقق",
+                                "Email Sign-In & OTP Verification Required"
+                            ),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF1B5E20)
@@ -176,13 +215,16 @@ fun MandatoryAuthScreen(
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column {
                                     Text(
-                                        "الخطوة الأولى: بيانات الحساب",
+                                        L.t("الخطوة الأولى: بيانات الحساب", "Step 1: Account Details"),
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 15.sp,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        "أدخل بريدك الإلكتروني وسيصلك رمز سري لتأكيد التسجيل",
+                                        L.t(
+                                            "أدخل بريدك الإلكتروني وسيصلك رمز سري لتأكيد التسجيل",
+                                            "Enter your email to receive a secret verification code"
+                                        ),
                                         fontSize = 11.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -197,8 +239,8 @@ fun MandatoryAuthScreen(
                                     nameInput = it
                                     errorMessage = null
                                 },
-                                label = { Text("الاسم الكامل أو اسم المطور") },
-                                placeholder = { Text("مثال: م. أحمد أو اسم استوديو التطوير") },
+                                label = { Text(L.t("الاسم الكامل أو اسم المطور", "Full Name or Developer Name")) },
+                                placeholder = { Text(L.t("مثال: م. أحمد أو استوديو التطوير", "e.g., Alex Morgan or App Studio")) },
                                 leadingIcon = {
                                     Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                 },
@@ -216,7 +258,7 @@ fun MandatoryAuthScreen(
                                     emailInput = it
                                     errorMessage = null
                                 },
-                                label = { Text("البريد الإلكتروني المسجل") },
+                                label = { Text(L.t("البريد الإلكتروني المسجل", "Registered Email Address")) },
                                 placeholder = { Text("name@example.com") },
                                 leadingIcon = {
                                     Icon(Icons.Default.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
@@ -251,17 +293,27 @@ fun MandatoryAuthScreen(
                                     val email = emailInput.trim()
                                     val name = nameInput.trim()
                                     if (email.isBlank() || !email.contains("@") || !email.contains(".")) {
-                                        errorMessage = "يرجى كتابة بريد إلكتروني صالح (مثال: dev@gmail.com)"
+                                        errorMessage = L.t(
+                                            "يرجى كتابة بريد إلكتروني صالح",
+                                            "Please enter a valid email address (e.g., dev@gmail.com)"
+                                        )
                                         return@Button
                                     }
                                     if (name.isBlank()) {
-                                        errorMessage = "يرجى كتابة اسمك أو اسم حسابك"
+                                        errorMessage = L.t(
+                                            "يرجى كتابة اسمك أو اسم حسابك",
+                                            "Please enter your name or account name"
+                                        )
                                         return@Button
                                     }
                                     errorMessage = null
                                     focusManager.clearFocus()
                                     viewModel.startEmailVerification(email, name)
-                                    Toast.makeText(context, "تم إرسال رمز التحقق OTP إلى $email", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(
+                                        context,
+                                        L.t("تم إرسال رمز التحقق إلى $email", "Verification code sent to $email"),
+                                        Toast.LENGTH_LONG
+                                    ).show()
                                 },
                                 shape = RoundedCornerShape(14.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -269,7 +321,7 @@ fun MandatoryAuthScreen(
                                 Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    "إرسال رمز التحقق OTP إلى البريد",
+                                    L.t("إرسال رمز التحقق إلى البريد", "Send Verification Code via Email"),
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -292,13 +344,16 @@ fun MandatoryAuthScreen(
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column {
                                     Text(
-                                        "الخطوة الثانية: تأكيد رمز البريد (OTP)",
+                                        L.t("الخطوة الثانية: تأكيد رمز البريد", "Step 2: Email Verification (OTP)"),
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 15.sp,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        "أدخل الرمز السري المكون من 6 أرقام المرسل إلى بريدك",
+                                        L.t(
+                                            "أدخل الرمز السري المكون من 6 أرقام المرسل إلى بريدك",
+                                            "Enter the 6-digit secret code sent to your email"
+                                        ),
                                         fontSize = 11.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -320,7 +375,11 @@ fun MandatoryAuthScreen(
                                     Icon(Icons.Default.MarkEmailRead, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Column {
-                                        Text("تم الإرسال إلى البريد المسجل:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(
+                                            L.t("تم الإرسال إلى البريد المسجل:", "Sent to registered email:"),
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                         Text(pendingEmail, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                     }
                                 }
@@ -346,7 +405,11 @@ fun MandatoryAuthScreen(
                                         Icon(Icons.Default.MarkEmailUnread, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(20.dp))
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Column {
-                                            Text("رمز التحقق OTP الخاص بك:", fontSize = 11.sp, color = Color(0xFF1B5E20))
+                                            Text(
+                                                L.t("رمز التحقق الخاص بك:", "Your OTP Verification Code:"),
+                                                fontSize = 11.sp,
+                                                color = Color(0xFF1B5E20)
+                                            )
                                             Text(
                                                 verificationCode,
                                                 fontSize = 17.sp,
@@ -361,13 +424,17 @@ fun MandatoryAuthScreen(
                                             otpInput = verificationCode
                                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                             clipboard.setPrimaryClip(ClipData.newPlainText("OTP", verificationCode))
-                                            Toast.makeText(context, "تم تعبئة الرمز $verificationCode تلقائياً", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(
+                                                context,
+                                                L.t("تم تعبئة الرمز $verificationCode تلقائياً", "Code $verificationCode auto-filled"),
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                         },
                                         shape = RoundedCornerShape(8.dp),
                                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
                                     ) {
-                                        Text("تعبئة تلقائية", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text(L.t("تعبئة تلقائية", "Auto Fill"), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -382,7 +449,7 @@ fun MandatoryAuthScreen(
                                         errorMessage = null
                                     }
                                 },
-                                label = { Text("أدخل الرمز (6 أرقام)") },
+                                label = { Text(L.t("أدخل الرمز (6 أرقام)", "Enter 6-Digit Code")) },
                                 placeholder = { Text("• • • • • •") },
                                 singleLine = true,
                                 textStyle = LocalTextStyle.current.copy(
@@ -418,15 +485,25 @@ fun MandatoryAuthScreen(
                                     .height(50.dp),
                                 onClick = {
                                     if (otpInput.length != 6) {
-                                        errorMessage = "يرجى إدخال الرمز كاملاً (6 أرقام)"
+                                        errorMessage = L.t("يرجى إدخال الرمز كاملاً (6 أرقام)", "Please enter the complete 6-digit code")
                                         return@Button
                                     }
                                     val success = viewModel.confirmVerificationCode(otpInput)
                                     if (success) {
                                         focusManager.clearFocus()
-                                        Toast.makeText(context, "🎉 تم تأكيد البريد بنجاح ومرحباً بك في PlayTester Hub!", Toast.LENGTH_LONG).show()
+                                        Toast.makeText(
+                                            context,
+                                            L.t(
+                                                "🎉 تم تأكيد البريد بنجاح ومرحباً بك في منصة مختبري التطبيقات!",
+                                                "🎉 Email verified! Welcome to PlayTester Hub!"
+                                            ),
+                                            Toast.LENGTH_LONG
+                                        ).show()
                                     } else {
-                                        errorMessage = "رمز التحقق غير صحيح، يرجى التأكد وإعادة المحاولة"
+                                        errorMessage = L.t(
+                                            "رمز التحقق غير صحيح، يرجى التأكد وإعادة المحاولة",
+                                            "Invalid verification code. Please check and try again."
+                                        )
                                     }
                                 },
                                 shape = RoundedCornerShape(14.dp),
@@ -435,7 +512,7 @@ fun MandatoryAuthScreen(
                                 Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    "تأكيد الرمز والدخول إلى المنصة",
+                                    L.t("تأكيد الرمز والدخول إلى المنصة", "Verify Code & Enter Platform"),
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -457,7 +534,7 @@ fun MandatoryAuthScreen(
                                 ) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("تغيير البريد", fontSize = 12.sp)
+                                    Text(L.t("تغيير البريد", "Change Email"), fontSize = 12.sp)
                                 }
 
                                 TextButton(
@@ -465,13 +542,21 @@ fun MandatoryAuthScreen(
                                         if (canResend) {
                                             val newCode = viewModel.resendVerificationCode()
                                             otpInput = ""
-                                            Toast.makeText(context, "تم إرسال رمز جديد: $newCode", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(
+                                                context,
+                                                L.t("تم إرسال رمز جديد: $newCode", "New code sent: $newCode"),
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                         }
                                     },
                                     enabled = canResend
                                 ) {
                                     Text(
-                                        if (canResend) "إعادة إرسال الرمز" else "إعادة الإرسال بعد ($resendCountdown ث)",
+                                        if (canResend) {
+                                            L.t("إعادة إرسال الرمز", "Resend Code")
+                                        } else {
+                                            L.t("إعادة الإرسال بعد ($resendCountdown ث)", "Resend in (${resendCountdown}s)")
+                                        },
                                         fontSize = 12.sp,
                                         color = if (canResend) MaterialTheme.colorScheme.primary else Color.Gray
                                     )
@@ -494,7 +579,7 @@ fun MandatoryAuthScreen(
                             Icon(Icons.Default.GppGood, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                "لماذا التحقق من البريد إلزامي؟",
+                                L.t("لماذا التحقق من البريد إلزامي؟", "Why is email verification required?"),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -502,9 +587,14 @@ fun MandatoryAuthScreen(
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            "• توثيق حسابات المطورين والمختبرين ومنع الحسابات الوهمية.\n" +
-                            "• ضمان تسجيل الـ 20 مختبراً المعتمدين لسياسة Google Play بنجاح.\n" +
-                            "• حفظ ومزامنة نقاط المكافآت وسجل اختبار التطبيقات اليومي.",
+                            L.t(
+                                "• توثيق حسابات المطورين والمختبرين ومنع الحسابات الوهمية.\n" +
+                                "• ضمان تسجيل 20 مختبراً معتمداً لسياسة متجر جوجل بلاي بنجاح.\n" +
+                                "• حفظ ومزامنة نقاط المكافآت وسجل اختبار التطبيقات اليومي.",
+                                "• Verifies real developer & tester accounts and prevents spam.\n" +
+                                "• Ensures 20 genuine opted-in testers for Google Play closed testing compliance.\n" +
+                                "• Syncs reward coins and daily testing streaks across your sessions."
+                            ),
                             fontSize = 11.sp,
                             lineHeight = 17.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant

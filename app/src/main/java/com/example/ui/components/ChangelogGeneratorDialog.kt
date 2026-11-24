@@ -20,6 +20,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.CrashReport
 import com.example.data.model.UserApp
+import com.example.ui.util.L
 
 @Composable
 fun ChangelogGeneratorDialog(
@@ -28,47 +29,51 @@ fun ChangelogGeneratorDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    var isArabic by remember { mutableStateOf(true) }
+    var isArabicNote by remember(L.currentLanguage) { mutableStateOf(L.isArabic()) }
 
-    val resolvedCrashesText = remember(crashes) {
+    val resolvedCrashesTextAr = remember(crashes) {
         crashes.filter { it.status == "RESOLVED" }
             .joinToString("\n") { "• تم حل مشكلة: ${it.title} على أجهزة ${it.deviceModel}" }
     }
 
-    val arabicChangelog = remember(app, resolvedCrashesText) {
+    val resolvedCrashesTextEn = remember(crashes) {
+        crashes.filter { it.status == "RESOLVED" }
+            .joinToString("\n") { "• Resolved: ${it.title} on ${it.deviceModel}" }
+    }
+
+    val arabicChangelog = remember(app, resolvedCrashesTextAr) {
         """
-        🚀 تحديث جديد لتطبيق ${app.name} (الإصدار v1.0.3):
+        🚀 تحديث جديد لتطبيق ${app.name} (الإصدار 1.0.3):
         
         ✨ أبرز التحسينات والمميزات:
         - تحسين استقرار التطبيق وسرعة الاستجابة أثناء تصفح الواجهات.
-        - توافق كامل وتجربة مستخدم محسنة على أحدث أجهزة أندرويد 14.
+        - توافق كامل وتجربة مستخدم محسنة على أحدث أجهزة أندرويد.
         
         🛠️ الإصلاحات البرمجية المبنية على ملاحظات المختبرين:
-        ${if (resolvedCrashesText.isNotBlank()) resolvedCrashesText else "• إصلاح أعطال طارئة وتحسين استهلاك الذاكرة"}
+        ${if (resolvedCrashesTextAr.isNotBlank()) resolvedCrashesTextAr else "• إصلاح أعطال طارئة وتحسين استهلاك الذاكرة"}
         - تقليل زمن التحميل بنسبة 25%.
         
-        ❤️ نشكر مجتمع مختبري PlayTester Hub على مساهماتهم القيمة!
+        ❤️ نشكر مجتمع منصة مختبري التطبيقات على مساهماتهم القيمة!
         """.trimIndent()
     }
 
-    val englishChangelog = remember(app, crashes) {
+    val englishChangelog = remember(app, resolvedCrashesTextEn) {
         """
         🚀 What's New in ${app.name} (v1.0.3):
         
         ✨ Improvements & Features:
         - Enhanced overall app performance and smoother UI transitions.
-        - Full compatibility and optimization for Android 14.
+        - Full compatibility and optimization for modern Android devices.
         
         🛠️ Bug Fixes & Tester Feedback:
-        - Resolved null pointer exceptions on specific devices.
-        - Fixed background processing timeouts during checkout.
-        - Optimized memory footprint and reduced startup latency by 25%.
+        ${if (resolvedCrashesTextEn.isNotBlank()) resolvedCrashesTextEn else "• Resolved edge-case crashes and improved memory footprint"}
+        - Reduced startup latency by 25%.
         
         ❤️ Special thanks to our dedicated PlayTester Hub testers community!
         """.trimIndent()
     }
 
-    val currentText = if (isArabic) arabicChangelog else englishChangelog
+    val currentText = if (isArabicNote) arabicChangelog else englishChangelog
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -89,15 +94,15 @@ fun ChangelogGeneratorDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
+                        Icon(Icons.Default.Close, contentDescription = L.t("إغلاق", "Close"))
                     }
                     Text(
-                        "📝 مولّد سجل التغييرات الذكي (Release Notes)",
+                        L.t("📝 مولّد سجل التغييرات الذكي", "📝 Smart Release Notes Generator"),
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleLarge
                     )
-                    IconButton(onClick = { isArabic = !isArabic }) {
-                        Icon(Icons.Default.Translate, contentDescription = "تغيير اللغة")
+                    IconButton(onClick = { isArabicNote = !isArabicNote }) {
+                        Icon(Icons.Default.Translate, contentDescription = L.t("تبديل لغة السجل", "Switch Note Language"))
                     }
                 }
 
@@ -109,11 +114,20 @@ fun ChangelogGeneratorDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        if (isArabic) "النص العربي لـ Google Play Console" else "English Text for Play Console",
-                        fontWeight = FontWeight.SemiBold
+                        if (isArabicNote)
+                            L.t("النص العربي للوحة مطوري جوجل بلاي", "Arabic Release Notes for Play Console")
+                        else
+                            L.t("النص الإنجليزي للوحة مطوري جوجل بلاي", "English Release Notes for Play Console"),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                        modifier = Modifier.weight(1f)
                     )
-                    OutlinedButton(onClick = { isArabic = !isArabic }) {
-                        Text(if (isArabic) "تبديل للإنجليزية (EN)" else "تبديل للعربية (AR)")
+                    OutlinedButton(onClick = { isArabicNote = !isArabicNote }) {
+                        Text(
+                            if (isArabicNote) L.t("تبديل للإنجليزية", "Switch to English")
+                            else L.t("تبديل للعربية", "Switch to Arabic"),
+                            fontSize = 11.sp
+                        )
                     }
                 }
 
@@ -142,20 +156,24 @@ fun ChangelogGeneratorDialog(
                         modifier = Modifier.weight(1f),
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clip = ClipData.newPlainText("Play Console Release Notes", currentText)
+                            val clip = ClipData.newPlainText(L.t("سجل التغييرات", "Play Console Release Notes"), currentText)
                             clipboard.setPrimaryClip(clip)
-                            Toast.makeText(context, "تم نسخ النص لتقديمه في Google Play Console!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                L.t("تم نسخ النص لتقديمه في لوحة مطوري جوجل بلاي!", "Release notes copied for Play Console!"),
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     ) {
                         Icon(Icons.Default.ContentCopy, contentDescription = null)
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("نسخ لـ Play Console")
+                        Text(L.t("نسخ للوحة المطور", "Copy Notes"))
                     }
                     OutlinedButton(
                         modifier = Modifier.weight(1f),
                         onClick = onDismiss
                     ) {
-                        Text("إغلاق")
+                        Text(L.t("إغلاق", "Close"))
                     }
                 }
             }

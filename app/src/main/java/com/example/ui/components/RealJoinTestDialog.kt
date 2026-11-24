@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.CommunityApp
+import com.example.ui.util.L
 
 @Composable
 fun RealJoinTestDialog(
@@ -63,7 +64,6 @@ fun RealJoinTestDialog(
                     .padding(18.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -73,11 +73,11 @@ fun RealJoinTestDialog(
                         onClick = onDismiss,
                         modifier = Modifier.size(28.dp)
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "إغلاق")
+                        Icon(Icons.Default.Close, contentDescription = L.t("إغلاق", "Close"))
                     }
 
                     Text(
-                        "الانضمام لاختبار التطبيق",
+                        L.t("الانضمام لاختبار التطبيق", "Join App Test"),
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
                         color = MaterialTheme.colorScheme.onSurface
@@ -88,7 +88,7 @@ fun RealJoinTestDialog(
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            "+${app.pointsReward} عملة",
+                            L.t("+${app.pointsReward} عملة", "+${app.pointsReward} coins"),
                             color = Color(0xFFE65100),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
@@ -97,7 +97,6 @@ fun RealJoinTestDialog(
                     }
                 }
 
-                // App Info Box
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                     shape = RoundedCornerShape(14.dp),
@@ -119,7 +118,10 @@ fun RealJoinTestDialog(
                         Column {
                             Text(app.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             Text(
-                                "المطور: ${app.developerName} • ${app.category}",
+                                L.t(
+                                    "المطور: ${L.translateKnown(app.developerName)} • ${L.localizeCategory(app.category)}",
+                                    "Dev: ${L.translateKnown(app.developerName)} • ${L.localizeCategory(app.category)}"
+                                ),
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -132,7 +134,6 @@ fun RealJoinTestDialog(
                     }
                 }
 
-                // Official Google Play Notice
                 Surface(
                     color = Color(0xFFE3F2FD),
                     shape = RoundedCornerShape(12.dp),
@@ -151,7 +152,10 @@ fun RealJoinTestDialog(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "نظام Google Play: يتطلب الانضمام للمجموعة أولاً بحساب Google، ثم فتح رابط الاختبار لتظهر لك صفحة التحميل بنجاح.",
+                            L.t(
+                                "نظام متجر جوجل بلاي: يتطلب الانضمام للمجموعة أولاً بحسابك، ثم فتح رابط الاختبار لتظهر لك صفحة التحميل بنجاح.",
+                                "Google Play requirement: Join the tester group with your Google account first, then open the opt-in link so the download page loads properly."
+                            ),
                             fontSize = 10.5.sp,
                             color = Color(0xFF0D47A1),
                             lineHeight = 15.sp
@@ -159,7 +163,6 @@ fun RealJoinTestDialog(
                     }
                 }
 
-                // Step 1: Join Google Group
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     border = androidx.compose.foundation.BorderStroke(
@@ -174,9 +177,9 @@ fun RealJoinTestDialog(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    "الخطوة 1: الانضمام لمجموعة Google",
+                                    L.t("الخطوة 1: الانضمام لمجموعة جوجل", "Step 1: Join Google Group"),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.sp,
                                     color = if (hasJoinedGroup) Color(0xFF00875A) else MaterialTheme.colorScheme.onSurface
@@ -187,7 +190,7 @@ fun RealJoinTestDialog(
                                     shape = RoundedCornerShape(4.dp)
                                 ) {
                                     Text(
-                                        if (hasCustomGroup) "مجموعة مخصصة" else "المجموعة العامة",
+                                        if (hasCustomGroup) L.t("مجموعة مخصصة", "Custom Group") else L.t("المجموعة العامة", "Public Group"),
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = if (hasCustomGroup) Color(0xFF2E7D32) else Color(0xFFE65100),
@@ -207,10 +210,17 @@ fun RealJoinTestDialog(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            if (hasCustomGroup)
-                                "انضم لمجموعة Google الخاصة بالمطور لمنح حسابك صلاحية التحميل في متجر Play"
-                            else
-                                "انضم لمجموعة المنصة العامة على Google Groups لاعتماد بريدك كمختبر معتمد",
+                            if (hasCustomGroup) {
+                                L.t(
+                                    "انضم لمجموعة جوجل الخاصة بالمطور لمنح حسابك صلاحية التحميل في المتجر",
+                                    "Join the developer's Google Group to grant your account store download access"
+                                )
+                            } else {
+                                L.t(
+                                    "انضم لمجموعة المنصة العامة لاعتماد بريدك كمختبر معتمد",
+                                    "Join the platform public Google Group to authorize your email as a tester"
+                                )
+                            },
                             fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -230,7 +240,8 @@ fun RealJoinTestDialog(
                             Icon(Icons.Default.Groups, contentDescription = null, modifier = Modifier.size(15.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                if (hasJoinedGroup) "تم فتح المجموعة بنجاح ✓ (إعادة الفتح)" else "1. الانضمام إلى مجموعة Google Group 👥",
+                                if (hasJoinedGroup) L.t("تم فتح المجموعة بنجاح ✓ (إعادة الفتح)", "Group Opened ✓ (Re-open)")
+                                else L.t("1. الانضمام إلى مجموعة الاختبار 👥", "1. Join Google Group 👥"),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -238,7 +249,6 @@ fun RealJoinTestDialog(
                     }
                 }
 
-                // Step 2: Open Opt-in Link
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     border = androidx.compose.foundation.BorderStroke(
@@ -254,7 +264,7 @@ fun RealJoinTestDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                "الخطوة 2: قبول الدعوة في Google Play",
+                                L.t("الخطوة 2: قبول الدعوة في متجر جوجل بلاي", "Step 2: Accept Invite on Google Play"),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp,
                                 color = if (hasOpenedOptIn) Color(0xFF00875A) else MaterialTheme.colorScheme.onSurface
@@ -271,7 +281,10 @@ fun RealJoinTestDialog(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "اضغط Become a Tester ثم اضغط Download it on Google Play لتنزيل التطبيق",
+                            L.t(
+                                "اضغط على زر الانضمام للاختبار ثم زر التنزيل من متجر جوجل بلاي لتثبيت التطبيق",
+                                "Tap 'Become a Tester' and then 'Download it on Google Play' to install the app"
+                            ),
                             fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -285,7 +298,7 @@ fun RealJoinTestDialog(
                                     context.startActivity(intent)
                                     hasOpenedOptIn = true
                                 } catch (_: Exception) {
-                                    Toast.makeText(context, "الرابط: $optInUrl", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(context, L.t("الرابط: $optInUrl", "Link: $optInUrl"), Toast.LENGTH_LONG).show()
                                     hasOpenedOptIn = true
                                 }
                             },
@@ -299,7 +312,8 @@ fun RealJoinTestDialog(
                             Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                if (hasOpenedOptIn) "تم فتح الرابط بنجاح ✓ (إعادة الفتح)" else "2. فتح رابط تجربة التطبيق (Web Opt-In) 🚀",
+                                if (hasOpenedOptIn) L.t("تم فتح الرابط بنجاح ✓ (إعادة الفتح)", "Link Opened ✓ (Re-open)")
+                                else L.t("2. فتح رابط تجربة التطبيق 🚀", "2. Open App Test Link (Web Opt-In) 🚀"),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -307,11 +321,17 @@ fun RealJoinTestDialog(
                     }
                 }
 
-                // Step 3: Confirm Join
                 Button(
                     onClick = {
                         if (!hasJoinedGroup && !hasOpenedOptIn) {
-                            Toast.makeText(context, "يرجى فتح رابط مجموعة Google ورابط الاشتراك أولاً لإتمام الانضمام الفعلي", Toast.LENGTH_LONG).show()
+                            Toast.makeText(
+                                context,
+                                L.t(
+                                    "يرجى فتح رابط مجموعة جوجل ورابط الاشتراك أولاً لإتمام الانضمام الفعلي",
+                                    "Please open the Google Group and opt-in link first to confirm joining"
+                                ),
+                                Toast.LENGTH_LONG
+                            ).show()
                         } else {
                             onConfirmJoin()
                         }
@@ -326,7 +346,10 @@ fun RealJoinTestDialog(
                     Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "تأكيد الانضمام الفعلي والبدء (+${app.pointsReward} عملة)",
+                        L.t(
+                            "تأكيد الانضمام الفعلي والبدء (+${app.pointsReward} عملة)",
+                            "Confirm Joining & Start (+${app.pointsReward} coins)"
+                        ),
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp
                     )
@@ -336,7 +359,7 @@ fun RealJoinTestDialog(
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("إلغاء والعودة", fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
+                    Text(L.t("إلغاء والعودة", "Cancel & Back"), fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
                 }
             }
         }

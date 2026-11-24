@@ -91,6 +91,13 @@ object DailyReminderScheduler {
             action = "com.example.ACTION_DAILY_REMINDER"
         }
         context.sendBroadcast(intent)
-        Toast.makeText(context, "تم إرسال إشعار التذكير التجريبي بنجاح 🔔", Toast.LENGTH_SHORT).show()
+        Toast.makeText(
+            context,
+            com.example.ui.util.L.t(
+                "تم إرسال إشعار التذكير التجريبي بنجاح 🔔",
+                "Test reminder notification sent successfully 🔔"
+            ),
+            Toast.LENGTH_SHORT
+        ).show()
     }
 }

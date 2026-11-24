@@ -2,6 +2,7 @@ package com.example.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.example.ui.util.L
 
 @Entity(tableName = "user_apps")
 data class UserApp(
@@ -95,7 +96,7 @@ data class DailyTestLog(
     val dayNumber: Int,
     val checkInTimestamp: Long,
     val sessionDurationMinutes: Int = 15,
-    val notes: String = "جلسة اختبار تفاعلية ناجحة"
+    val notes: String = L.t("جلسة اختبار تفاعلية ناجحة", "Successful interactive test session")
 )
 
 const val PLATFORM_OWNER_EMAIL = "cemoabdou@gmail.com"
@@ -103,7 +104,7 @@ const val PLATFORM_OWNER_EMAIL = "cemoabdou@gmail.com"
 data class AuthUser(
     val uid: String = "dev_guest_01",
     val email: String = "developer@testerhub.com",
-    val displayName: String = "مطور تجريبي",
+    val displayName: String = L.t("مطور تجريبي", "Beta Developer"),
     val points: Int = 0,
     val isVip: Boolean = false,
     val isEmailVerified: Boolean = false,
@@ -140,7 +141,7 @@ data class TesterNotification(
     val id: String,
     val testerName: String,
     val testerEmail: String,
-    val testerBadge: String = "مختبر معتمد ⭐",
+    val testerBadge: String = L.t("مختبر معتمد ⭐", "Verified Tester ⭐"),
     val appName: String,
     val appPackageName: String,
     val timestamp: Long = System.currentTimeMillis(),
@@ -153,12 +154,15 @@ data class TesterNotification(
 data class TesterProfileData(
     val name: String,
     val email: String,
-    val badge: String = "مختبر معتمد ⭐",
+    val badge: String = L.t("مختبر معتمد ⭐", "Verified Tester ⭐"),
     val rating: Float = 4.9f,
     val testsCompleted: Int = 18,
     val reputationPoints: Int = 980,
     val deviceModel: String = "Samsung Galaxy S23",
-    val bio: String = "مطور ومختبر أندرويد معتمد في مجتمع PlayTester Hub، متفاعل يومياً لدعم تطبيقات الزملاء المتبادلة.",
+    val bio: String = L.t(
+        "مطور ومختبر أندرويد معتمد في مجتمع منصة المختبرين، متفاعل يومياً لدعم تطبيقات الزملاء المتبادلة.",
+        "Verified Android developer and tester in PlayTester Hub, actively supporting peers' closed tests daily."
+    ),
     val apps: List<CommunityApp> = emptyList()
 )
 

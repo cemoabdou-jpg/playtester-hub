@@ -35,6 +35,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.ComplianceDay
 import com.example.data.model.GooglePlayQuestionnaireAnswer
 import com.example.data.model.UserApp
+import com.example.ui.util.L
 import com.example.ui.viewmodel.TesterViewModel
 
 @Composable
@@ -44,11 +45,11 @@ fun GooglePlayComplianceMatrixDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    val days = remember(app) { viewModel.getComplianceDays(app) }
-    val questionnaireAnswers = remember(app) { viewModel.getQuestionnaireAnswers(app) }
+    val days = remember(app, L.currentLanguage) { viewModel.getComplianceDays(app) }
+    val questionnaireAnswers = remember(app, L.currentLanguage) { viewModel.getQuestionnaireAnswers(app) }
 
     var selectedTab by remember { mutableStateOf(0) } // 0: Heatmap & Radar, 1: Google Play Answers, 2: Verification Checklist
-    var selectedDayDetail by remember { mutableStateOf<ComplianceDay?>(days.find { it.isToday } ?: days.firstOrNull()) }
+    var selectedDayDetail by remember(days) { mutableStateOf<ComplianceDay?>(days.find { it.isToday } ?: days.firstOrNull()) }
 
     // Calculate dynamic readiness score
     val completedDaysCount = app.completedDays.coerceIn(1, 14)
@@ -65,9 +66,9 @@ fun GooglePlayComplianceMatrixDialog(
     }
 
     val readinessStatusText = when {
-        totalScore >= 95 -> "جاهز لطلب الوصول إلى الإنتاج (Production Ready) 🚀"
-        totalScore >= 75 -> "متقدم جداً - متبقي أيام معدودة لاستيفاء كافة الشروط ⏳"
-        else -> "قيد التجميع - بحاجة لمزيد من المختبرين واستكمال الـ 14 يوماً 🛡️"
+        totalScore >= 95 -> L.t("جاهز لطلب الوصول إلى الإنتاج 🚀", "Ready to apply for Production Access 🚀")
+        totalScore >= 75 -> L.t("متقدم جداً - متبقي أيام معدودة لاستيفاء كافة الشروط ⏳", "Almost there - a few days left for full compliance ⏳")
+        else -> L.t("قيد التجميع - بحاجة لمزيد من المختبرين واستكمال الـ 14 يوماً 🛡️", "In progress - needs more testers & completion of 14 days 🛡️")
     }
 
     Dialog(
@@ -114,13 +115,13 @@ fun GooglePlayComplianceMatrixDialog(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                "مصفوفة Google Play لـ 14 يوماً",
+                                L.t("مصفوفة جوجل بلاي لـ 14 يوماً", "Google Play 14-Day Compliance Matrix"),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                "رادار الجاهزية والامتثال: ${app.name}",
+                                L.t("رادار الجاهزية والامتثال: ${app.name}", "Readiness & Compliance Radar: ${app.name}"),
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -128,7 +129,7 @@ fun GooglePlayComplianceMatrixDialog(
                     }
 
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "إغلاق")
+                        Icon(Icons.Default.Close, contentDescription = L.t("إغلاق", "Close"))
                     }
                 }
 
@@ -164,7 +165,7 @@ fun GooglePlayComplianceMatrixDialog(
                                 }
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    "مؤشر الجاهزية لـ Google Play",
+                                    L.t("مؤشر الجاهزية لمتجر جوجل بلاي", "Google Play Readiness Score"),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -212,17 +213,17 @@ fun GooglePlayComplianceMatrixDialog(
                     Tab(
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
-                        text = { Text("خريطة الـ 14 يوماً", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                        text = { Text(L.t("خريطة الـ 14 يوماً", "14-Day Heatmap"), fontSize = 11.sp, fontWeight = FontWeight.Bold) }
                     )
                     Tab(
                         selected = selectedTab == 1,
                         onClick = { selectedTab = 1 },
-                        text = { Text("إجابات استبيان Google", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                        text = { Text(L.t("إجابات استبيان جوجل", "Play Questionnaire"), fontSize = 11.sp, fontWeight = FontWeight.Bold) }
                     )
                     Tab(
                         selected = selectedTab == 2,
                         onClick = { selectedTab = 2 },
-                        text = { Text("قائمة التحقق الرسمية", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                        text = { Text(L.t("قائمة التحقق الرسمية", "Official Checklist"), fontSize = 11.sp, fontWeight = FontWeight.Bold) }
                     )
                 }
 
@@ -234,36 +235,33 @@ fun GooglePlayComplianceMatrixDialog(
                         days = days,
                         selectedDay = selectedDayDetail,
                         onSelectDay = { selectedDayDetail = it },
-                        app = app,
                         onExportCertificate = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             val summary = buildString {
-                                appendLine("📋 شهادة وفحص امتثال Google Play - PlayTester Hub")
+                                appendLine(L.t("📋 شهادة وفحص امتثال جوجل بلاي - منصة مختبري التطبيقات", "📋 Google Play Compliance Certificate - PlayTester Hub"))
                                 appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-                                appendLine("• اسم التطبيق: ${app.name}")
-                                appendLine("• الحزمة: ${app.packageName}")
-                                appendLine("• عدد المختبرين الفعليين: ${app.currentTesters}/20")
-                                appendLine("• الأيام المكتملة: ${app.completedDays}/14 يوماً متواصلة")
-                                appendLine("• معدل الاستبقاء (Retention): 98.4%")
-                                appendLine("• متوسط زمن الجلسات: 14.8 دقيقة")
-                                appendLine("• حالة الأعطال (Crashes): صفر كراشات حرجة")
-                                appendLine("• التقييم الإجمالي: $totalScore% (جاهز لتقديم طلب الإنتاج)")
+                                appendLine(L.t("• اسم التطبيق: ${app.name}", "• App Name: ${app.name}"))
+                                appendLine(L.t("• الحزمة: ${app.packageName}", "• Package: ${app.packageName}"))
+                                appendLine(L.t("• عدد المختبرين الفعليين: ${app.currentTesters}/20", "• Actual Testers: ${app.currentTesters}/20"))
+                                appendLine(L.t("• الأيام المكتملة: ${app.completedDays}/14 يوماً متواصلة", "• Completed Days: ${app.completedDays}/14 consecutive days"))
+                                appendLine(L.t("• معدل الاستبقاء: 98.4%", "• Retention Rate: 98.4%"))
+                                appendLine(L.t("• متوسط زمن الجلسات: 14.8 دقيقة", "• Avg. Session Duration: 14.8 min"))
+                                appendLine(L.t("• حالة الأعطال: صفر أعطال حرجة", "• Crash Status: Zero critical crashes"))
+                                appendLine(L.t("• التقييم الإجمالي: $totalScore% (جاهز لتقديم طلب الإنتاج)", "• Overall Score: $totalScore% (Ready for Production Access)"))
                             }
-                            clipboard.setPrimaryClip(ClipData.newPlainText("PlayTester Compliance Certificate", summary))
-                            Toast.makeText(context, "✅ تم نسخ ملخص الامتثال الرسمي إلى الحافظة!", Toast.LENGTH_SHORT).show()
+                            clipboard.setPrimaryClip(ClipData.newPlainText(L.t("شهادة الامتثال", "Compliance Certificate"), summary))
+                            Toast.makeText(context, L.t("✅ تم نسخ ملخص الامتثال الرسمي إلى الحافظة!", "✅ Official compliance summary copied!"), Toast.LENGTH_SHORT).show()
                         }
                     )
                     1 -> QuestionnaireAnswersContent(
-                        app = app,
                         answers = questionnaireAnswers,
                         onCopyAnswer = { answerText ->
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(ClipData.newPlainText("Google Play Answer", answerText))
-                            Toast.makeText(context, "✅ تم نسخ الإجابة الموصى بها إلى الحافظة!", Toast.LENGTH_SHORT).show()
+                            clipboard.setPrimaryClip(ClipData.newPlainText(L.t("إجابة الاستبيان", "Google Play Answer"), answerText))
+                            Toast.makeText(context, L.t("✅ تم نسخ الإجابة الموصى بها إلى الحافظة!", "✅ Recommended answer copied to clipboard!"), Toast.LENGTH_SHORT).show()
                         }
                     )
                     2 -> VerificationChecklistContent(
-                        app = app,
                         completedDays = completedDaysCount,
                         testersCount = testersCount
                     )
@@ -278,7 +276,6 @@ private fun HeatmapContent(
     days: List<ComplianceDay>,
     selectedDay: ComplianceDay?,
     onSelectDay: (ComplianceDay) -> Unit,
-    app: UserApp,
     onExportCertificate: () -> Unit
 ) {
     LazyColumn(
@@ -287,7 +284,10 @@ private fun HeatmapContent(
     ) {
         item {
             Text(
-                "تقويم نشاط الـ 14 يوماً المتواصلة (انقر على أي يوم لعرض تفاصيل التليمتري):",
+                L.t(
+                    "تقويم نشاط الـ 14 يوماً المتواصلة (انقر على أي يوم لعرض تفاصيل المؤشرات):",
+                    "14-Day Continuous Activity Heatmap (tap any day for telemetry details):"
+                ),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -302,7 +302,6 @@ private fun HeatmapContent(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    // Render 2 rows of 7 days
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -355,7 +354,7 @@ private fun HeatmapContent(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    "تفاصيل ${selectedDay.dateLabel}",
+                                    L.t("تفاصيل ${selectedDay.dateLabel}", "${selectedDay.dateLabel} Details"),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -367,7 +366,7 @@ private fun HeatmapContent(
                                         shape = RoundedCornerShape(4.dp)
                                     ) {
                                         Text(
-                                            "اليوم الحالي",
+                                            L.t("اليوم الحالي", "Today"),
                                             color = Color.White,
                                             fontSize = 9.sp,
                                             fontWeight = FontWeight.Bold,
@@ -378,7 +377,7 @@ private fun HeatmapContent(
                             }
 
                             Text(
-                                if (selectedDay.isCompleted) "✓ موثق ومكتمل" else "⏳ مجدول قريباً",
+                                if (selectedDay.isCompleted) L.t("✓ موثق ومكتمل", "✓ Verified & Completed") else L.t("⏳ مجدول قريباً", "⏳ Scheduled"),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (selectedDay.isCompleted) Color(0xFF00875A) else MaterialTheme.colorScheme.onSurfaceVariant
@@ -392,18 +391,18 @@ private fun HeatmapContent(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             MetricPill(
-                                label = "المختبرين النشطين",
-                                value = if (selectedDay.isCompleted) "${selectedDay.activeTestersCount} مختبر" else "0",
+                                label = L.t("المختبرين النشطين", "Active Testers"),
+                                value = if (selectedDay.isCompleted) L.t("${selectedDay.activeTestersCount} مختبر", "${selectedDay.activeTestersCount} testers") else "0",
                                 modifier = Modifier.weight(1f)
                             )
                             MetricPill(
-                                label = "متوسط مدة الجلسة",
-                                value = if (selectedDay.isCompleted) "%.1f دقيقة".format(selectedDay.avgSessionMinutes) else "-",
+                                label = L.t("متوسط مدة الجلسة", "Avg Session"),
+                                value = if (selectedDay.isCompleted) L.t("%.1f دقيقة", "%.1f min").format(java.util.Locale.US, selectedDay.avgSessionMinutes) else "-",
                                 modifier = Modifier.weight(1f)
                             )
                             MetricPill(
-                                label = "معدل الاستبقاء",
-                                value = if (selectedDay.isCompleted) "%.0f%%".format(selectedDay.retentionRate) else "-",
+                                label = L.t("معدل الاستبقاء", "Retention Rate"),
+                                value = if (selectedDay.isCompleted) "%.0f%%".format(java.util.Locale.US, selectedDay.retentionRate) else "-",
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -428,7 +427,7 @@ private fun HeatmapContent(
             ) {
                 Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("نسخ شهادة الامتثال الرسمية (Audit Certificate)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text(L.t("نسخ شهادة الامتثال الرسمية", "Copy Official Audit Certificate"), fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -466,7 +465,7 @@ private fun DayHeatmapCell(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                "D${day.dayNumber}",
+                L.t("ي${day.dayNumber}", "D${day.dayNumber}"),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 color = textColor
@@ -507,7 +506,6 @@ private fun MetricPill(
 
 @Composable
 private fun QuestionnaireAnswersContent(
-    app: UserApp,
     answers: List<GooglePlayQuestionnaireAnswer>,
     onCopyAnswer: (String) -> Unit
 ) {
@@ -532,7 +530,10 @@ private fun QuestionnaireAnswersContent(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "إجابات جاهزة ومصاغة وفق متطلبات مراجعي Google Play Console عند طلب صلاحية الإنتاج (Production Access):",
+                        L.t(
+                            "إجابات جاهزة ومصاغة وفق متطلبات مراجعي لوحة مطوري جوجل بلاي عند طلب صلاحية النشر للإنتاج:",
+                            "Ready-to-use answers tailored for Google Play reviewers when applying for Production Access:"
+                        ),
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -541,6 +542,8 @@ private fun QuestionnaireAnswersContent(
         }
 
         items(answers, key = { it.questionNumber }) { item ->
+            val questionText = if (L.isArabic()) item.questionTitleAr else item.questionTitleEn
+            val recommendedAnswer = if (L.isArabic()) item.recommendedAnswerAr else item.recommendedAnswerEn
             ElevatedCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
@@ -568,21 +571,13 @@ private fun QuestionnaireAnswersContent(
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            item.questionTitleAr,
+                            questionText,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
                             modifier = Modifier.weight(1f),
                             color = MaterialTheme.colorScheme.onSurface
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        item.questionTitleEn,
-                        fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 30.dp)
-                    )
 
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -593,7 +588,7 @@ private fun QuestionnaireAnswersContent(
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Text(
-                                item.recommendedAnswerAr,
+                                recommendedAnswer,
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 lineHeight = 16.sp
@@ -607,28 +602,15 @@ private fun QuestionnaireAnswersContent(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
                     ) {
-                        OutlinedButton(
-                            onClick = { onCopyAnswer(item.recommendedAnswerEn) },
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                            modifier = Modifier.height(30.dp)
-                        ) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(13.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("نسخ بالإنجليزية (English)", fontSize = 10.sp)
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
                         Button(
-                            onClick = { onCopyAnswer(item.recommendedAnswerAr) },
+                            onClick = { onCopyAnswer(recommendedAnswer) },
                             shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                             modifier = Modifier.height(30.dp)
                         ) {
                             Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(13.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("نسخ بالعربية", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text(L.t("نسخ الإجابة الموصى بها", "Copy Recommended Answer"), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -639,17 +621,40 @@ private fun QuestionnaireAnswersContent(
 
 @Composable
 private fun VerificationChecklistContent(
-    app: UserApp,
     completedDays: Int,
     testersCount: Int
 ) {
     val items = listOf(
-        Triple("20 مختبراً على الأقل انضموا للمسار المغلق", testersCount >= 20, "الحالي: $testersCount/20 مختبر"),
-        Triple("14 يوماً متواصلة من الاختبار الفعلي", completedDays >= 14, "الحالي: $completedDays/14 يوماً"),
-        Triple("سجلات تفاعل يومية دون انقطاع", completedDays >= 1, "موثقة في سيرفر PlayTester"),
-        Triple("حل كافة تقارير الأعطال (Crash Free)", true, "تم فحص الاستقرار الكامل"),
-        Triple("ملاحظات تقييم جودة تجربة المستخدم (UX)", true, "أكثر من 5 مراجعات مكتوبة"),
-        Triple("إعداد حزمة الإصدار والنسخة النهائية", true, "جاهزة للرفع على Console")
+        Triple(
+            L.t("20 مختبراً على الأقل انضموا للمسار المغلق", "At least 20 testers opted into closed testing"),
+            testersCount >= 20,
+            L.t("الحالي: $testersCount/20 مختبر", "Current: $testersCount/20 testers")
+        ),
+        Triple(
+            L.t("14 يوماً متواصلة من الاختبار الفعلي", "14 consecutive days of active testing"),
+            completedDays >= 14,
+            L.t("الحالي: $completedDays/14 يوماً", "Current: $completedDays/14 days")
+        ),
+        Triple(
+            L.t("سجلات تفاعل يومية دون انقطاع", "Uninterrupted daily engagement logs"),
+            completedDays >= 1,
+            L.t("موثقة في خادم المنصة", "Verified on PlayTester Hub server")
+        ),
+        Triple(
+            L.t("حل كافة تقارير الأعطال والانهيارات", "All crash reports resolved"),
+            true,
+            L.t("تم فحص الاستقرار الكامل", "Full stability verified")
+        ),
+        Triple(
+            L.t("ملاحظات تقييم جودة تجربة المستخدم", "UX quality feedback collected"),
+            true,
+            L.t("أكثر من 5 مراجعات مكتوبة", "5+ written tester reviews")
+        ),
+        Triple(
+            L.t("إعداد حزمة الإصدار والنسخة النهائية", "Final release bundle prepared"),
+            true,
+            L.t("جاهزة للرفع على لوحة المطور", "Ready for Play Console upload")
+        )
     )
 
     LazyColumn(

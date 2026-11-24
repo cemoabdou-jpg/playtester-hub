@@ -37,6 +37,7 @@ import com.playtesterhub.app.R
 import com.example.data.model.CommunityApp
 import com.example.ui.components.AppIconImage
 import com.example.ui.components.RealJoinTestDialog
+import com.example.ui.util.L
 import com.example.ui.viewmodel.TesterViewModel
 import com.example.util.AdMobConfig
 
@@ -53,12 +54,12 @@ fun CommunityScreen(
     val streakDays by viewModel.streakDays.collectAsState()
     val isDailyCheckInDone by viewModel.isDailyCheckInDoneToday.collectAsState()
 
-    var selectedCategory by remember { mutableStateOf("الكل") }
+    var selectedCategory by remember { mutableStateOf("ALL") }
     var searchQuery by remember { mutableStateOf("") }
     var sortOption by remember { mutableStateOf("FAIR_PLAY") } // FAIR_PLAY, NEED, REWARD
     var appToJoinReal by remember { mutableStateOf<CommunityApp?>(null) }
 
-    val categories = listOf("الكل", "الأكثر احتياجاً", "أدوات", "ألعاب", "إنتاجية", "تعليم", "تواصل")
+    val categories = listOf("ALL", "MOST_NEEDED", "TOOLS", "GAMES", "PRODUCTIVITY", "EDUCATION", "SOCIAL")
 
     val featuredApps = remember(communityApps) {
         communityApps.filter { it.isFeatured }
@@ -67,9 +68,9 @@ fun CommunityScreen(
     val regularApps = remember(communityApps, selectedCategory, searchQuery, sortOption) {
         communityApps.filter { app ->
             val matchesCategory = when (selectedCategory) {
-                "الكل" -> true
-                "الأكثر احتياجاً" -> app.currentTesters < 20
-                else -> app.category.contains(selectedCategory, ignoreCase = true)
+                "ALL" -> true
+                "MOST_NEEDED" -> app.currentTesters < 20
+                else -> L.isCategoryMatch(app.category, selectedCategory)
             }
             val matchesSearch = searchQuery.isBlank() ||
                     app.name.contains(searchQuery, ignoreCase = true) ||
@@ -108,7 +109,7 @@ fun CommunityScreen(
                 Box(modifier = Modifier.fillMaxSize()) {
                     Image(
                         painter = painterResource(id = R.drawable.img_community_hero),
-                        contentDescription = "مجتمع المطورين",
+                        contentDescription = L.t("مجتمع المطورين", "Developers Community"),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
@@ -139,7 +140,7 @@ fun CommunityScreen(
                                     shape = RoundedCornerShape(6.dp)
                                 ) {
                                     Text(
-                                        "منصة معتمدة",
+                                        L.t("منصة معتمدة", "Verified Hub"),
                                         color = Color.White,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
@@ -148,7 +149,7 @@ fun CommunityScreen(
                                 }
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    "Google Play 14-Days Closed Testing",
+                                    L.t("اختبارات جوجل بلاي المغلقة لمدة 14 يوماً", "Google Play 14-Day Closed Testing"),
                                     color = Color.White.copy(alpha = 0.8f),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Medium
@@ -156,13 +157,13 @@ fun CommunityScreen(
                             }
                             Spacer(modifier = Modifier.height(3.dp))
                             Text(
-                                "تبادل المختبرين الحقيقيين",
+                                L.t("تبادل المختبرين الحقيقيين", "Real Tester Exchange"),
                                 color = Color.White,
                                 fontWeight = FontWeight.Black,
                                 fontSize = 17.sp
                             )
                             Text(
-                                "اختبر تطبيقات المطورين واجمع 20 مختبراً لتطبيقك بنجاح",
+                                L.t("اختبر تطبيقات المطورين واجمع 20 مختبراً لتطبيقك بنجاح", "Test developer apps and gather 20 real testers for your app"),
                                 color = Color.White.copy(alpha = 0.9f),
                                 fontSize = 11.sp
                             )
@@ -180,7 +181,7 @@ fun CommunityScreen(
                                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                                 modifier = Modifier.height(32.dp)
                             ) {
-                                Text("عجلة الحظ 🎡", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text(L.t("عجلة الحظ 🎡", "Lucky Spin 🎡"), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
 
                             Button(
@@ -203,7 +204,7 @@ fun CommunityScreen(
                             ) {
                                 Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.Black, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(3.dp))
-                                Text("+50 عملة 🎬", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text(L.t("+50 عملة 🎬", "+50 Coins 🎬"), color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
 
                             FilledTonalButton(
@@ -218,7 +219,7 @@ fun CommunityScreen(
                             ) {
                                 Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(13.dp))
                                 Spacer(modifier = Modifier.width(3.dp))
-                                Text("ترقية 🚀", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text(L.t("ترقية 🚀", "Upgrade 🚀"), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -258,13 +259,16 @@ fun CommunityScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                "سلسلة الحضور: $streakDays أيام متتالية",
+                                L.t("سلسلة الحضور: $streakDays أيام متتالية", "Attendance Streak: $streakDays days in a row"),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                if (isDailyCheckInDone) "تم تسجيل حضورك اليوم بنجاح ✓ (+20 عملة)" else "سجل حضورك اليوم لكسب +20 عملة",
+                                if (isDailyCheckInDone)
+                                    L.t("تم تسجيل حضورك اليوم بنجاح ✓ (+20 عملة)", "Checked in today ✓ (+20 coins)")
+                                else
+                                    L.t("سجل حضورك اليوم لكسب +20 عملة", "Check in today to earn +20 coins"),
                                 fontSize = 11.sp,
                                 color = if (isDailyCheckInDone) Color(0xFF00875A) else MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -276,9 +280,17 @@ fun CommunityScreen(
                             onClick = {
                                 val success = viewModel.dailyCheckIn()
                                 if (success) {
-                                    Toast.makeText(context, "🎉 رائع! تم تسجيل حضورك اليوم وكسبت +20 عملة!", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        L.t("🎉 رائع! تم تسجيل حضورك اليوم وكسبت +20 عملة!", "🎉 Awesome! Checked in today and earned +20 coins!"),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 } else {
-                                    Toast.makeText(context, "تم تسجيل حضورك اليوم مسبقاً ✓", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        L.t("تم تسجيل حضورك اليوم مسبقاً ✓", "Already checked in today ✓"),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                             },
                             shape = RoundedCornerShape(10.dp),
@@ -286,7 +298,7 @@ fun CommunityScreen(
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 5.dp),
                             modifier = Modifier.height(32.dp)
                         ) {
-                            Text("تسجيل اليوم", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(L.t("تسجيل اليوم", "Check In"), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                     } else {
                         Surface(
@@ -294,7 +306,7 @@ fun CommunityScreen(
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
-                                "مكتمل ✓",
+                                L.t("مكتمل ✓", "Done ✓"),
                                 color = Color(0xFF00875A),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp,
@@ -325,7 +337,7 @@ fun CommunityScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Apps, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(13.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("تطبيقي", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(L.t("تطبيقي", "My App"), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -335,7 +347,7 @@ fun CommunityScreen(
                             color = if ((primaryApp?.currentTesters ?: 0) >= 20) Color(0xFF00875A) else MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            if (primaryApp != null) "${primaryApp.completedDays}/14 يوماً" else "لم تسجل بعد",
+                            if (primaryApp != null) L.t("${primaryApp.completedDays}/14 يوماً", "${primaryApp.completedDays}/14 days") else L.t("لم تسجل بعد", "Not added yet"),
                             fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -352,7 +364,7 @@ fun CommunityScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Science, contentDescription = null, tint = Color(0xFF00875A), modifier = Modifier.size(13.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("اختباراتي", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(L.t("اختباراتي", "My Tests"), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -362,7 +374,7 @@ fun CommunityScreen(
                             color = Color(0xFF00875A)
                         )
                         Text(
-                            "$testedTodayCount فُحص اليوم",
+                            L.t("$testedTodayCount فُحص اليوم", "$testedTodayCount checked today"),
                             fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -379,7 +391,7 @@ fun CommunityScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = Color(0xFFFF8F00), modifier = Modifier.size(13.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("الرصيد", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(L.t("الرصيد", "Balance"), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -389,7 +401,7 @@ fun CommunityScreen(
                             color = Color(0xFFFF8F00)
                         )
                         Text(
-                            "عملة ذهبية 🪙",
+                            L.t("عملة ذهبية 🪙", "Gold Coins 🪙"),
                             fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -404,11 +416,11 @@ fun CommunityScreen(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("ابحث باسم التطبيق، المطور، أو الحزمة...", fontSize = 12.sp) },
+                placeholder = { Text(L.t("ابحث باسم التطبيق، المطور، أو الحزمة...", "Search by app, developer, or package..."), fontSize = 12.sp) },
                 leadingIcon = {
                     Icon(
                         Icons.Default.Search,
-                        contentDescription = "بحث",
+                        contentDescription = L.t("بحث", "Search"),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )
@@ -416,7 +428,7 @@ fun CommunityScreen(
                 trailingIcon = {
                     if (searchQuery.isNotBlank()) {
                         IconButton(onClick = { searchQuery = "" }, modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Default.Clear, contentDescription = "مسح")
+                            Icon(Icons.Default.Clear, contentDescription = L.t("مسح", "Clear"))
                         }
                     }
                 },
@@ -437,14 +449,24 @@ fun CommunityScreen(
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                categories.forEach { category ->
-                    val isSelected = selectedCategory == category
+                categories.forEach { categoryKey ->
+                    val isSelected = selectedCategory == categoryKey
+                    val chipLabel = when (categoryKey) {
+                        "ALL" -> L.t("الكل (${communityApps.size})", "All (${communityApps.size})")
+                        "MOST_NEEDED" -> L.t("الأكثر احتياجاً", "Most Needed")
+                        "TOOLS" -> L.t("أدوات", "Tools")
+                        "GAMES" -> L.t("ألعاب", "Games")
+                        "PRODUCTIVITY" -> L.t("إنتاجية", "Productivity")
+                        "EDUCATION" -> L.t("تعليم", "Education")
+                        "SOCIAL" -> L.t("تواصل", "Social")
+                        else -> categoryKey
+                    }
                     FilterChip(
                         selected = isSelected,
-                        onClick = { selectedCategory = category },
+                        onClick = { selectedCategory = categoryKey },
                         label = {
                             Text(
-                                if (category == "الكل") "الكل (${communityApps.size})" else category,
+                                chipLabel,
                                 fontSize = 12.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
@@ -455,7 +477,7 @@ fun CommunityScreen(
             }
         }
 
-        // 3.5 Sort Mode Selector (Fair-Play Karma ⚖️, Closest to 20 🎯, Highest Reward 🪙)
+        // 3.5 Sort Mode Selector
         item {
             Row(
                 modifier = Modifier
@@ -464,11 +486,11 @@ fun CommunityScreen(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("ترتيب:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(L.t("ترتيب:", "Sort:"), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 listOf(
-                    "FAIR_PLAY" to "التبادل العادل (Fair-Play ⚖️)",
-                    "NEED" to "الأقرب لاكتمال الـ 20 🎯",
-                    "REWARD" to "الأعلى عملات 🪙"
+                    "FAIR_PLAY" to L.t("التبادل العادل ⚖️", "Fair-Play Exchange ⚖️"),
+                    "NEED" to L.t("الأقرب لاكتمال الـ 20 🎯", "Closest to 20 🎯"),
+                    "REWARD" to L.t("الأعلى عملات 🪙", "Highest Coins 🪙")
                 ).forEach { (opt, label) ->
                     val isSelected = sortOption == opt
                     Surface(
@@ -503,7 +525,7 @@ fun CommunityScreen(
                             Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFF8F00), modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                "تطبيقات مميزة في الصدارة ⭐",
+                                L.t("تطبيقات مميزة في الصدارة ⭐", "Featured Spotlight Apps ⭐"),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -514,7 +536,7 @@ fun CommunityScreen(
                             shape = RoundedCornerShape(6.dp)
                         ) {
                             Text(
-                                "أولوية الاختبار",
+                                L.t("أولوية الاختبار", "Priority Testing"),
                                 color = Color(0xFFE65100),
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
@@ -535,7 +557,14 @@ fun CommunityScreen(
                                 isJoined = isJoined,
                                 onJoin = {
                                     if (isJoined) {
-                                        Toast.makeText(context, "أنت منضم بالفعل لاختبار ${app.name}! توجه إلى تبويب 'اختباراتي' لتسجيل فحصك اليومي.", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(
+                                            context,
+                                            L.t(
+                                                "أنت منضم بالفعل لاختبار ${app.name}! توجه إلى تبويب 'اختباراتي' لتسجيل فحصك اليومي.",
+                                                "You already joined ${app.name}! Head to 'My Tests' to log your daily check."
+                                            ),
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     } else {
                                         appToJoinReal = app
                                     }
@@ -549,7 +578,7 @@ fun CommunityScreen(
                                         val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                         context.startActivity(browserIntent)
                                     } catch (_: Exception) {
-                                        Toast.makeText(context, "الرابط: $url", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, L.t("الرابط: $url", "Link: $url"), Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             )
@@ -569,7 +598,7 @@ fun CommunityScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "قائمة التطبيقات المتاحة للاختبار",
+                    L.t("قائمة التطبيقات المتاحة للاختبار", "Available Apps for Testing"),
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
                     color = MaterialTheme.colorScheme.onSurface
@@ -589,7 +618,7 @@ fun CommunityScreen(
                         ) {
                             Icon(Icons.Default.Chat, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(12.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("محادثاتي 💬", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            Text(L.t("محادثاتي 💬", "Chats 💬"), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         }
                     }
                     Surface(
@@ -597,7 +626,7 @@ fun CommunityScreen(
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            "${regularApps.size} تطبيق",
+                            L.t("${regularApps.size} تطبيق", "${regularApps.size} apps"),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.primary,
@@ -630,14 +659,17 @@ fun CommunityScreen(
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            "لا توجد تطبيقات في هذا القسم حالياً",
+                            L.t("لا توجد تطبيقات في هذا القسم حالياً", "No apps in this category right now"),
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "أضف تطبيقك من تبويب 'تطبيقاتي' ليظهر لمئات المطورين ويبدأ جمع الـ 20 مختبراً",
+                            L.t(
+                                "أضف تطبيقك من تبويب 'تطبيقاتي' ليظهر لمئات المطورين ويبدأ جمع الـ 20 مختبراً",
+                                "Add your app from the 'My Apps' tab so developers can join and help you reach 20 testers"
+                            ),
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -653,7 +685,14 @@ fun CommunityScreen(
                     isJoined = isJoined,
                     onJoin = {
                         if (isJoined) {
-                            Toast.makeText(context, "أنت منضم بالفعل لاختبار ${app.name}! توجه إلى تبويب 'اختباراتي' لتسجيل فحصك اليومي.", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                L.t(
+                                    "أنت منضم بالفعل لاختبار ${app.name}! توجه إلى تبويب 'اختباراتي' لتسجيل فحصك اليومي.",
+                                    "You already joined ${app.name}! Head to 'My Tests' to log your daily check."
+                                ),
+                                Toast.LENGTH_SHORT
+                            ).show()
                         } else {
                             appToJoinReal = app
                         }
@@ -667,7 +706,7 @@ fun CommunityScreen(
                             val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                             context.startActivity(browserIntent)
                         } catch (_: Exception) {
-                            Toast.makeText(context, "الرابط: $url", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, L.t("الرابط: $url", "Link: $url"), Toast.LENGTH_SHORT).show()
                         }
                     },
                     onOpenDeveloperProfile = {
@@ -693,11 +732,14 @@ fun CommunityScreen(
                 if (success) {
                     Toast.makeText(
                         context,
-                        "🎉 تهانينا! أصبحت مختبراً رسمياً لـ ${targetApp.name} وتمت إضافته إلى تبويب 'اختباراتي' (+${targetApp.pointsReward} عملة)!",
+                        L.t(
+                            "🎉 تهانينا! أصبحت مختبراً رسمياً لـ ${targetApp.name} وتمت إضافته إلى تبويب 'اختباراتي' (+${targetApp.pointsReward} عملة)!",
+                            "🎉 Congrats! You're now an official tester for ${targetApp.name} and it's added to 'My Tests' (+${targetApp.pointsReward} coins)!"
+                        ),
                         Toast.LENGTH_LONG
                     ).show()
                 } else {
-                    Toast.makeText(context, "أنت منضم بالفعل لهذا التطبيق مسبقاً!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, L.t("أنت منضم بالفعل لهذا التطبيق مسبقاً!", "You already joined this app!"), Toast.LENGTH_SHORT).show()
                 }
                 appToJoinReal = null
             }
@@ -747,7 +789,7 @@ private fun FeaturedAppCard(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        "+${app.pointsReward} عملة",
+                        L.t("+${app.pointsReward} عملة", "+${app.pointsReward} Coins"),
                         color = Color(0xFFE65100),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
@@ -765,7 +807,7 @@ private fun FeaturedAppCard(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                app.developerName,
+                L.translateKnown(app.developerName),
                 fontSize = 10.sp,
                 maxLines = 1,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -777,7 +819,7 @@ private fun FeaturedAppCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("${app.currentTesters}/20 مختبر", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(L.t("${app.currentTesters}/20 مختبر", "${app.currentTesters}/20 testers"), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("${(progressFraction * 100).toInt()}%", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             }
             Spacer(modifier = Modifier.height(3.dp))
@@ -811,7 +853,7 @@ private fun FeaturedAppCard(
                     )
                     Spacer(modifier = Modifier.width(3.dp))
                     Text(
-                        if (isJoined) "منضم ✓" else "انضم",
+                        if (isJoined) L.t("منضم ✓", "Joined ✓") else L.t("انضم", "Join"),
                         fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -829,7 +871,7 @@ private fun FeaturedAppCard(
                 ) {
                     Icon(Icons.Default.Groups, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color(0xFF2E7D32))
                     Spacer(modifier = Modifier.width(2.dp))
-                    Text("المجموعة 👥", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(L.t("المجموعة 👥", "Group 👥"), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -892,7 +934,7 @@ private fun CleanCommunityAppCard(
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Icon(
                                     Icons.Default.Star,
-                                    contentDescription = "مميز",
+                                    contentDescription = L.t("مميز", "Featured"),
                                     tint = Color(0xFFFF8F00),
                                     modifier = Modifier.size(15.dp)
                                 )
@@ -903,13 +945,13 @@ private fun CleanCommunityAppCard(
                             modifier = Modifier.clickable { onOpenDeveloperProfile() }
                         ) {
                             Text(
-                                app.developerName,
+                                L.translateKnown(app.developerName),
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             if (app.category.isNotBlank()) {
                                 Text(
-                                    " • ${app.category}",
+                                    " • ${L.localizeCategory(app.category)}",
                                     fontSize = 11.sp,
                                     color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.Medium
@@ -918,7 +960,7 @@ private fun CleanCommunityAppCard(
                             Spacer(modifier = Modifier.width(4.dp))
                             Icon(
                                 Icons.Default.AccountCircle,
-                                contentDescription = "ملف المطور",
+                                contentDescription = L.t("ملف المطور", "Developer Profile"),
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(13.dp)
                             )
@@ -934,7 +976,7 @@ private fun CleanCommunityAppCard(
                                 shape = RoundedCornerShape(4.dp)
                             ) {
                                 Text(
-                                    "تبادل عادل ⚖️",
+                                    L.t("تبادل عادل ⚖️", "Fair-Play ⚖️"),
                                     fontSize = 9.sp,
                                     color = Color(0xFF00875A),
                                     fontWeight = FontWeight.Bold,
@@ -947,7 +989,7 @@ private fun CleanCommunityAppCard(
                                     shape = RoundedCornerShape(4.dp)
                                 ) {
                                     Text(
-                                        "مثبت ✓",
+                                        L.t("مثبت ✓", "Installed ✓"),
                                         fontSize = 9.sp,
                                         color = Color(0xFF2E7D32),
                                         fontWeight = FontWeight.Bold,
@@ -972,7 +1014,7 @@ private fun CleanCommunityAppCard(
                                     )
                                     Spacer(modifier = Modifier.width(2.dp))
                                     Text(
-                                        if (app.googleGroupUrl.isNotBlank()) "المجموعة مخصصة 👥" else "مجموعة عامة 👥",
+                                        if (app.googleGroupUrl.isNotBlank()) L.t("المجموعة مخصصة 👥", "Custom Group 👥") else L.t("مجموعة عامة 👥", "Public Group 👥"),
                                         fontSize = 9.sp,
                                         color = if (app.googleGroupUrl.isNotBlank()) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontWeight = FontWeight.Bold
@@ -1018,13 +1060,13 @@ private fun CleanCommunityAppCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "المختبرون الحاليون: ${app.currentTesters}/${app.targetTesters}",
+                    L.t("المختبرون الحاليون: ${app.currentTesters}/${app.targetTesters}", "Current Testers: ${app.currentTesters}/${app.targetTesters}"),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    "المتبقي: ${maxOf(0, app.targetTesters - app.currentTesters)} مختبر",
+                    L.t("المتبقي: ${maxOf(0, app.targetTesters - app.currentTesters)} مختبر", "Remaining: ${maxOf(0, app.targetTesters - app.currentTesters)} testers"),
                     fontSize = 11.sp,
                     color = if (app.currentTesters >= app.targetTesters) Color(0xFF00875A) else MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
@@ -1068,7 +1110,7 @@ private fun CleanCommunityAppCard(
                         )
                         Spacer(modifier = Modifier.width(5.dp))
                         Text(
-                            if (isJoined) "منضم بالفعل ✓" else "انضم للاختبار",
+                            if (isJoined) L.t("منضم بالفعل ✓", "Joined ✓") else L.t("انضم للاختبار", "Join Test"),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -1092,7 +1134,7 @@ private fun CleanCommunityAppCard(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            "انضم للمجموعة 👥",
+                            L.t("انضم للمجموعة 👥", "Join Group 👥"),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF1B5E20)
@@ -1117,7 +1159,7 @@ private fun CleanCommunityAppCard(
                         ) {
                             Icon(Icons.Default.Launch, contentDescription = null, modifier = Modifier.size(15.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("تشغيل التطبيق المثبت", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(L.t("تشغيل التطبيق المثبت", "Launch Installed App"), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                     } else {
                         OutlinedButton(
@@ -1128,7 +1170,7 @@ private fun CleanCommunityAppCard(
                         ) {
                             Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("رابط التحميل (Google Play)", fontSize = 10.5.sp, fontWeight = FontWeight.Medium)
+                            Text(L.t("رابط التحميل على جوجل بلاي", "Google Play Download Link"), fontSize = 10.5.sp, fontWeight = FontWeight.Medium)
                         }
                     }
 
@@ -1144,7 +1186,7 @@ private fun CleanCommunityAppCard(
                             modifier = Modifier.size(15.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("محادثة", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+                        Text(L.t("محادثة", "Chat"), fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }

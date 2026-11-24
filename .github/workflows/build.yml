@@ -115,19 +115,49 @@ jobs:
       - name: Grant Execute Permission to gradlew
         run: chmod +x gradlew
 
+      - name: Setup Android NDK for Native Debug Symbols
+        run: |
+          SDK_ROOT="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          NDK_DIR="$SDK_ROOT/ndk"
+          if [ ! -d "$NDK_DIR" ] || [ -z "$(ls -A "$NDK_DIR" 2>/dev/null)" ]; then
+            echo "Installing Android NDK via sdkmanager..."
+            SDKMANAGER=$(command -v sdkmanager || echo "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager")
+            if [ -x "$SDKMANAGER" ]; then
+              yes | "$SDKMANAGER" --licenses >/dev/null || true
+              "$SDKMANAGER" "ndk;27.2.12479018"
+            fi
+          fi
+          if [ -d "$NDK_DIR" ] && [ -n "$(ls -A "$NDK_DIR" 2>/dev/null)" ]; then
+            DETECTED_NDK=$(ls -1 "$NDK_DIR" | sort -V | tail -n 1)
+            echo "Using Android NDK: $DETECTED_NDK"
+            echo "ANDROID_NDK_VERSION=$DETECTED_NDK" >> $GITHUB_ENV
+          else
+            echo "ANDROID_NDK_VERSION=" >> $GITHUB_ENV
+          fi
+
       - name: Build Android APKs
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'NnBkgyAhj1sG0FZkLD9x' }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'upload' }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || secrets.KEYSTORE_PASSWORD || 'NnBkgyAhj1sG0FZkLD9x' }}
-        run: ./gradlew assembleDebug assembleRelease -PappVersionCode=${{ github.run_number }} --no-daemon
+        run: |
+          NDK_PROP=""
+          if [ -n "$ANDROID_NDK_VERSION" ]; then
+            NDK_PROP="-PciNdkVersion=$ANDROID_NDK_VERSION"
+          fi
+          ./gradlew assembleDebug assembleRelease -PappVersionCode=${{ github.run_number }} $NDK_PROP --no-daemon
 
       - name: Build Android App Bundle (AAB for Google Play)
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'NnBkgyAhj1sG0FZkLD9x' }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'upload' }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || secrets.KEYSTORE_PASSWORD || 'NnBkgyAhj1sG0FZkLD9x' }}
-        run: ./gradlew bundleRelease -PappVersionCode=${{ github.run_number }} --no-daemon
+        run: |
+          NDK_PROP=""
+          if [ -n "$ANDROID_NDK_VERSION" ]; then
+            NDK_PROP="-PciNdkVersion=$ANDROID_NDK_VERSION"
+          fi
+          ./gradlew bundleRelease -PappVersionCode=${{ github.run_number }} $NDK_PROP --no-daemon
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
@@ -148,6 +178,14 @@ jobs:
         with:
           name: app-release-bundle-aab
           path: app/build/outputs/bundle/release/*.aab
+          retention-days: 14
+
+      - name: Upload Native Debug Symbols (Play Console)
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-debug-symbols
+          path: app/build/outputs/native-debug-symbols/release/native-debug-symbols.zip
+          if-no-files-found: warn
           retention-days: 14
 
       - name: Upload Google Play Key Reset Certificate (.pem)
