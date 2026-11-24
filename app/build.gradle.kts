@@ -15,11 +15,6 @@ android {
     namespace = "com.playtesterhub.app"
     compileSdk = 36
 
-    val ciNdkVersion = project.findProperty("ciNdkVersion")?.toString()
-    if (!ciNdkVersion.isNullOrBlank()) {
-        ndkVersion = ciNdkVersion
-    }
-
     defaultConfig {
         applicationId = "com.playtesterhub.app"
         minSdk = 24
