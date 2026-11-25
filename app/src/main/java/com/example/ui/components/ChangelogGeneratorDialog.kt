@@ -45,7 +45,7 @@ fun ChangelogGeneratorDialog(
         """
         🚀 تحديث جديد لتطبيق ${app.name} (الإصدار 1.0.3):
         
-        ✨ أبرز التحسينات والمميزات:
+        🔹 أبرز التحسينات والمميزات:
         - تحسين استقرار التطبيق وسرعة الاستجابة أثناء تصفح الواجهات.
         - توافق كامل وتجربة مستخدم محسنة على أحدث أجهزة أندرويد.
         
@@ -61,7 +61,7 @@ fun ChangelogGeneratorDialog(
         """
         🚀 What's New in ${app.name} (v1.0.3):
         
-        ✨ Improvements & Features:
+        🔹 Improvements & Features:
         - Enhanced overall app performance and smoother UI transitions.
         - Full compatibility and optimization for modern Android devices.
         
@@ -97,7 +97,7 @@ fun ChangelogGeneratorDialog(
                         Icon(Icons.Default.Close, contentDescription = L.t("إغلاق", "Close"))
                     }
                     Text(
-                        L.t("📝 مولّد سجل التغييرات الذكي", "📝 Smart Release Notes Generator"),
+                        L.t("📝 منشئ سجل التغييرات", "📝 Release Notes Builder"),
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleLarge
                     )

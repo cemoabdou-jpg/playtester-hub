@@ -27,7 +27,7 @@ enum class LogoEvent(
         titleEn = "Auto by Season & Calendar",
         subtitleAr = "يكتشف الأعياد والمواسم والأيام المميزة تلقائياً",
         subtitleEn = "Automatically detects holidays, seasons, and special days",
-        badgeEmoji = "✨",
+        badgeEmoji = "🗓️",
         primaryColor = Color(0xFF00875A),
         glowColor = Color(0xFF00E676),
         secondaryColor = Color(0xFFFFD54F)
@@ -67,8 +67,8 @@ enum class LogoEvent(
     ),
     TECH_RADAR(
         id = "tech_radar",
-        titleAr = "رادار الاختبار الذكي (14 يوماً)",
-        titleEn = "14-Day Smart Test Radar",
+        titleAr = "رادار اختبار الـ 14 يوماً",
+        titleEn = "14-Day Test Radar",
         subtitleAr = "أمواج مسح زرقاء وتقنية نيون مستقبلية",
         subtitleEn = "Blue radar waves with futuristic neon accents",
         badgeEmoji = "⚡",

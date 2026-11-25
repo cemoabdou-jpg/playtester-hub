@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -116,7 +117,10 @@ Please share payment details (PayPal or bank transfer) to complete official acti
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = onDismiss) {
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.testTag("close_monetization_button")
+                    ) {
                         Icon(Icons.Default.Close, contentDescription = L.t("إغلاق", "Close"))
                     }
                     Text(
@@ -231,10 +235,10 @@ Please share payment details (PayPal or bank transfer) to complete official acti
                             badge = L.t("الأكثر طلباً لتأهيل الـ 20 مختبراً ⭐", "Most Popular for 20 Testers ⭐"),
                             badgeColor = Color(0xFFFFB300),
                             features = listOf(
-                                L.t("تثبيت في شريط الصدارة المميز لمدة أسبوع كامل", "Pinned in Featured Spotlight bar for a full week"),
-                                L.t("أولوية مطلقة في جذب الـ 20 مختبراً المعتمدين", "Top priority to attract 20 verified testers"),
+                                L.t("تثبيت في شريط الصدارة المميز لمدة أسبوع لزيادة معدل الانضمام", "Pinned in Featured Spotlight bar for a full week to boost sign-ups"),
+                                L.t("أولوية عرض متقدمة أمام مجتمع المطورين النشطين", "Top placement priority across active community developers"),
                                 L.t("توليد تقرير تدقيق رسمي مطبوع أو جدول بيانات لمتجر جوجل بلاي", "Generate official PDF/CSV audit report for Google Play"),
-                                L.t("متابعة يومية لسجلات الـ 14 يوماً مع ضمان عدم انقطاع المختبرين", "Daily 14-day retention tracking with continuous tester coverage")
+                                L.t("متابعة يومية لسجلات الـ 14 يوماً مع تنبيهات التفاعل", "Daily 14-day retention tracking with engagement notifications")
                             ),
                             onPayWithCoins = {
                                 val targetPkg = selectedPackageName.ifBlank { userApps.firstOrNull()?.packageName.orEmpty() }
@@ -284,9 +288,9 @@ Please share payment details (PayPal or bank transfer) to complete official acti
                             badge = L.t("توفير 50%", "Save 50%"),
                             badgeColor = Color(0xFF00875A),
                             features = listOf(
-                                L.t("مضاعفة ظهور التطبيق في المجتمع مرتين", "2x app visibility boost across the community"),
-                                L.t("جذب 10 مختبرين إضافيين معتمدين فوراً", "Attract 10 additional verified testers fast"),
-                                L.t("إشعار وتنبيه يومي للمختبرين لفتح التطبيق", "Daily reminders for testers to launch your app"),
+                                L.t("مضاعفة ظهور التطبيق في قائمة المجتمع مرتين", "2x app visibility boost across the community list"),
+                                L.t("أولوية عرض عالية لزيادة سرعة انضمام المختبرين الحقيقيين", "High visibility priority to speed up real tester sign-ups"),
+                                L.t("تنبيهات متابعة يومية للمختبرين لفتح التطبيق", "Daily reminder alerts for testers to open your app"),
                                 L.t("فحص تنوع الأجهزة وإصدارات النظام", "Device diversity & OS version coverage checks")
                             ),
                             onPayWithCoins = {
@@ -377,7 +381,9 @@ Please share payment details (PayPal or bank transfer) to complete official acti
                                 ) {
                                     // Button 1: Watch ad for direct +50 coins
                                     OutlinedButton(
-                                        modifier = Modifier.weight(1f),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .testTag("monetization_watch_ad_coins_button"),
                                         onClick = {
                                             if (activity != null) {
                                                 AdMobConfig.showRewardedAd(
@@ -410,7 +416,9 @@ Please share payment details (PayPal or bank transfer) to complete official acti
 
                                     // Button 2: Direct promotion via ad
                                     Button(
-                                        modifier = Modifier.weight(1.2f),
+                                        modifier = Modifier
+                                            .weight(1.2f)
+                                            .testTag("monetization_feature_ad_button"),
                                         onClick = {
                                             if (activity != null) {
                                                 AdMobConfig.showRewardedAd(
@@ -461,7 +469,10 @@ Please share payment details (PayPal or bank transfer) to complete official acti
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Button(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .testTag("monetization_close_back_button"),
                     onClick = onDismiss,
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(10.dp)

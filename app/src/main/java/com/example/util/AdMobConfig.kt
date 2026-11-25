@@ -56,6 +56,8 @@ object AdMobConfig {
     private var interstitialAd: InterstitialAd? = null
     private var isInterstitialLoading = false
     private var isInitialized = false
+    private var lastInterstitialShownAtMs: Long = 0L
+    private const val INTERSTITIAL_COOLDOWN_MS = 180_000L // 3 minutes minimum between interstitials
 
     fun initIfNeeded(context: Context) {
         if (isInitialized || isRunningInEmulator()) return
@@ -108,7 +110,7 @@ object AdMobConfig {
     }
 
     /**
-     * تحميل الإعلان البيني مسبقاً في الخلفية
+     * Preload interstitial ad in background.
      */
     fun loadInterstitialAd(context: Context) {
         if (isRunningInEmulator() || interstitialAd != null || isInterstitialLoading) return
@@ -138,30 +140,39 @@ object AdMobConfig {
     }
 
     /**
-     * عرض الإعلان البيني مع حماية المحاكي واستدعاء callback عند الإغلاق
+     * Show interstitial ad only after explicit user actions, respecting a 3-minute cooldown.
+     */
+    fun showInterstitialAfterAction(
+        activity: Activity,
+        onAdClosed: () -> Unit = {}
+    ) {
+        val now = System.currentTimeMillis()
+        if (now - lastInterstitialShownAtMs < INTERSTITIAL_COOLDOWN_MS) {
+            onAdClosed()
+            return
+        }
+        showInterstitialAd(activity, onAdClosed)
+    }
+
+    /**
+     * Show interstitial ad with emulator guard and callback on close.
      */
     fun showInterstitialAd(
         activity: Activity,
         onAdClosed: () -> Unit = {}
     ) {
         if (isRunningInEmulator()) {
-            Toast.makeText(
-                activity,
-                com.example.ui.util.L.t(
-                    "محاكاة: تم تخطي الإعلان البيني بنجاح",
-                    "Simulation: Interstitial ad skipped successfully"
-                ),
-                Toast.LENGTH_SHORT
-            ).show()
+            lastInterstitialShownAtMs = System.currentTimeMillis()
             onAdClosed()
             return
         }
 
         if (interstitialAd != null) {
+            lastInterstitialShownAtMs = System.currentTimeMillis()
             interstitialAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
                 override fun onAdDismissedFullScreenContent() {
                     interstitialAd = null
-                    loadInterstitialAd(activity) // تجهيز الإعلان القادم مسبقاً
+                    loadInterstitialAd(activity)
                     onAdClosed()
                 }
 
@@ -173,7 +184,6 @@ object AdMobConfig {
             }
             interstitialAd?.show(activity)
         } else {
-            // إذا لم ينته التحميل بعد، لا نعطل تجربة المستخدم
             loadInterstitialAd(activity)
             onAdClosed()
         }
@@ -181,6 +191,7 @@ object AdMobConfig {
 
     /**
      * Loads and shows a Rewarded Video Ad.
+     * Policy-compliant: Rewards are strictly credited only when earned or in emulator preview.
      */
     fun showRewardedAd(
         activity: Activity,
@@ -191,8 +202,8 @@ object AdMobConfig {
             Toast.makeText(
                 activity,
                 com.example.ui.util.L.t(
-                    "🎉 تمت مشاهدة إعلان المكافأة واحتساب +50 نقطة!",
-                    "🎉 Rewarded ad watched! +50 points credited!"
+                    "معاينة المحاكي: تمت مشاهدة إعلان المكافأة واحتساب +50 عملة!",
+                    "Emulator preview: Rewarded ad completed (+50 coins credited)!"
                 ),
                 Toast.LENGTH_SHORT
             ).show()
@@ -212,6 +223,23 @@ object AdMobConfig {
                 adRequest,
                 object : RewardedAdLoadCallback() {
                     override fun onAdLoaded(rewardedAd: RewardedAd) {
+                        rewardedAd.fullScreenContentCallback = object : FullScreenContentCallback() {
+                            override fun onAdDismissedFullScreenContent() {
+                                onDismissedOrFailed()
+                            }
+
+                            override fun onAdFailedToShowFullScreenContent(adError: AdError) {
+                                Toast.makeText(
+                                    activity,
+                                    com.example.ui.util.L.t(
+                                        "تعذر عرض الإعلان حالياً، يرجى المحاولة لاحقاً",
+                                        "Unable to display the ad right now, please try again later"
+                                    ),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                onDismissedOrFailed()
+                            }
+                        }
                         rewardedAd.show(activity) { rewardItem: RewardItem ->
                             val rewardAmount = if (rewardItem.amount > 0) rewardItem.amount else 50
                             Log.d(TAG, "User earned reward: $rewardAmount")
@@ -221,14 +249,28 @@ object AdMobConfig {
 
                     override fun onAdFailedToLoad(loadAdError: LoadAdError) {
                         Log.e(TAG, "Rewarded ad failed to load: ${loadAdError.message}")
-                        onRewardEarned(50)
+                        Toast.makeText(
+                            activity,
+                            com.example.ui.util.L.t(
+                                "لا يتوفر إعلان مكافأة حالياً، يرجى المحاولة بعد قليل",
+                                "No rewarded ad available right now, please try again shortly"
+                            ),
+                            Toast.LENGTH_SHORT
+                        ).show()
                         onDismissedOrFailed()
                     }
                 }
             )
         } catch (e: Throwable) {
             Log.e(TAG, "Exception showing rewarded ad: ${e.message}")
-            onRewardEarned(50)
+            Toast.makeText(
+                activity,
+                com.example.ui.util.L.t(
+                    "تعذر تحميل الإعلان حالياً، يرجى المحاولة لاحقاً",
+                    "Could not load the ad right now, please try again later"
+                ),
+                Toast.LENGTH_SHORT
+            ).show()
             onDismissedOrFailed()
         }
     }

@@ -8,10 +8,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Celebration
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -111,7 +111,7 @@ fun LogoEventSelectionDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            Icons.Default.AutoAwesome,
+                            Icons.Default.Palette,
                             contentDescription = null,
                             tint = liveAutoEvent.primaryColor,
                             modifier = Modifier.size(18.dp)
@@ -229,13 +229,13 @@ fun LogoEventSelectionDialog(
                             context,
                             if (syncExternalIcon) {
                                 L.t(
-                                    "تم تطبيق المظهر وتحديث الأيقونة الخارجية بنجاح ✨",
-                                    "Theme applied & home-screen icon updated ✨"
+                                    "تم تطبيق المظهر وتحديث الأيقونة الخارجية بنجاح",
+                                    "Theme applied & home-screen icon updated"
                                 )
                             } else {
                                 L.t(
-                                    "تم تطبيق المظهر داخل التطبيق بنجاح ✨",
-                                    "In-app theme applied successfully ✨"
+                                    "تم تطبيق المظهر داخل التطبيق بنجاح",
+                                    "In-app theme applied successfully"
                                 )
                             },
                             Toast.LENGTH_SHORT

@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -14,10 +17,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.app.Activity
 import com.example.ui.components.ThemeSelectionCard
 import com.example.ui.util.AppLanguage
 import com.example.ui.util.L
@@ -212,7 +215,7 @@ fun ProfileSettingsScreen(
             }
         }
 
-        // Verified Account Status Card
+        // Verified Account & Cloud Sync Status Card
         item {
             ElevatedCard(
                 modifier = Modifier.fillMaxWidth(),
@@ -220,39 +223,141 @@ fun ProfileSettingsScreen(
                 colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFFE8F5E9)),
                 elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
             ) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Verified, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(24.dp))
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.CloudDone, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    L.t(
+                                        "المزامنة السحابية نشطة ✓",
+                                        "Cloud Sync Active ✓"
+                                    ),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1B5E20)
+                                )
+                                Text(
+                                    L.t(
+                                        "تُحفظ نقاطك ومشاريعك تلقائياً: ${currentUser.email}",
+                                        "Points & apps auto-saved for ${currentUser.email}"
+                                    ),
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF2E7D32)
+                                )
+                            }
+                        }
+                        OutlinedButton(
+                            onClick = { viewModel.logout() },
+                            modifier = Modifier
+                                .height(48.dp)
+                                .testTag("profile_quick_signout_button"),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(L.t("تسجيل خروج", "Sign Out"), fontSize = 11.sp)
+                        }
+                    }
+                }
+            }
+        }
+
+        // My Referral Code Card
+        item {
+            val myReferralCode = currentUser.referralCode.ifBlank { "PTH-HUB" }
+            ElevatedCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            L.t("🎁 رمز الدعوة الخاص بك", "🎁 Your Referral Code"),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Surface(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
                             Text(
-                                L.t(
-                                    "الحساب مؤكد بالبريد الإلكتروني ✓",
-                                    "Account Verified via Email (OTP) ✓"
-                                ),
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF1B5E20)
-                            )
-                            Text(
-                                currentUser.email,
+                                L.t("${currentUser.invitedDevsCount} مدعوين", "${currentUser.invitedDevsCount} invited"),
                                 fontSize = 11.sp,
-                                color = Color(0xFF2E7D32)
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                             )
                         }
                     }
-                    OutlinedButton(
-                        onClick = { viewModel.logout() },
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(L.t("تسجيل خروج", "Sign Out"), fontSize = 11.sp)
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                myReferralCode,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 15.sp,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
+                            )
+                        }
+                        FilledTonalButton(
+                            onClick = {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(ClipData.newPlainText(L.t("رمز الدعوة", "Referral Code"), myReferralCode))
+                                Toast.makeText(context, L.t("تم نسخ رمز الدعوة!", "Referral code copied!"), Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier
+                                .height(48.dp)
+                                .testTag("profile_copy_referral_button"),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = L.t("نسخ رمز الدعوة", "Copy Referral Code"), modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(L.t("نسخ", "Copy"), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    TextButton(
+                        onClick = { viewModel.openDeveloperGrowth() },
+                        modifier = Modifier.testTag("profile_open_growth_button"),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Text(
+                            L.t("فتح مركز الإحالات وتفعيل رمز دعوة ←", "Open Referral & Growth Hub ->"),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
             }
@@ -272,6 +377,16 @@ fun ProfileSettingsScreen(
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        L.t(
+                            "عند تسجيل الخروج تبقى عملاتك وتطبيقاتك واختباراتك محفوظة سحابياً، وتُستعاد فور تسجيل الدخول بنفس البريد.",
+                            "Signing out preserves your coins, apps, and tests in the cloud; sign back in with the same email to restore everything."
+                        ),
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 16.sp
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     if (currentUser.isPlatformOwner) {
@@ -303,7 +418,10 @@ fun ProfileSettingsScreen(
                         }
                         Spacer(modifier = Modifier.height(10.dp))
                         OutlinedButton(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .testTag("profile_preview_regular_user_button"),
                             onClick = { viewModel.logoutToRegularUser() },
                             shape = RoundedCornerShape(10.dp)
                         ) {
@@ -316,7 +434,10 @@ fun ProfileSettingsScreen(
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .testTag("profile_signout_button"),
                             onClick = { viewModel.logout() },
                             shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
@@ -324,14 +445,17 @@ fun ProfileSettingsScreen(
                             Icon(Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                L.t("تسجيل الخروج والعودة لشاشة الدخول الإلزامية", "Sign Out & Return to Sign-In Gate"),
+                                L.t("تسجيل الخروج من الجلسة الحالية", "Sign Out of Current Session"),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     } else {
                         Button(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .testTag("profile_signout_button"),
                             onClick = { viewModel.logout() },
                             shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
@@ -339,7 +463,7 @@ fun ProfileSettingsScreen(
                             Icon(Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                L.t("تسجيل الخروج والعودة لشاشة الدخول الإلزامية", "Sign Out & Return to Sign-In Gate"),
+                                L.t("تسجيل الخروج من الجلسة الحالية", "Sign Out of Current Session"),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )

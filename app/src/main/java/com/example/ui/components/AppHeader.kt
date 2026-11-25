@@ -10,10 +10,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AuthUser
+import com.example.ui.util.L
 
 @Composable
 fun AppHeader(
@@ -44,28 +46,28 @@ fun AppHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 12.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
             ) {
                 DynamicEventLogo(
-                    size = 36.dp,
+                    size = 38.dp,
                     isOwner = isOwner,
                     showBadge = true,
-                    onClick = {
-                        onOpenLogoEvents()
-                    }
+                    onClick = { onOpenLogoEvents() }
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            com.example.ui.util.L.t("منصة مختبري التطبيقات", "PlayTester Hub"),
+                            L.t("منصة مختبري التطبيقات", "PlayTester Hub"),
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
+                            maxLines = 1,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         if (isOwner) {
@@ -75,7 +77,7 @@ fun AppHeader(
                                 shape = RoundedCornerShape(4.dp)
                             ) {
                                 Text(
-                                    com.example.ui.util.L.t("صاحب المنصة", "Owner"),
+                                    L.t("صاحب المنصة", "Owner"),
                                     color = Color.White,
                                     fontSize = 8.sp,
                                     fontWeight = FontWeight.Bold,
@@ -85,8 +87,9 @@ fun AppHeader(
                         }
                     }
                     Text(
-                        com.example.ui.util.L.t("منصة تبادل المختبرين الرسمية", "Official Tester Exchange Platform"),
+                        L.t("تبادل المختبرين الحقيقيين 14 يوماً", "14-Day Real Tester Exchange"),
                         fontSize = 10.sp,
+                        maxLines = 1,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -94,46 +97,43 @@ fun AppHeader(
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                // Points Pill
+                // Coins Pill (min 48dp accessible height wrapper)
                 Surface(
-                    color = Color(0xFFFFB300).copy(alpha = 0.15f),
+                    color = Color(0xFFFFB300).copy(alpha = 0.16f),
                     shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.clickable { onOpenMonetization() }
+                    modifier = Modifier
+                        .heightIn(min = 36.dp)
+                        .clickable { onOpenMonetization() }
+                        .testTag("header_coins_pill")
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
                             Icons.Default.MonetizationOn,
-                            contentDescription = null,
+                            contentDescription = L.t("رصيد العملات", "Coins Balance"),
                             tint = Color(0xFFFF8F00),
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(15.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             "${user.points}",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                            color = Color(0xFFFF8F00)
+                            fontSize = 12.sp,
+                            color = Color(0xFFE65100)
                         )
                     }
                 }
 
-                // Quick Action: Lucky Spin
-                IconButton(
-                    onClick = onOpenLuckySpin,
-                    modifier = Modifier.size(34.dp)
-                ) {
-                    Text("🎡", fontSize = 16.sp)
-                }
-
-                // Notifications Bell with Badge
+                // Notifications Bell with Badge (48dp touch target)
                 IconButton(
                     onClick = onOpenNotifications,
-                    modifier = Modifier.size(34.dp)
+                    modifier = Modifier
+                        .size(48.dp)
+                        .testTag("header_notifications_button")
                 ) {
                     BadgedBox(
                         badge = {
@@ -149,9 +149,9 @@ fun AppHeader(
                     ) {
                         Icon(
                             Icons.Default.Notifications,
-                            contentDescription = com.example.ui.util.L.t("إشعارات المختبرين", "Tester Notifications"),
+                            contentDescription = L.t("إشعارات المختبرين", "Tester Notifications"),
                             tint = if (unreadNotificationsCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(21.dp)
                         )
                     }
                 }
@@ -159,11 +159,13 @@ fun AppHeader(
                 Box {
                     IconButton(
                         onClick = { showMenu = true },
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier
+                            .size(48.dp)
+                            .testTag("header_more_menu_button")
                     ) {
                         Icon(
                             Icons.Default.MoreVert,
-                            contentDescription = com.example.ui.util.L.t("أدوات إضافية", "More Tools"),
+                            contentDescription = L.t("أدوات إضافية", "More Tools"),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -175,7 +177,7 @@ fun AppHeader(
                         DropdownMenuItem(
                             text = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(com.example.ui.util.L.t("🔔 إشعارات نشاط المختبرين", "🔔 Tester Activity Notifications"))
+                                    Text(L.t("🔔 إشعارات نشاط المختبرين", "🔔 Tester Activity Notifications"))
                                     if (unreadNotificationsCount > 0) {
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Surface(
@@ -183,7 +185,7 @@ fun AppHeader(
                                             shape = RoundedCornerShape(10.dp)
                                         ) {
                                             Text(
-                                                com.example.ui.util.L.t("$unreadNotificationsCount جديد", "$unreadNotificationsCount New"),
+                                                L.t("$unreadNotificationsCount جديد", "$unreadNotificationsCount New"),
                                                 color = Color.White,
                                                 fontSize = 9.sp,
                                                 fontWeight = FontWeight.Bold,
@@ -200,7 +202,7 @@ fun AppHeader(
                             leadingIcon = { Icon(Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
                         )
                         DropdownMenuItem(
-                            text = { Text(com.example.ui.util.L.t("💬 محادثاتي مع المطورين", "💬 Developer Chats")) },
+                            text = { Text(L.t("💬 محادثاتي مع المطورين", "💬 Developer Chats")) },
                             onClick = {
                                 showMenu = false
                                 onOpenDeveloperInbox()
@@ -208,15 +210,23 @@ fun AppHeader(
                             leadingIcon = { Icon(Icons.Default.Chat, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
                         )
                         DropdownMenuItem(
-                            text = { Text(com.example.ui.util.L.t("🏆 لوحة الصدارة ومكافآت الأوسمة", "🏆 Leaderboard & Badges")) },
+                            text = { Text(L.t("🎡 عجلة الحظ والمكافأة اليومية", "🎡 Lucky Spin & Daily Wheel")) },
+                            onClick = {
+                                showMenu = false
+                                onOpenLuckySpin()
+                            },
+                            leadingIcon = { Icon(Icons.Default.Casino, contentDescription = null, tint = Color(0xFF7C3AED)) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(L.t("🏆 لوحة الصدارة ومكافآت الأوسمة", "🏆 Leaderboard & Badges")) },
                             onClick = {
                                 showMenu = false
                                 onOpenLeaderboard()
                             },
-                            leadingIcon = { Text("🏆", fontSize = 16.sp) }
+                            leadingIcon = { Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = Color(0xFFFF8F00)) }
                         )
                         DropdownMenuItem(
-                            text = { Text(com.example.ui.util.L.t("🛡️ مصفوفة الـ 14 يوماً ورادار الامتثال", "🛡️ 14-Day Matrix & Compliance Radar")) },
+                            text = { Text(L.t("🛡️ مصفوفة الـ 14 يوماً ورادار الامتثال", "🛡️ 14-Day Matrix & Compliance Radar")) },
                             onClick = {
                                 showMenu = false
                                 onOpenComplianceMatrix()
@@ -224,7 +234,7 @@ fun AppHeader(
                             leadingIcon = { Icon(Icons.Default.Verified, contentDescription = null, tint = Color(0xFF00875A)) }
                         )
                         DropdownMenuItem(
-                            text = { Text(com.example.ui.util.L.t("📄 تقرير التدقيق الرسمي", "📄 Official Audit Report")) },
+                            text = { Text(L.t("📄 تقرير التدقيق الرسمي", "📄 Official Audit Report")) },
                             onClick = {
                                 showMenu = false
                                 onOpenAudit()
@@ -232,7 +242,7 @@ fun AppHeader(
                             leadingIcon = { Icon(Icons.Default.Assessment, contentDescription = null, tint = Color(0xFF00875A)) }
                         )
                         DropdownMenuItem(
-                            text = { Text(com.example.ui.util.L.t("🚀 جذب المطورين وشبكة التبادل", "🚀 Developer Growth & Referral Hub")) },
+                            text = { Text(L.t("🚀 جذب المطورين وشبكة التبادل", "🚀 Developer Growth & Referral Hub")) },
                             onClick = {
                                 showMenu = false
                                 onOpenGrowth()
@@ -240,7 +250,7 @@ fun AppHeader(
                             leadingIcon = { Icon(Icons.Default.GroupAdd, contentDescription = null, tint = Color(0xFF1E88E5)) }
                         )
                         DropdownMenuItem(
-                            text = { Text(com.example.ui.util.L.t("💎 الباقات المميزة والتسريع", "💎 VIP Plans & Boosts")) },
+                            text = { Text(L.t("💎 الباقات المميزة والتسريع", "💎 VIP Plans & Boosts")) },
                             onClick = {
                                 showMenu = false
                                 onOpenMonetization()
@@ -248,7 +258,7 @@ fun AppHeader(
                             leadingIcon = { Icon(Icons.Default.Speed, contentDescription = null, tint = Color(0xFFFFB300)) }
                         )
                         DropdownMenuItem(
-                            text = { Text(com.example.ui.util.L.t("🎨 ثيمات وألوان التطبيق", "🎨 App Themes & Colors")) },
+                            text = { Text(L.t("🎨 ثيمات وألوان التطبيق", "🎨 App Themes & Colors")) },
                             onClick = {
                                 showMenu = false
                                 onOpenTheme()
@@ -256,19 +266,19 @@ fun AppHeader(
                             leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
                         )
                         DropdownMenuItem(
-                            text = { Text(com.example.ui.util.L.t("🎭 فعاليات وأجواء الشعار", "🎭 Logo Events & Effects")) },
+                            text = { Text(L.t("🎭 فعاليات وأجواء الشعار", "🎭 Logo Events & Effects")) },
                             onClick = {
                                 showMenu = false
                                 onOpenLogoEvents()
                             },
-                            leadingIcon = { Text("✨", fontSize = 16.sp) }
+                            leadingIcon = { Icon(Icons.Default.Celebration, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
                         )
                         if (isOwner) {
                             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                             DropdownMenuItem(
                                 text = {
                                     Text(
-                                        com.example.ui.util.L.t("🛡️ لوحة تحكم صاحب المنصة", "🛡️ Platform Owner Admin Panel"),
+                                        L.t("🛡️ لوحة تحكم صاحب المنصة", "🛡️ Platform Owner Admin Panel"),
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF1E88E5)
                                     )

@@ -109,11 +109,32 @@ data class AuthUser(
     val isVip: Boolean = false,
     val isEmailVerified: Boolean = false,
     val appsCount: Int = 1,
-    val testsCount: Int = 3
+    val testsCount: Int = 3,
+    val referralCode: String = "",
+    val referredBy: String = "",
+    val invitedDevsCount: Int = 0,
+    val streakDays: Int = 1
 ) {
     val isPlatformOwner: Boolean
         get() = email.trim().equals(PLATFORM_OWNER_EMAIL, ignoreCase = true)
 }
+
+data class CloudUserProfile(
+    val uid: String = "",
+    val email: String = "",
+    val displayName: String = "",
+    val points: Int = 0,
+    val streakDays: Int = 1,
+    val lastCheckInDate: String = "",
+    val lastDailyBonusDate: String = "",
+    val claimedBadgeIds: List<String> = emptyList(),
+    val appsCount: Int = 0,
+    val testsCount: Int = 0,
+    val referralCode: String = "",
+    val referredBy: String = "",
+    val invitedDevsCount: Int = 0,
+    val isVip: Boolean = false
+)
 
 data class AchievementBadge(
     val id: String,

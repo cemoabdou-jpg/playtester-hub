@@ -204,20 +204,21 @@ object PdfComplianceReportGenerator {
 
         val cardWidth = (pageWidth - 40f - 24f) / 3f
         val cardHeight = 44f
+        val distinctDevicesCount = logs.map { it.deviceModel }.distinct().size
         val metrics = listOf(
             Triple(
-                L.t("20+ مختبراً حقيقياً", "20+ Real Testers"),
-                L.t("${app.currentTesters} منضم فعلياً", "${app.currentTesters} Opted-in"),
+                L.t("المختبرون المطلوبون: 20+", "Target: 20+ Testers"),
+                L.t("${app.currentTesters} منضم في اللوحة", "${app.currentTesters} Enrolled"),
                 Color.rgb(0, 135, 90)
             ),
             Triple(
-                L.t("14 يوماً متصلة", "14 Consecutive Days"),
-                L.t("${app.completedDays} يوماً موثقاً", "${app.completedDays} Days Verified"),
+                L.t("مدة 14 يوماً متصلة", "14 Consecutive Days"),
+                L.t("${app.completedDays} يوماً موثقاً", "${app.completedDays} Days Recorded"),
                 Color.rgb(2, 132, 199)
             ),
             Triple(
-                L.t("تنوع الأجهزة", "Device Diversity"),
-                L.t("18 طرازاً مختلفاً", "18 Distinct Models"),
+                L.t("تنوع الأجهزة الموثقة", "Logged Devices"),
+                L.t("$distinctDevicesCount طرازاً موثقاً", "$distinctDevicesCount Distinct Models"),
                 Color.rgb(124, 58, 237)
             )
         )
@@ -276,31 +277,52 @@ object PdfComplianceReportGenerator {
         canvas.drawText(L.t("الامتثال", "Compliance"), 495f, curY + 12f, paint)
         curY += 19f
 
-        // Table Rows
-        val sampleOrActualLogs = if (logs.isNotEmpty()) logs.take(14) else generateDefaultAuditLogs(app)
-        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-        sampleOrActualLogs.forEachIndexed { idx, log ->
-            val rowY = curY
-            if (idx % 2 == 1) {
-                paint.color = Color.rgb(250, 250, 252)
-                paint.style = Paint.Style.FILL
-                canvas.drawRect(20f, rowY - 2f, pageWidth - 20f, rowY + 14f, paint)
-            }
-
+        // Table Rows (Actual Logged Sessions Only)
+        val actualLogs = logs.take(14)
+        if (actualLogs.isEmpty()) {
+            paint.color = Color.rgb(248, 250, 252)
             paint.style = Paint.Style.FILL
-            paint.color = Color.rgb(51, 65, 85)
-            paint.textSize = 8f
-            canvas.drawText(L.t("يوم ${log.dayNumber}", "Day ${log.dayNumber}"), 26f, rowY + 10f, paint)
-            canvas.drawText(L.translateKnown(log.testerName).take(22), 75f, rowY + 10f, paint)
-            canvas.drawText(log.deviceModel, 210f, rowY + 10f, paint)
-            val osLabel = if (isAr) log.osVersion.replace("Android", "أندرويد") else log.osVersion
-            canvas.drawText(osLabel, 345f, rowY + 10f, paint)
-            canvas.drawText(L.t("${log.sessionDurationMinutes} د", "${log.sessionDurationMinutes} min"), 425f, rowY + 10f, paint)
+            canvas.drawRoundRect(20f, curY, pageWidth - 20f, curY + 26f, 4f, 4f, paint)
+            paint.color = Color.rgb(100, 116, 139)
+            paint.textSize = 8.5f
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC)
+            paint.textAlign = if (isAr) Paint.Align.RIGHT else Paint.Align.LEFT
+            val emptyX = if (isAr) pageWidth - 28f else 28f
+            canvas.drawText(
+                L.t(
+                    "لا توجد جلسات اختبار مسجلة داخل التطبيق حتى الآن (العداد المسجل: ${app.currentTesters}/20 مختبراً).",
+                    "No in-app test sessions recorded yet (Console count: ${app.currentTesters}/20 testers)."
+                ),
+                emptyX,
+                curY + 16f,
+                paint
+            )
+            curY += 32f
+        } else {
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+            actualLogs.forEachIndexed { idx, log ->
+                val rowY = curY
+                if (idx % 2 == 1) {
+                    paint.color = Color.rgb(250, 250, 252)
+                    paint.style = Paint.Style.FILL
+                    canvas.drawRect(20f, rowY - 2f, pageWidth - 20f, rowY + 14f, paint)
+                }
 
-            paint.color = Color.rgb(0, 135, 90)
-            canvas.drawText(L.t("مكتمل ✓", "PASSED ✓"), 495f, rowY + 10f, paint)
+                paint.style = Paint.Style.FILL
+                paint.color = Color.rgb(51, 65, 85)
+                paint.textSize = 8f
+                canvas.drawText(L.t("يوم ${log.dayNumber}", "Day ${log.dayNumber}"), 26f, rowY + 10f, paint)
+                canvas.drawText(L.translateKnown(log.testerName).take(22), 75f, rowY + 10f, paint)
+                canvas.drawText(log.deviceModel, 210f, rowY + 10f, paint)
+                val osLabel = if (isAr) log.osVersion.replace("Android", "أندرويد") else log.osVersion
+                canvas.drawText(osLabel, 345f, rowY + 10f, paint)
+                canvas.drawText(L.t("${log.sessionDurationMinutes} د", "${log.sessionDurationMinutes} min"), 425f, rowY + 10f, paint)
 
-            curY += 15f
+                paint.color = Color.rgb(0, 135, 90)
+                canvas.drawText(L.t("مكتمل ✓", "PASSED ✓"), 495f, rowY + 10f, paint)
+
+                curY += 15f
+            }
         }
 
         curY += 12f
@@ -311,76 +333,60 @@ object PdfComplianceReportGenerator {
         paint.textSize = 12f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         canvas.drawText(
-            L.t("3. إصلاحات الأخطاء والتحقق من الاستقرار", "3. QA Bug Fixes & Stability Actions"),
+            L.t("3. تقارير الأعطال والتحقق من الاستقرار", "3. QA Bug Reports & Stability Log"),
             sectionX,
             curY,
             paint
         )
         curY += 14f
 
-        val displayCrashes = if (crashes.isNotEmpty()) crashes.take(3) else listOf(
-            CrashReport(
-                id = "c1",
-                appId = app.id,
-                title = L.t(
-                    "استثناء مؤشر فارغ في عارض الصور على أندرويد 14",
-                    "NullPointerException in Image Carousel on Android 14"
-                ),
-                stackTrace = "",
-                deviceModel = "Pixel 7 Pro",
-                osVersion = L.t("أندرويد 14", "Android 14"),
-                appVersion = "1.0.1",
-                resolutionNote = L.t(
-                    "تمت معالجة الصورة البديلة بنجاح واختبارها على عدة أجهزة.",
-                    "Handled null drawable fallback and tested successfully."
-                )
-            ),
-            CrashReport(
-                id = "c2",
-                appId = app.id,
-                title = L.t(
-                    "تحسين إدارة الذاكرة عند تغيير اتجاه الشاشة للوضع الأفقي",
-                    "Configuration Change Memory Leak in Landscape Orientation"
-                ),
-                stackTrace = "",
-                deviceModel = "Galaxy Tab S8",
-                osVersion = L.t("أندرويد 13", "Android 13"),
-                appVersion = "1.0.2",
-                resolutionNote = L.t(
-                    "تم نقل حالة الشاشة إلى وحدة إدارة الحالة وربطها بدورة الحياة.",
-                    "Migrated ViewModel state to rememberSaveable and lifecycle listener."
-                )
-            )
-        )
-
         val boxTextX = if (isAr) pageWidth - 26f else 26f
-        displayCrashes.forEach { c ->
-            paint.color = Color.rgb(241, 245, 249)
+        if (crashes.isEmpty()) {
+            paint.color = Color.rgb(236, 253, 245)
             paint.style = Paint.Style.FILL
             canvas.drawRoundRect(20f, curY, pageWidth - 20f, curY + 28f, 4f, 4f, paint)
-
             paint.textAlign = if (isAr) Paint.Align.RIGHT else Paint.Align.LEFT
-            paint.color = Color.rgb(30, 41, 59)
+            paint.color = Color.rgb(6, 95, 70)
             paint.textSize = 8.5f
             paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             canvas.drawText(
-                L.t("تم الإصلاح: ${c.title} • الجهاز: ${c.deviceModel}", "Fixed: ${c.title} • Device: ${c.deviceModel}"),
+                L.t("0 تقارير أعطال مفتوحة — لم يبلغ المختبرون عن أي أعطال حرجة.", "0 open crash reports — no critical crashes reported by testers."),
                 boxTextX,
-                curY + 11f,
+                curY + 17f,
                 paint
             )
+            curY += 34f
+        } else {
+            crashes.take(3).forEach { c ->
+                paint.color = Color.rgb(241, 245, 249)
+                paint.style = Paint.Style.FILL
+                canvas.drawRoundRect(20f, curY, pageWidth - 20f, curY + 28f, 4f, 4f, paint)
 
-            paint.color = Color.rgb(71, 85, 105)
-            paint.textSize = 7.5f
-            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-            canvas.drawText(
-                L.t("ملاحظة الحل: ${c.resolutionNote}", "Resolution Note: ${c.resolutionNote}"),
-                boxTextX,
-                curY + 22f,
-                paint
-            )
+                paint.textAlign = if (isAr) Paint.Align.RIGHT else Paint.Align.LEFT
+                paint.color = Color.rgb(30, 41, 59)
+                paint.textSize = 8.5f
+                paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                val statusLabel = if (c.status == "RESOLVED") L.t("تم الإصلاح", "Fixed") else L.t("مفتوح", "Open")
+                canvas.drawText(
+                    "$statusLabel: ${c.title} • ${c.deviceModel}",
+                    boxTextX,
+                    curY + 11f,
+                    paint
+                )
 
-            curY += 32f
+                paint.color = Color.rgb(71, 85, 105)
+                paint.textSize = 7.5f
+                paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+                val note = c.resolutionNote.ifBlank { c.stackTrace.take(70) }
+                canvas.drawText(
+                    L.t("التفاصيل: $note", "Details: $note"),
+                    boxTextX,
+                    curY + 22f,
+                    paint
+                )
+
+                curY += 32f
+            }
         }
 
         curY += 10f
@@ -511,30 +517,4 @@ object PdfComplianceReportGenerator {
         }
     }
 
-    private fun generateDefaultAuditLogs(app: UserApp): List<DailyTestLog> {
-        val devices = listOf(
-            "Samsung Galaxy S23" to "Android 14",
-            "Google Pixel 8" to "Android 14",
-            "Xiaomi 13T Pro" to "Android 13",
-            "Samsung Galaxy A54" to "Android 14",
-            "OnePlus 11" to "Android 13",
-            "Motorola Edge 40" to "Android 13",
-            "Samsung Galaxy Tab S9" to "Android 14"
-        )
-        return (1..14).map { day ->
-            val dev = devices[day % devices.size]
-            DailyTestLog(
-                id = "log_$day",
-                appId = app.id,
-                testerName = L.t("مختبر معتمد #$day", "Verified Tester #$day"),
-                testerEmail = "tester_$day@community.dev",
-                deviceModel = dev.first,
-                osVersion = dev.second,
-                dayNumber = day,
-                checkInTimestamp = System.currentTimeMillis() - (14 - day) * 86400000L,
-                sessionDurationMinutes = 12 + (day * 3) % 15,
-                notes = L.t("جلسة اختبار تفاعلية مكتملة بنجاح", "Interactive test session completed successfully")
-            )
-        }
-    }
 }

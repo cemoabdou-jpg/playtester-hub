@@ -31,29 +31,10 @@ fun TesterActivityHealthDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    val uniqueTesters = remember(logs, app.currentTesters, L.currentLanguage) {
-        val distinct = logs.distinctBy { it.testerEmail }
-        if (distinct.size >= app.currentTesters) {
-            distinct.take(app.currentTesters)
-        } else if (app.currentTesters > 0) {
-            distinct + (distinct.size + 1..app.currentTesters).map { i ->
-                DailyTestLog(
-                    id = "health_$i",
-                    appId = app.packageName,
-                    testerName = L.t("مختبر معتمد #$i", "Verified Tester #$i"),
-                    testerEmail = "tester$i@playtesterhub.com",
-                    deviceModel = listOf("Samsung Galaxy S23", "Pixel 8", "Xiaomi 13", "OnePlus 11")[i % 4],
-                    osVersion = L.t("أندرويد 14", "Android 14 (API 34)"),
-                    dayNumber = app.completedDays,
-                    checkInTimestamp = System.currentTimeMillis() - ((app.currentTesters - i) * 3600000L),
-                    sessionDurationMinutes = 15,
-                    notes = L.t("جلسة اختبار نشطة", "Active testing session")
-                )
-            }
-        } else {
-            emptyList()
-        }
+    val uniqueTesters = remember(logs) {
+        logs.distinctBy { it.testerEmail.ifBlank { it.testerName } }
     }
+    val consoleExternalGap = maxOf(0, app.currentTesters - uniqueTesters.size)
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -77,16 +58,16 @@ fun TesterActivityHealthDialog(
                         Icon(Icons.Default.Close, contentDescription = L.t("إغلاق", "Close"))
                     }
                     Text(
-                        L.t("👥 صحة نشاط المختبرين والاستبدال الذكي", "👥 Tester Activity Health & Smart Replacement"),
+                        L.t("👥 صحة نشاط المختبرين والاستبدال التلقائي", "👥 Tester Activity Health & Verification"),
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.weight(1f)
                     )
                     IconButton(onClick = {
                         val msg = if (app.currentTesters >= 20) {
-                            L.t("جميع الـ 20 مختبراً في حالة نشطة بنسبة 100%", "All 20 testers are 100% active")
+                            L.t("إجمالي المختبرين المسجلين: ${app.currentTesters}/20 (${uniqueTesters.size} جلسة موثقة)", "Enrolled: ${app.currentTesters}/20 (${uniqueTesters.size} verified in-app)")
                         } else {
-                            L.t("تم تسجيل ${app.currentTesters} مختبر نشط من 20", "Logged ${app.currentTesters} of 20 active testers")
+                            L.t("تم تسجيل ${app.currentTesters} مختبر من 20", "Logged ${app.currentTesters} of 20 active testers")
                         }
                         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                     }) {
@@ -104,13 +85,13 @@ fun TesterActivityHealthDialog(
                         Text(
                             if (app.currentTesters >= 20) {
                                 L.t(
-                                    "مؤشر صحة الاختبار الكلي: 100% ممتاز (مستوفٍ لشروط جوجل بلاي)",
-                                    "Overall Testing Health: 100% Excellent (Meets Google Play Rules)"
+                                    "لوحة جوجل بلاي: ${app.currentTesters}/20 • الموثقون بالمنصة: ${uniqueTesters.size}",
+                                    "Play Console: ${app.currentTesters}/20 • In-App Verified: ${uniqueTesters.size}"
                                 )
                             } else {
                                 L.t(
-                                    "المختبرون الفعليون حالياً: ${app.currentTesters} من ${app.targetTesters} مختبراً",
-                                    "Current Active Testers: ${app.currentTesters} of ${app.targetTesters} testers"
+                                    "المختبرون في لوحة جوجل: ${app.currentTesters} من ${app.targetTesters} (${uniqueTesters.size} موثق بالمنصة)",
+                                    "Play Console Testers: ${app.currentTesters} of ${app.targetTesters} (${uniqueTesters.size} verified in-app)"
                                 )
                             },
                             color = Color.White,
@@ -120,8 +101,8 @@ fun TesterActivityHealthDialog(
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             L.t(
-                                "نظام المراقبة الذكي يتحقق تلقائياً من فتح التطبيق يومياً لكل مختبر ويستبدل أي مختبر خامل لضمان الاحتفاظ بالمختبرين 14 يوماً متواصلة.",
-                                "Smart monitoring checks daily app opens per tester and flags inactive testers to preserve continuous 14-day retention."
+                                "يعرض هذا السجل المختبرين الحقيقيين الذين قاموا بفتح التطبيق وتسجيل جلسات نشطة عبر المنصة.",
+                                "Shows real testers who launched your app and logged active sessions through PlayTester Hub."
                             ),
                             color = Color(0xFFE8F5E9),
                             fontSize = 12.sp
@@ -129,9 +110,28 @@ fun TesterActivityHealthDialog(
                     }
                 }
 
+                if (consoleExternalGap > 0) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Surface(
+                        color = Color(0xFFFFF3E0),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            L.t(
+                                "ملاحظة: يوجد $consoleExternalGap مختبراً إضافياً في عداد لوحة جوجل بلاي اليدوي لم يسجلوا جلساتهم عبر التطبيق بعد.",
+                                "Note: $consoleExternalGap tester(s) counted from your manual Play Console entry have not logged an in-app session yet."
+                            ),
+                            fontSize = 11.sp,
+                            color = Color(0xFFE65100),
+                            modifier = Modifier.padding(10.dp)
+                        )
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(12.dp))
 
-                if (app.currentTesters == 0 || uniqueTesters.isEmpty()) {
+                if (uniqueTesters.isEmpty()) {
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -146,11 +146,14 @@ fun TesterActivityHealthDialog(
                                 modifier = Modifier.size(48.dp)
                             )
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(L.t("لا يوجد مختبرون منضمون حالياً (0/20)", "No testers enrolled yet (0/20)"), fontWeight = FontWeight.Bold)
+                            Text(
+                                L.t("لا توجد جلسات مختبرين مسجلة عبر المنصة بعد", "No in-app tester logs recorded yet"),
+                                fontWeight = FontWeight.Bold
+                            )
                             Text(
                                 L.t(
-                                    "انشر تطبيقك في مجتمع التطبيقات أو حدّث عدد المختبرين من لوحة مطوري جوجل بلاي",
-                                    "Publish your app to the Community or update your tester count from Google Play Console"
+                                    "سيظهر هنا كل مختبر ينضم ويسجل جلسته اليومية لتطبيقك.",
+                                    "Each tester who joins and logs a daily test session will appear here."
                                 ),
                                 fontSize = 12.sp,
                                 color = Color.Gray

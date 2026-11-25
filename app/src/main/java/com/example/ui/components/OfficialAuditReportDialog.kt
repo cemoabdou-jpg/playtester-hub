@@ -225,29 +225,10 @@ fun OfficialAuditReportDialog(
 
 @Composable
 private fun TestersListSection(app: UserApp, logs: List<DailyTestLog>) {
-    val displayTesters = remember(logs, app.currentTesters, L.currentLanguage) {
-        val distinct = logs.distinctBy { it.testerEmail }
-        if (distinct.size >= app.currentTesters) {
-            distinct.take(app.currentTesters)
-        } else if (app.currentTesters > 0) {
-            distinct + (distinct.size + 1..app.currentTesters).map { i ->
-                DailyTestLog(
-                    id = "temp_${app.packageName}_$i",
-                    appId = app.packageName,
-                    testerName = L.t("مختبر معتمد #$i", "Verified Tester #$i"),
-                    testerEmail = "tester$i@playtesterhub.com",
-                    deviceModel = listOf("Samsung Galaxy S23", "Pixel 8", "Xiaomi 13", "OnePlus 11")[i % 4],
-                    osVersion = L.t("أندرويد 14", "Android 14 (API 34)"),
-                    dayNumber = app.completedDays,
-                    checkInTimestamp = System.currentTimeMillis() - ((app.currentTesters - i) * 3600000L),
-                    sessionDurationMinutes = 15,
-                    notes = L.t("جلسة اختبار نشطة", "Active testing session")
-                )
-            }
-        } else {
-            emptyList()
-        }
+    val distinctTesters = remember(logs) {
+        logs.distinctBy { it.testerEmail.ifBlank { it.testerName } }
     }
+    val consoleReportedGap = maxOf(0, app.currentTesters - distinctTesters.size)
 
     LazyColumn(modifier = Modifier.fillMaxHeight(0.7f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (app.currentTesters < 20) {
@@ -265,7 +246,7 @@ private fun TestersListSection(app: UserApp, logs: List<DailyTestLog>) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
                             Text(
-                                L.t("المختبرون الفعليون حالياً: ${app.currentTesters} من 20", "Current Active Testers: ${app.currentTesters} of 20"),
+                                L.t("المختبرون في لوحة مطوري جوجل بلاي: ${app.currentTesters} من 20", "Play Console Testers: ${app.currentTesters} of 20"),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp,
                                 color = Color(0xFFE65100)
@@ -291,7 +272,33 @@ private fun TestersListSection(app: UserApp, logs: List<DailyTestLog>) {
             }
         }
 
-        if (app.currentTesters == 0 || displayTesters.isEmpty()) {
+        if (consoleReportedGap > 0) {
+            item {
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            L.t(
+                                "إحصاء لوحة جوجل بلاي: ${app.currentTesters} مختبراً • موثق داخل المنصة: ${distinctTesters.size} مختبر ($consoleReportedGap مسجلون خارجياً).",
+                                "Play Console reports ${app.currentTesters} testers • Verified in-app logs: ${distinctTesters.size} ($consoleReportedGap enrolled externally)."
+                            ),
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        }
+
+        if (distinctTesters.isEmpty()) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(
@@ -300,12 +307,19 @@ private fun TestersListSection(app: UserApp, logs: List<DailyTestLog>) {
                     ) {
                         Icon(Icons.Default.GroupOff, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(36.dp))
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(L.t("لا يوجد مختبرون منضمون حالياً (0 من 20)", "No testers enrolled yet (0 of 20)"), fontWeight = FontWeight.Bold)
+                        Text(
+                            if (app.currentTesters == 0) {
+                                L.t("لا يوجد مختبرون منضمون حالياً (0 من 20)", "No testers enrolled yet (0 of 20)")
+                            } else {
+                                L.t("لا توجد جلسات مختبرين مسجلة داخل المنصة بعد", "No in-app tester check-in logs recorded yet")
+                            },
+                            fontWeight = FontWeight.Bold
+                        )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             L.t(
-                                "يمكنك تحديث عدد المختبرين الحقيقيين من خلال زر التعديل على بطاقة التطبيق.",
-                                "You can update the real tester count via the Edit button on your app card."
+                                "تظهر هنا حسابات المختبرين الذين يسجلون جلسات اختبار حقيقية لتطبيقك عبر المنصة.",
+                                "Testers who log real interactive test sessions for your app in PlayTester Hub appear here."
                             ),
                             fontSize = 12.sp,
                             color = Color.Gray
@@ -314,7 +328,7 @@ private fun TestersListSection(app: UserApp, logs: List<DailyTestLog>) {
                 }
             }
         } else {
-            items(displayTesters) { tester ->
+            items(distinctTesters) { tester ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -338,7 +352,7 @@ private fun TestersListSection(app: UserApp, logs: List<DailyTestLog>) {
                                 if (app.completedDays >= 14) {
                                     L.t("مكتمل 14/14 يوم", "Completed 14/14 Days")
                                 } else {
-                                    L.t("نشط (يوم ${app.completedDays}/14)", "Active (Day ${app.completedDays}/14)")
+                                    L.t("نشط (يوم ${tester.dayNumber}/14)", "Active (Day ${tester.dayNumber}/14)")
                                 },
                                 color = if (app.completedDays >= 14) Color(0xFF00796B) else Color(0xFF1565C0),
                                 fontWeight = FontWeight.Bold,

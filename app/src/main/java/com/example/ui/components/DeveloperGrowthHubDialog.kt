@@ -1,9 +1,13 @@
 package com.example.ui.components
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -13,19 +17,40 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.data.model.AuthUser
+import com.example.data.model.CommunityApp
+import com.example.data.model.LeaderboardUser
 import com.example.ui.util.L
+import com.example.ui.viewmodel.TesterViewModel
 
 @Composable
 fun DeveloperGrowthHubDialog(
+    viewModel: TesterViewModel,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    var selectedTab by remember { mutableStateOf(0) }
+    val currentUser by viewModel.currentUser.collectAsState()
+    val communityApps by viewModel.communityApps.collectAsState()
+    val leaderboard = remember(communityApps, currentUser) {
+        viewModel.getWeeklyLeaderboard(currentUser).take(10)
+    }
+
+    val myCode = currentUser.referralCode.ifBlank { "PTH-HUB" }
+    val inviteLink = "https://playtesterhub.app/invite/$myCode"
+
+    val peerApps = remember(communityApps, currentUser.email) {
+        communityApps.filter {
+            it.developerEmail.isBlank() || !it.developerEmail.equals(currentUser.email, ignoreCase = true)
+        }
+    }
+
+    var selectedTab by remember { mutableIntStateOf(0) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -39,37 +64,50 @@ fun DeveloperGrowthHubDialog(
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 8.dp
         ) {
-            Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = onDismiss) {
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.testTag("close_growth_hub_button")
+                    ) {
                         Icon(Icons.Default.Close, contentDescription = L.t("إغلاق", "Close"))
                     }
                     Text(
                         L.t("🚀 مركز جذب المطورين وشبكة التبادل", "🚀 Developer Growth & Referral Hub"),
                         fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleLarge
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f)
                     )
-                    IconButton(onClick = {
-                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(
-                                Intent.EXTRA_SUBJECT,
-                                L.t("انضم لشبكة مطوري منصة مختبري التطبيقات", "Join the PlayTester Hub Developer Network")
-                            )
-                            putExtra(
-                                Intent.EXTRA_TEXT,
-                                L.t(
-                                    "انضم لمنصة مختبري التطبيقات واكسب 100 نقطة مجانية لاختبار تطبيقك عبر رابط الدعوة الخاص بي: https://playtesterhub.app/invite/dev_guest_01",
-                                    "Join PlayTester Hub and earn 100 free coins to test your app via my invite link: https://playtesterhub.app/invite/dev_guest_01"
+                    IconButton(
+                        onClick = {
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(
+                                    Intent.EXTRA_SUBJECT,
+                                    L.t("انضم لشبكة مطوري منصة مختبري التطبيقات", "Join the PlayTester Hub Developer Network")
                                 )
+                                putExtra(
+                                    Intent.EXTRA_TEXT,
+                                    L.t(
+                                        "انضم لمنصة مختبري التطبيقات واستخدم رمز الدعوة $myCode لكسب +50 عملة مجانية واختبار تطبيقك: $inviteLink",
+                                        "Join PlayTester Hub with referral code $myCode to earn +50 bonus coins and test your app: $inviteLink"
+                                    )
+                                )
+                            }
+                            context.startActivity(
+                                Intent.createChooser(shareIntent, L.t("مشاركة دعوة المطورين", "Share Developer Invite"))
                             )
-                        }
-                        context.startActivity(Intent.createChooser(shareIntent, L.t("مشاركة دعوة المطورين", "Share Developer Invite")))
-                    }) {
+                        },
+                        modifier = Modifier.testTag("share_referral_button")
+                    ) {
                         Icon(Icons.Default.Share, contentDescription = L.t("دعوة مطورين", "Invite Developers"))
                     }
                 }
@@ -80,36 +118,67 @@ fun DeveloperGrowthHubDialog(
                     Tab(
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
-                        text = { Text(L.t("دعوة المطورين", "Invite Devs")) }
+                        modifier = Modifier.testTag("growth_tab_referrals"),
+                        text = { Text(L.t("دعوة المطورين", "Invite Devs"), fontSize = 12.sp) }
                     )
                     Tab(
                         selected = selectedTab == 1,
                         onClick = { selectedTab = 1 },
-                        text = { Text(L.t("عقود التبادل المباشرة", "1v1 Alliances")) }
+                        modifier = Modifier.testTag("growth_tab_alliances"),
+                        text = { Text(L.t("التبادل المباشر", "1v1 Swap"), fontSize = 12.sp) }
                     )
                     Tab(
                         selected = selectedTab == 2,
                         onClick = { selectedTab = 2 },
-                        text = { Text(L.t("مجتمع المطورين", "Dev Guild")) }
+                        modifier = Modifier.testTag("growth_tab_leaderboard"),
+                        text = { Text(L.t("مجتمع المطورين", "Dev Guild"), fontSize = 12.sp) }
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                when (selectedTab) {
-                    0 -> ReferralSection(context)
-                    1 -> MutualTestingSection(context)
-                    2 -> CommunityGuildSection()
+                Box(modifier = Modifier.weight(1f)) {
+                    when (selectedTab) {
+                        0 -> ReferralSection(
+                            context = context,
+                            user = currentUser,
+                            myCode = myCode,
+                            inviteLink = inviteLink,
+                            onRedeemReferral = { codeInput, onFeedback ->
+                                viewModel.redeemReferralCode(codeInput, onFeedback)
+                            }
+                        )
+                        1 -> MutualTestingSection(
+                            peerApps = peerApps,
+                            onRequestSwap = { app ->
+                                val devEmail = app.developerEmail.ifBlank {
+                                    "${app.developerName.lowercase().replace(" ", "").replace("[^a-zA-Z0-9]".toRegex(), "")}@developer.com"
+                                }
+                                onDismiss()
+                                viewModel.openDeveloperChat(devEmail, app.developerName, app.name)
+                            }
+                        )
+                        2 -> CommunityGuildSection(
+                            leaderboard = leaderboard,
+                            onSelectDeveloper = { entry ->
+                                onDismiss()
+                                viewModel.openTesterProfile(entry.email, entry.name)
+                            }
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 Button(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .testTag("growth_hub_done_button"),
                     onClick = onDismiss,
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text(L.t("تم والعودة للرئيسية", "Done & Back Home"))
+                    Text(L.t("تم والعودة للرئيسية", "Done & Back Home"), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -117,8 +186,27 @@ fun DeveloperGrowthHubDialog(
 }
 
 @Composable
-private fun ReferralSection(context: android.content.Context) {
-    LazyColumn(modifier = Modifier.fillMaxHeight(0.75f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+private fun ReferralSection(
+    context: Context,
+    user: AuthUser,
+    myCode: String,
+    inviteLink: String,
+    onRedeemReferral: (String, (Boolean, String) -> Unit) -> Unit
+) {
+    var inputCode by remember { mutableStateOf("") }
+    var redeemStatus by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
+    var isRedeeming by remember { mutableStateOf(false) }
+
+    val ambassadorRank = when {
+        user.invitedDevsCount >= 10 -> L.t("المستوى 3", "Level 3")
+        user.invitedDevsCount >= 3 -> L.t("المستوى 2", "Level 2")
+        else -> L.t("المستوى 1", "Level 1")
+    }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -134,10 +222,10 @@ private fun ReferralSection(context: android.content.Context) {
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         L.t(
-                            "لكل مطور جديد يسجل عبر رابطك ويضيف تطبيقه للاختبار، تحصل فوراً على +100 نقطة مجانية كافية لجلب مختبرين لتطبيقك!",
-                            "For every developer who joins via your link and adds an app, you instantly earn +100 free coins!"
+                            "لكل مطور جديد يسجل برمز دعوتك يحصل على +50 عملة ترحيبية وتكسب أنت فوراً +100 عملة مجانية!",
+                            "When a new developer redeems your referral code, they receive +50 welcome coins and you instantly earn +100 free coins!"
                         ),
-                        color = Color.White.copy(alpha = 0.9f),
+                        color = Color.White.copy(alpha = 0.92f),
                         fontSize = 13.sp
                     )
                 }
@@ -146,27 +234,41 @@ private fun ReferralSection(context: android.content.Context) {
 
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Text(L.t("رابط الدعوة المخصص لك:", "Your Custom Invite Link:"), fontWeight = FontWeight.SemiBold)
-                    Spacer(modifier = Modifier.height(6.dp))
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(L.t("رمز الدعوة الخاص بك:", "Your Personal Referral Code:"), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            myCode,
+                            modifier = Modifier.padding(12.dp),
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            "https://playtesterhub.app/invite/dev_guest_01",
-                            modifier = Modifier.padding(12.dp),
+                            inviteLink,
+                            modifier = Modifier.padding(10.dp),
                             fontWeight = FontWeight.Medium,
-                            fontSize = 13.sp
+                            fontSize = 12.sp
                         )
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
                     Button(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("copy_referral_link_button"),
                         onClick = {
-                            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                            val clip = android.content.ClipData.newPlainText(L.t("رابط الدعوة", "Invite Link"), "https://playtesterhub.app/invite/dev_guest_01")
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            val clip = ClipData.newPlainText(L.t("رابط الدعوة", "Invite Link"), inviteLink)
                             clipboard.setPrimaryClip(clip)
                             Toast.makeText(context, L.t("تم نسخ رابط الدعوة للحافظة بنجاح!", "Invite link copied to clipboard!"), Toast.LENGTH_SHORT).show()
                         }
@@ -179,18 +281,92 @@ private fun ReferralSection(context: android.content.Context) {
             }
         }
 
+        if (user.referredBy.isBlank()) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            L.t("هل لديك رمز دعوة من مطور آخر؟", "Have a referral code from another developer?"),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                        OutlinedTextField(
+                            value = inputCode,
+                            onValueChange = {
+                                inputCode = it.uppercase()
+                                redeemStatus = null
+                            },
+                            label = { Text(L.t("رمز الدعوة (مثال: PTH-AB12CD)", "Referral Code (e.g. PTH-AB12CD)")) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("redeem_referral_input")
+                        )
+                        if (redeemStatus != null) {
+                            Text(
+                                redeemStatus!!.second,
+                                fontSize = 12.sp,
+                                color = if (redeemStatus!!.first) Color(0xFF00875A) else MaterialTheme.colorScheme.error
+                            )
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                if (inputCode.isBlank()) {
+                                    redeemStatus = false to L.t("أدخل رمز الدعوة أولاً", "Please enter a referral code")
+                                    return@OutlinedButton
+                                }
+                                isRedeeming = true
+                                onRedeemReferral(inputCode.trim()) { ok, msg ->
+                                    isRedeeming = false
+                                    redeemStatus = ok to msg
+                                    if (ok) inputCode = ""
+                                }
+                            },
+                            enabled = !isRedeeming,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .testTag("redeem_referral_button"),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text(
+                                if (isRedeeming) L.t("جارٍ التحقق...", "Redeeming...") else L.t("تفعيل رمز الدعوة (+50 عملة)", "Redeem Referral Code (+50 Coins)"),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        } else {
+            item {
+                Surface(
+                    color = Color(0xFFE8F5E9),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        L.t("تم ربط حسابك بدعوة من: ${user.referredBy} ✓", "Referred by: ${user.referredBy} ✓"),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1B5E20),
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            }
+        }
+
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    Text(L.t("إحصائيات إحالاتك:", "Your Referral Stats:"), fontWeight = FontWeight.Bold)
+                    Text(L.t("إحصائيات إحالاتك الفعلية:", "Your Live Referral Stats:"), fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceAround
                     ) {
-                        StatBox("5", L.t("مطورين مدعوين", "Invited Devs"))
-                        StatBox("+500", L.t("نقاط مكتسبة", "Coins Earned"))
-                        StatBox(L.t("المستوى 2", "Level 2"), L.t("رتبة السفير", "Ambassador"))
+                        StatBox("${user.invitedDevsCount}", L.t("مطورين مدعوين", "Invited Devs"))
+                        StatBox("+${user.invitedDevsCount * 100}", L.t("عملات مكتسبة", "Coins Earned"))
+                        StatBox(ambassadorRank, L.t("رتبة السفير", "Ambassador"))
                     }
                 }
             }
@@ -199,8 +375,14 @@ private fun ReferralSection(context: android.content.Context) {
 }
 
 @Composable
-private fun MutualTestingSection(context: android.content.Context) {
-    LazyColumn(modifier = Modifier.fillMaxHeight(0.75f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+private fun MutualTestingSection(
+    peerApps: List<CommunityApp>,
+    onRequestSwap: (CommunityApp) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -208,49 +390,74 @@ private fun MutualTestingSection(context: android.content.Context) {
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text(
-                        L.t("🤝 عقود التبادل المتبادل المضمونة", "🤝 Guaranteed 1-on-1 Mutual Alliances"),
+                        L.t("🤝 التبادل المباشر 1 ضد 1 مع المطورين", "🤝 Direct 1-on-1 Developer Swap"),
                         color = Color.White,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         L.t(
-                            "اتفاقية ملزمة بينك وبين مطور آخر: يختبر تطبيقك لمدة 14 يوماً وتختبر تطبيقه بالتوازي مع نظام إشعار بالالتزام اليومي.",
-                            "Mutual commitment with another developer: they test your app for 14 days while you test theirs with daily reminders."
+                            "تواصل مباشرة مع مطورين حقيقيين مسجلين على المنصة للاتفاق على اختبار متبادل لمدة 14 يوماً.",
+                            "Connect directly with registered peer developers to agree on mutual 14-day closed testing."
                         ),
-                        color = Color.White.copy(alpha = 0.9f),
+                        color = Color.White.copy(alpha = 0.92f),
                         fontSize = 12.sp
                     )
                 }
             }
         }
 
-        val alliances = listOf(
-            Triple(L.t("مطور تطبيق اللياقة البدنية", "GymMaster App Dev"), L.t("تطبيق اللياقة وبناء الأجسام", "Fitness & Workout Tracker"), L.t("متوفر للمبادلة الفورية", "Available for instant swap")),
-            Triple(L.t("مطور تطبيق دفتر الوصفات", "ChefNotes App Dev"), L.t("مكتبة وصفات الطهي والمطاعم", "Cooking Recipes Library"), L.t("يبحث عن 5 مطورين للتبادل", "Looking for 5 testers")),
-            Triple(L.t("مطور تطبيق الكتب الصوتية", "AudioBooker App Dev"), L.t("مشغل الكتب الصوتية والبودكاست", "Audiobooks & Podcast Player"), L.t("تبادل متبادل نشط", "Active mutual exchange"))
-        )
-
-        items(alliances.size) { index ->
-            val item = alliances[index]
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(item.first, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        Text(item.second, fontSize = 12.sp, color = Color.Gray)
-                        Text(item.third, fontSize = 11.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
-                    }
-                    Button(
-                        onClick = {
-                            Toast.makeText(context, L.t("تم إرسال طلب عقد التبادل للمطور بنجاح!", "Alliance swap request sent!"), Toast.LENGTH_SHORT).show()
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+        if (peerApps.isEmpty()) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(L.t("عقد تبادل", "Request Swap"))
+                        Icon(Icons.Default.Groups, contentDescription = null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(40.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            L.t("لا توجد تطبيقات زملاء متاحة للتبادل حالياً", "No peer developer apps available for swap right now"),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            }
+        } else {
+            items(peerApps, key = { it.id }) { app ->
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(app.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(
+                                L.translateKnown(app.developerName),
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                L.t("${app.currentTesters}/${app.targetTesters} مختبراً • +${app.pointsReward} عملة", "${app.currentTesters}/${app.targetTesters} testers • +${app.pointsReward} coins"),
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = { onRequestSwap(app) },
+                            modifier = Modifier.height(48.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Text(L.t("بدء محادثة تبادل", "Request Swap"), fontSize = 12.sp)
+                        }
                     }
                 }
             }
@@ -259,41 +466,74 @@ private fun MutualTestingSection(context: android.content.Context) {
 }
 
 @Composable
-private fun CommunityGuildSection() {
-    LazyColumn(modifier = Modifier.fillMaxHeight(0.75f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+private fun CommunityGuildSection(
+    leaderboard: List<LeaderboardUser>,
+    onSelectDeveloper: (LeaderboardUser) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    Text(L.t("🏆 لوحة شرف المطورين الأكثر تفاعلاً:", "🏆 Top Active Developers Honor Board:"), fontWeight = FontWeight.Bold)
+                    Text(
+                        L.t("🏆 المطورون النشطون على المنصة:", "🏆 Active Developers on PlayTester Hub:"),
+                        fontWeight = FontWeight.Bold
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
-                    DeveloperRow(L.t("1. م. أحمد خليل", "1. Eng. Ahmed Khalil"), L.t("32 تطبيقاً تم اعتماده", "32 Approved Apps"), L.t("1,850 نقطة", "1,850 pts"))
-                    DeveloperRow(L.t("2. ستوديو السحاب للبرمجيات", "2. Cloud Soft Studio"), L.t("28 تطبيقاً تم اعتماده", "28 Approved Apps"), L.t("1,600 نقطة", "1,600 pts"))
-                    DeveloperRow(L.t("3. د. عمر الشامي", "3. Dr. Omar Al-Shami"), L.t("21 تطبيقاً تم اعتماده", "21 Approved Apps"), L.t("1,240 نقطة", "1,240 pts"))
+                    if (leaderboard.isEmpty()) {
+                        Text(
+                            L.t("لا توجد بيانات مطورين مسجلة بعد.", "No registered developer stats yet."),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        leaderboard.forEach { dev ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        "${dev.rank}. ${dev.name}",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 13.sp
+                                    )
+                                    Text(
+                                        "${dev.badgeTitle} • ${L.t("${dev.testsCompleted} اختبار/تطبيق", "${dev.testsCompleted} tests/apps")}",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        L.t("${dev.points} عملة", "${dev.points} pts"),
+                                        color = Color(0xFF00875A),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp
+                                    )
+                                    TextButton(onClick = { onSelectDeveloper(dev) }) {
+                                        Text(L.t("عرض", "View"), fontSize = 11.sp)
+                                    }
+                                }
+                            }
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+                        }
+                    }
                 }
             }
         }
     }
-}
-
-@Composable
-private fun DeveloperRow(name: String, apps: String, points: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column {
-            Text(name, fontWeight = FontWeight.Medium)
-            Text(apps, fontSize = 11.sp, color = Color.Gray)
-        }
-        Text(points, color = Color(0xFF00875A), fontWeight = FontWeight.Bold)
-    }
-    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 }
 
 @Composable
 private fun StatBox(value: String, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
-        Text(label, fontSize = 11.sp, color = Color.Gray)
+        Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

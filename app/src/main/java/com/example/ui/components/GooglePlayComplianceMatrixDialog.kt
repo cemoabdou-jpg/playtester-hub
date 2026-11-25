@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -45,19 +46,42 @@ fun GooglePlayComplianceMatrixDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    val days = remember(app, L.currentLanguage) { viewModel.getComplianceDays(app) }
+    val logs by remember(app.packageName) {
+        viewModel.getDailyTestLogs(app.packageName)
+    }.collectAsState(initial = emptyList())
+    val crashes by remember(app.packageName) {
+        viewModel.getCrashReports(app.packageName)
+    }.collectAsState(initial = emptyList())
+    val reviews by remember(app.packageName) {
+        viewModel.getFeedback(app.packageName)
+    }.collectAsState(initial = emptyList())
+
+    val days = remember(app, logs, L.currentLanguage) { viewModel.getComplianceDays(app, logs) }
     val questionnaireAnswers = remember(app, L.currentLanguage) { viewModel.getQuestionnaireAnswers(app) }
 
     var selectedTab by remember { mutableStateOf(0) } // 0: Heatmap & Radar, 1: Google Play Answers, 2: Verification Checklist
     var selectedDayDetail by remember(days) { mutableStateOf<ComplianceDay?>(days.find { it.isToday } ?: days.firstOrNull()) }
 
-    // Calculate dynamic readiness score
-    val completedDaysCount = app.completedDays.coerceIn(1, 14)
+    // Calculate dynamic readiness score from real telemetry & Play Console progress
+    val completedDaysCount = app.completedDays.coerceIn(0, 14)
     val testersCount = app.currentTesters.coerceAtLeast(0)
+    val openCrashesCount = remember(crashes) { crashes.count { it.status != "RESOLVED" } }
     val daysScore = (completedDaysCount / 14f * 40f).coerceIn(0f, 40f)
     val testersScore = (testersCount.toFloat() / 20f * 40f).coerceIn(0f, 40f)
-    val qualityScore = 20f // Base telemetry quality
+    val qualityScore = if (openCrashesCount == 0) 20f else maxOf(0f, 20f - openCrashesCount * 5f)
     val totalScore = (daysScore + testersScore + qualityScore).toInt().coerceIn(0, 100)
+
+    val avgSessionLabel = remember(logs, L.currentLanguage) {
+        if (logs.isNotEmpty()) {
+            val avg = logs.map { it.sessionDurationMinutes }.average()
+            L.t("%.1f دقيقة (%d جلسات موثقة)".format(java.util.Locale.US, avg, logs.size), "%.1f min (%d verified logs)".format(java.util.Locale.US, avg, logs.size))
+        } else {
+            L.t("لا توجد جلسات مسجلة داخل المنصة بعد", "No in-app sessions recorded yet")
+        }
+    }
+    val retentionPercent = remember(testersCount) {
+        ((testersCount.toFloat() / 20f) * 100f).toInt().coerceIn(0, 100)
+    }
 
     val readinessColor = when {
         totalScore >= 90 -> Color(0xFF00875A)
@@ -66,7 +90,7 @@ fun GooglePlayComplianceMatrixDialog(
     }
 
     val readinessStatusText = when {
-        totalScore >= 95 -> L.t("جاهز لطلب الوصول إلى الإنتاج 🚀", "Ready to apply for Production Access 🚀")
+        totalScore >= 95 && openCrashesCount == 0 -> L.t("جاهز لطلب الوصول إلى الإنتاج 🚀", "Ready to apply for Production Access 🚀")
         totalScore >= 75 -> L.t("متقدم جداً - متبقي أيام معدودة لاستيفاء كافة الشروط ⏳", "Almost there - a few days left for full compliance ⏳")
         else -> L.t("قيد التجميع - بحاجة لمزيد من المختبرين واستكمال الـ 14 يوماً 🛡️", "In progress - needs more testers & completion of 14 days 🛡️")
     }
@@ -128,7 +152,10 @@ fun GooglePlayComplianceMatrixDialog(
                         }
                     }
 
-                    IconButton(onClick = onDismiss) {
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.testTag("close_compliance_matrix_button")
+                    ) {
                         Icon(Icons.Default.Close, contentDescription = L.t("إغلاق", "Close"))
                     }
                 }
@@ -213,16 +240,19 @@ fun GooglePlayComplianceMatrixDialog(
                     Tab(
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
+                        modifier = Modifier.testTag("compliance_tab_heatmap"),
                         text = { Text(L.t("خريطة الـ 14 يوماً", "14-Day Heatmap"), fontSize = 11.sp, fontWeight = FontWeight.Bold) }
                     )
                     Tab(
                         selected = selectedTab == 1,
                         onClick = { selectedTab = 1 },
+                        modifier = Modifier.testTag("compliance_tab_questionnaire"),
                         text = { Text(L.t("إجابات استبيان جوجل", "Play Questionnaire"), fontSize = 11.sp, fontWeight = FontWeight.Bold) }
                     )
                     Tab(
                         selected = selectedTab == 2,
                         onClick = { selectedTab = 2 },
+                        modifier = Modifier.testTag("compliance_tab_checklist"),
                         text = { Text(L.t("قائمة التحقق الرسمية", "Official Checklist"), fontSize = 11.sp, fontWeight = FontWeight.Bold) }
                     )
                 }
@@ -238,16 +268,16 @@ fun GooglePlayComplianceMatrixDialog(
                         onExportCertificate = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             val summary = buildString {
-                                appendLine(L.t("📋 شهادة وفحص امتثال جوجل بلاي - منصة مختبري التطبيقات", "📋 Google Play Compliance Certificate - PlayTester Hub"))
+                                appendLine(L.t("📋 ملخص امتثال جوجل بلاي - منصة مختبري التطبيقات", "📋 Google Play Compliance Summary - PlayTester Hub"))
                                 appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
                                 appendLine(L.t("• اسم التطبيق: ${app.name}", "• App Name: ${app.name}"))
                                 appendLine(L.t("• الحزمة: ${app.packageName}", "• Package: ${app.packageName}"))
-                                appendLine(L.t("• عدد المختبرين الفعليين: ${app.currentTesters}/20", "• Actual Testers: ${app.currentTesters}/20"))
-                                appendLine(L.t("• الأيام المكتملة: ${app.completedDays}/14 يوماً متواصلة", "• Completed Days: ${app.completedDays}/14 consecutive days"))
-                                appendLine(L.t("• معدل الاستبقاء: 98.4%", "• Retention Rate: 98.4%"))
-                                appendLine(L.t("• متوسط زمن الجلسات: 14.8 دقيقة", "• Avg. Session Duration: 14.8 min"))
-                                appendLine(L.t("• حالة الأعطال: صفر أعطال حرجة", "• Crash Status: Zero critical crashes"))
-                                appendLine(L.t("• التقييم الإجمالي: $totalScore% (جاهز لتقديم طلب الإنتاج)", "• Overall Score: $totalScore% (Ready for Production Access)"))
+                                appendLine(L.t("• المختبرون (لوحة المطور): ${app.currentTesters}/20", "• Testers (Play Console): ${app.currentTesters}/20"))
+                                appendLine(L.t("• الأيام المكتملة: ${app.completedDays}/14 يوماً", "• Completed Days: ${app.completedDays}/14 days"))
+                                appendLine(L.t("• نسبة تغطية الهدف: $retentionPercent%", "• Target Cohort Coverage: $retentionPercent%"))
+                                appendLine(L.t("• متوسط زمن الجلسات المسجلة: $avgSessionLabel", "• Recorded Avg. Session: $avgSessionLabel"))
+                                appendLine(L.t("• الأعطال المفتوحة: $openCrashesCount", "• Open Crash Reports: $openCrashesCount"))
+                                appendLine(L.t("• التقييم الإجمالي للجاهزية: $totalScore%", "• Overall Readiness Score: $totalScore%"))
                             }
                             clipboard.setPrimaryClip(ClipData.newPlainText(L.t("شهادة الامتثال", "Compliance Certificate"), summary))
                             Toast.makeText(context, L.t("✅ تم نسخ ملخص الامتثال الرسمي إلى الحافظة!", "✅ Official compliance summary copied!"), Toast.LENGTH_SHORT).show()
@@ -263,7 +293,10 @@ fun GooglePlayComplianceMatrixDialog(
                     )
                     2 -> VerificationChecklistContent(
                         completedDays = completedDaysCount,
-                        testersCount = testersCount
+                        testersCount = testersCount,
+                        logsCount = logs.size,
+                        openCrashesCount = openCrashesCount,
+                        reviewsCount = reviews.size
                     )
                 }
             }
@@ -622,7 +655,10 @@ private fun QuestionnaireAnswersContent(
 @Composable
 private fun VerificationChecklistContent(
     completedDays: Int,
-    testersCount: Int
+    testersCount: Int,
+    logsCount: Int,
+    openCrashesCount: Int,
+    reviewsCount: Int
 ) {
     val items = listOf(
         Triple(
@@ -636,24 +672,30 @@ private fun VerificationChecklistContent(
             L.t("الحالي: $completedDays/14 يوماً", "Current: $completedDays/14 days")
         ),
         Triple(
-            L.t("سجلات تفاعل يومية دون انقطاع", "Uninterrupted daily engagement logs"),
-            completedDays >= 1,
-            L.t("موثقة في خادم المنصة", "Verified on PlayTester Hub server")
+            L.t("سجلات تفاعل يومية موثقة في المنصة", "Verified daily engagement logs recorded"),
+            logsCount > 0,
+            if (logsCount > 0) L.t("$logsCount جلسة اختبار مسجلة في السيرفر", "$logsCount verified session(s) recorded")
+            else L.t("لم تُسجل جلسات اختبار عبر المنصة بعد", "No in-app sessions recorded yet")
         ),
         Triple(
             L.t("حل كافة تقارير الأعطال والانهيارات", "All crash reports resolved"),
-            true,
-            L.t("تم فحص الاستقرار الكامل", "Full stability verified")
+            openCrashesCount == 0,
+            if (openCrashesCount == 0) L.t("لا توجد أعطال مفتوحة حالياً", "0 open crash reports")
+            else L.t("يوجد $openCrashesCount تقارير أعطال مفتوحة", "$openCrashesCount open crash report(s) pending")
         ),
         Triple(
-            L.t("ملاحظات تقييم جودة تجربة المستخدم", "UX quality feedback collected"),
-            true,
-            L.t("أكثر من 5 مراجعات مكتوبة", "5+ written tester reviews")
+            L.t("ملاحظات وتقييمات جودة تجربة المستخدم", "UX quality feedback collected"),
+            reviewsCount > 0,
+            if (reviewsCount > 0) L.t("$reviewsCount مراجعة مكتوبة مسجلة", "$reviewsCount written tester review(s)")
+            else L.t("بانتظار إرسال مراجعات من المختبرين", "Waiting for tester reviews")
         ),
         Triple(
-            L.t("إعداد حزمة الإصدار والنسخة النهائية", "Final release bundle prepared"),
-            true,
-            L.t("جاهزة للرفع على لوحة المطور", "Ready for Play Console upload")
+            L.t("استعداد حزمة الإصدار للرفع على جوجل بلاي", "Final release readiness for Play Console"),
+            testersCount >= 20 && completedDays >= 14 && openCrashesCount == 0,
+            if (testersCount >= 20 && completedDays >= 14 && openCrashesCount == 0)
+                L.t("الشروط مكتملة وجاهزة للتقديم", "Requirements met and ready to apply")
+            else
+                L.t("استكمل العناصر السابقة قبل طلب الإنتاج", "Complete remaining items before applying")
         )
     )
 

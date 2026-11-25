@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -57,6 +58,8 @@ fun CommunityScreen(
     var selectedCategory by remember { mutableStateOf("ALL") }
     var searchQuery by remember { mutableStateOf("") }
     var sortOption by remember { mutableStateOf("FAIR_PLAY") } // FAIR_PLAY, NEED, REWARD
+    var hideJoined by remember { mutableStateOf(false) }
+    var onlyNeedsTesters by remember { mutableStateOf(false) }
     var appToJoinReal by remember { mutableStateOf<CommunityApp?>(null) }
 
     val categories = listOf("ALL", "MOST_NEEDED", "TOOLS", "GAMES", "PRODUCTIVITY", "EDUCATION", "SOCIAL")
@@ -65,8 +68,11 @@ fun CommunityScreen(
         communityApps.filter { it.isFeatured }
     }
 
-    val regularApps = remember(communityApps, selectedCategory, searchQuery, sortOption) {
+    val regularApps = remember(communityApps, joinedTests, selectedCategory, searchQuery, sortOption, hideJoined, onlyNeedsTesters) {
         communityApps.filter { app ->
+            val isAlreadyJoined = joinedTests.any { it.packageName == app.packageName }
+            val matchesJoinedFilter = !hideJoined || !isAlreadyJoined
+            val matchesNeedFilter = !onlyNeedsTesters || app.currentTesters < 20
             val matchesCategory = when (selectedCategory) {
                 "ALL" -> true
                 "MOST_NEEDED" -> app.currentTesters < 20
@@ -76,7 +82,7 @@ fun CommunityScreen(
                     app.name.contains(searchQuery, ignoreCase = true) ||
                     app.packageName.contains(searchQuery, ignoreCase = true) ||
                     app.developerName.contains(searchQuery, ignoreCase = true)
-            matchesCategory && matchesSearch
+            matchesJoinedFilter && matchesNeedFilter && matchesCategory && matchesSearch
         }.sortedWith(
             when (sortOption) {
                 "NEED" -> compareBy<CommunityApp> { it.currentTesters }
@@ -415,7 +421,9 @@ fun CommunityScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("community_search_input"),
                 placeholder = { Text(L.t("ابحث باسم التطبيق، المطور، أو الحزمة...", "Search by app, developer, or package..."), fontSize = 12.sp) },
                 leadingIcon = {
                     Icon(
@@ -477,35 +485,66 @@ fun CommunityScreen(
             }
         }
 
-        // 3.5 Sort Mode Selector
+        // 3.5 Sort Mode & Quick Filters Selector
         item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(L.t("ترتيب:", "Sort:"), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                listOf(
-                    "FAIR_PLAY" to L.t("التبادل العادل ⚖️", "Fair-Play Exchange ⚖️"),
-                    "NEED" to L.t("الأقرب لاكتمال الـ 20 🎯", "Closest to 20 🎯"),
-                    "REWARD" to L.t("الأعلى عملات 🪙", "Highest Coins 🪙")
-                ).forEach { (opt, label) ->
-                    val isSelected = sortOption == opt
-                    Surface(
-                        onClick = { sortOption = opt },
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    ) {
-                        Text(
-                            label,
-                            fontSize = 10.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(L.t("ترتيب:", "Sort:"), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    listOf(
+                        "FAIR_PLAY" to L.t("المميزون والأقرب للاكتمال", "Featured & Closest to 20"),
+                        "NEED" to L.t("الأكثر حاجة 🎯", "Most Needed 🎯"),
+                        "REWARD" to L.t("الأعلى عملات 🪙", "Highest Coins 🪙")
+                    ).forEach { (opt, label) ->
+                        val isSelected = sortOption == opt
+                        Surface(
+                            onClick = { sortOption = opt },
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ) {
+                            Text(
+                                label,
+                                fontSize = 10.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                            )
+                        }
                     }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    FilterChip(
+                        selected = hideJoined,
+                        onClick = { hideJoined = !hideJoined },
+                        label = { Text(L.t("إخفاء المنضم لها", "Hide Joined"), fontSize = 11.sp) },
+                        leadingIcon = if (hideJoined) {
+                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                        } else null,
+                        modifier = Modifier.testTag("community_filter_hide_joined"),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    FilterChip(
+                        selected = onlyNeedsTesters,
+                        onClick = { onlyNeedsTesters = !onlyNeedsTesters },
+                        label = { Text(L.t("تحتاج مختبرين (<20)", "Needs <20"), fontSize = 11.sp) },
+                        leadingIcon = if (onlyNeedsTesters) {
+                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                        } else null,
+                        modifier = Modifier.testTag("community_filter_needs_testers"),
+                        shape = RoundedCornerShape(10.dp)
+                    )
                 }
             }
         }
@@ -557,14 +596,7 @@ fun CommunityScreen(
                                 isJoined = isJoined,
                                 onJoin = {
                                     if (isJoined) {
-                                        Toast.makeText(
-                                            context,
-                                            L.t(
-                                                "أنت منضم بالفعل لاختبار ${app.name}! توجه إلى تبويب 'اختباراتي' لتسجيل فحصك اليومي.",
-                                                "You already joined ${app.name}! Head to 'My Tests' to log your daily check."
-                                            ),
-                                            Toast.LENGTH_SHORT
-                                        ).show()
+                                        viewModel.navigateToTab(1)
                                     } else {
                                         appToJoinReal = app
                                     }
@@ -685,14 +717,7 @@ fun CommunityScreen(
                     isJoined = isJoined,
                     onJoin = {
                         if (isJoined) {
-                            Toast.makeText(
-                                context,
-                                L.t(
-                                    "أنت منضم بالفعل لاختبار ${app.name}! توجه إلى تبويب 'اختباراتي' لتسجيل فحصك اليومي.",
-                                    "You already joined ${app.name}! Head to 'My Tests' to log your daily check."
-                                ),
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            viewModel.navigateToTab(1)
                         } else {
                             appToJoinReal = app
                         }
@@ -965,24 +990,12 @@ private fun CleanCommunityAppCard(
                                 modifier = Modifier.size(13.dp)
                             )
                         }
-                        // Fair-Play & Installation Status Micro-row
+                        // Installation & Google Group Status Micro-row
                         Row(
                             modifier = Modifier.padding(top = 2.dp),
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Surface(
-                                color = Color(0xFF00875A).copy(alpha = 0.12f),
-                                shape = RoundedCornerShape(4.dp)
-                            ) {
-                                Text(
-                                    L.t("تبادل عادل ⚖️", "Fair-Play ⚖️"),
-                                    fontSize = 9.sp,
-                                    color = Color(0xFF00875A),
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                )
-                            }
                             if (isInstalled) {
                                 Surface(
                                     color = Color(0xFFE8F5E9),
@@ -1095,9 +1108,12 @@ private fun CleanCommunityAppCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Button(
-                        modifier = Modifier.weight(1.1f),
+                        modifier = Modifier
+                            .weight(1.1f)
+                            .heightIn(min = 48.dp)
+                            .testTag("community_join_btn_${app.packageName}"),
                         onClick = onJoin,
-                        contentPadding = PaddingValues(vertical = 9.dp),
+                        contentPadding = PaddingValues(vertical = 9.dp, horizontal = 6.dp),
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (isJoined) Color(0xFF00875A) else MaterialTheme.colorScheme.primary
@@ -1110,7 +1126,7 @@ private fun CleanCommunityAppCard(
                         )
                         Spacer(modifier = Modifier.width(5.dp))
                         Text(
-                            if (isJoined) L.t("منضم بالفعل ✓", "Joined ✓") else L.t("انضم للاختبار", "Join Test"),
+                            if (isJoined) L.t("منضم ✓ — اذهب لاختباراتي", "Joined ✓ — My Tests") else L.t("انضم للاختبار", "Join Test"),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )

@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -82,6 +83,9 @@ fun MyAppsScreen(
 
                 Button(
                     onClick = { showAddAppDialog = true },
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .testTag("my_apps_add_button"),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
@@ -214,13 +218,17 @@ fun MyAppsScreen(
             }
         } else {
             items(userApps, key = { it.id }) { app ->
+                val appLogs by remember(app.packageName) {
+                    viewModel.getDailyTestLogs(app.packageName)
+                }.collectAsState(initial = emptyList())
+                val verifiedTestersCount = remember(appLogs) {
+                    appLogs.map { it.testerEmail.ifBlank { it.testerName } }.distinct().size
+                }
                 CleanUserAppCard(
                     app = app,
-                    onOpenComplianceMatrix = { viewModel.openComplianceMatrix(app) },
+                    verifiedPlatformTestersCount = verifiedTestersCount,
+                    onOpenCommandCenter = { viewModel.openAppCommandCenter(app) },
                     onOpenAudit = { viewModel.openAuditReport(app) },
-                    onOpenCrashes = { viewModel.openCrashReports(app) },
-                    onOpenHealth = { viewModel.openTesterHealth(app) },
-                    onOpenChangelog = { viewModel.openChangelog(app) },
                     onUpdateTesters = { testers, days ->
                         viewModel.updateAppTesters(app.packageName, testers, days)
                         Toast.makeText(context, L.t("تم تحديث بيانات المختبرين بنجاح", "Tester data updated successfully"), Toast.LENGTH_SHORT).show()
@@ -318,11 +326,9 @@ fun MyAppsScreen(
 @Composable
 private fun CleanUserAppCard(
     app: UserApp,
-    onOpenComplianceMatrix: () -> Unit = {},
+    verifiedPlatformTestersCount: Int = 0,
+    onOpenCommandCenter: () -> Unit = {},
     onOpenAudit: () -> Unit,
-    onOpenCrashes: () -> Unit,
-    onOpenHealth: () -> Unit,
-    onOpenChangelog: () -> Unit,
     onUpdateTesters: (Int, Int) -> Unit,
     onPromote: () -> Unit,
     onUnpromote: () -> Unit,
@@ -434,9 +440,26 @@ private fun CleanUserAppCard(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceAround
                     ) {
-                        CompactMetricItem("${app.currentTesters}/${app.targetTesters}", L.t("مختبر معتمد", "Verified Testers"), testersColor)
+                        CompactMetricItem("${app.currentTesters}/${app.targetTesters}", L.t("مختبر (جوجل بلاي)", "Play Console"), testersColor)
                         CompactMetricItem("${app.completedDays}/${app.targetDays}", L.t("يوماً مكتملة", "Days Completed"), daysColor)
                         CompactMetricItem("$compliancePercent%", L.t("نسبة الامتثال", "Compliance"), if (isCompleted) Color(0xFF00875A) else Color(0xFFE65100))
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            L.t(
+                                "الموثّق بسجلات المنصة: $verifiedPlatformTestersCount مختبر(ين) نشطين",
+                                "Platform Verified Logs: $verifiedPlatformTestersCount active tester(s)"
+                            ),
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     LinearProgressIndicator(
@@ -455,7 +478,7 @@ private fun CleanUserAppCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            L.t("الرقم الحقيقي من لوحة المطور:", "Real Play Console count:"),
+                            L.t("لوحة مطوري جوجل بلاي:", "Play Console count:"),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -547,18 +570,22 @@ private fun CleanUserAppCard(
                 }
             }
 
-            // 🌟 14-Day Google Play Compliance & Production Readiness Radar Button
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Unified App Command Center Button (Overview, Crashes, Reviews, Matrix, Testers, Changelog)
             Button(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = onOpenComplianceMatrix,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .testTag("my_app_command_center_${app.packageName}"),
+                onClick = onOpenCommandCenter,
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                contentPadding = PaddingValues(vertical = 10.dp)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Icon(Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Dashboard, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    L.t("مصفوفة الـ 14 يوماً ورادار جاهزية جوجل بلاي 🛡️", "14-Day Matrix & Google Play Readiness Radar 🛡️"),
+                    L.t("مركز الإدارة والتقارير الشامل", "App Command Center & Tools"),
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp
                 )
@@ -566,62 +593,23 @@ private fun CleanUserAppCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Primary Audit Report Button
-            Button(
-                modifier = Modifier.fillMaxWidth(),
+            // Quick Export Official Audit Report Button
+            OutlinedButton(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .testTag("my_app_audit_report_${app.packageName}"),
                 onClick = onOpenAudit,
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00875A)),
-                contentPadding = PaddingValues(vertical = 10.dp)
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Icon(Icons.Default.Assessment, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Assessment, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFF00875A))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    L.t("استخراج تقرير التدقيق الرسمي المطبوع والجدولي", "Export Official Audit Report (PDF / CSV)"),
+                    L.t("تقرير التدقيق الرسمي (PDF / CSV)", "Official Audit Report (PDF / CSV)"),
                     fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp
+                    fontSize = 13.sp,
+                    color = Color(0xFF00875A)
                 )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Secondary Quick Actions Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(
-                    modifier = Modifier.weight(1f),
-                    onClick = onOpenCrashes,
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(vertical = 6.dp)
-                ) {
-                    Icon(Icons.Default.BugReport, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFFE53935))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(L.t("الأعطال", "Crashes"), fontSize = 11.sp)
-                }
-
-                OutlinedButton(
-                    modifier = Modifier.weight(1f),
-                    onClick = onOpenHealth,
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(vertical = 6.dp)
-                ) {
-                    Icon(Icons.Default.People, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFF00875A))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(L.t("المختبرون", "Testers"), fontSize = 11.sp)
-                }
-
-                OutlinedButton(
-                    modifier = Modifier.weight(1f),
-                    onClick = onOpenChangelog,
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(vertical = 6.dp)
-                ) {
-                    Icon(Icons.Default.EditNote, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(L.t("التغييرات", "Changelog"), fontSize = 11.sp)
-                }
             }
         }
     }
@@ -784,7 +772,7 @@ private fun PromoteAppFeaturedDialog(
                         .padding(10.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text(L.t("✨ مميزات التطبيق المميز:", "✨ Spotlight Benefits:"), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFB78103))
+                    Text(L.t("🏆 مميزات التطبيق المميز:", "🏆 Spotlight Benefits:"), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFB78103))
                     Text(L.t("• تثبيت في شريط الصدارة الدائري في مقدمة المجتمع", "• Pinned in the top Community Spotlight carousel"), fontSize = 11.sp, color = Color(0xFF5D4037))
                     Text(L.t("• إشارة نجمة ذهبية تلفت انتباه جميع المطورين والمختبرين", "• Golden star badge catching every developer's eye"), fontSize = 11.sp, color = Color(0xFF5D4037))
                     Text(L.t("• جمع الـ 20 مختبراً بأضعاف السرعة لاجتياز شرط الـ 14 يوماً", "• Gather 20 testers much faster to pass the 14-day rule"), fontSize = 11.sp, color = Color(0xFF5D4037))

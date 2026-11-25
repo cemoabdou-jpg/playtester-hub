@@ -68,4 +68,10 @@ interface AppDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFeedback(feedback: List<TesterFeedback>)
+
+    @Query("DELETE FROM joined_tests")
+    suspend fun clearAllJoinedTests()
+
+    @Query("DELETE FROM user_apps")
+    suspend fun clearAllUserApps()
 }

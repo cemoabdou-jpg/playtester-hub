@@ -1,47 +1,33 @@
 package com.example.ui.screens
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.model.PLATFORM_OWNER_EMAIL
 import com.example.ui.components.DynamicEventLogo
 import com.example.ui.util.AppLanguage
 import com.example.ui.util.L
 import com.example.ui.viewmodel.TesterViewModel
-import kotlinx.coroutines.delay
 
 @Composable
 fun MandatoryAuthScreen(
@@ -49,33 +35,14 @@ fun MandatoryAuthScreen(
 ) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
-    val verificationCode by viewModel.verificationCode.collectAsState()
     val pendingEmail by viewModel.pendingEmail.collectAsState()
     val pendingName by viewModel.pendingName.collectAsState()
 
-    var nameInput by remember { mutableStateOf(pendingName.ifBlank { "" }) }
-    var emailInput by remember { mutableStateOf(pendingEmail.ifBlank { "" }) }
-    var otpInput by remember { mutableStateOf("") }
+    var nameInput by remember { mutableStateOf(pendingName) }
+    var emailInput by remember { mutableStateOf(pendingEmail) }
+    var referralInput by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var isSendingOtp by remember { mutableStateOf(false) }
-
-    // Resend timer countdown
-    var resendCountdown by remember { mutableIntStateOf(60) }
-    var canResend by remember { mutableStateOf(false) }
-
-    val isOtpStep = verificationCode.isNotBlank()
-
-    LaunchedEffect(isOtpStep, verificationCode) {
-        if (isOtpStep) {
-            resendCountdown = 60
-            canResend = false
-            while (resendCountdown > 0) {
-                delay(1000)
-                resendCountdown--
-            }
-            canResend = true
-        }
-    }
+    var isSubmitting by remember { mutableStateOf(false) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -85,16 +52,18 @@ fun MandatoryAuthScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .navigationBarsPadding()
+                .navigationBarsPadding(),
+            contentAlignment = Alignment.TopCenter
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
+                    .widthIn(max = 560.dp)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 24.dp, vertical = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Language Switcher Bar at top of Auth Screen
+                // Language Switcher Bar
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
@@ -113,13 +82,15 @@ fun MandatoryAuthScreen(
                                 selected = L.isArabic(),
                                 onClick = { L.setLanguage(AppLanguage.ARABIC) },
                                 label = { Text("العربية", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                                shape = RoundedCornerShape(16.dp)
+                                shape = RoundedCornerShape(16.dp),
+                                modifier = Modifier.testTag("auth_lang_ar")
                             )
                             FilterChip(
                                 selected = !L.isArabic(),
                                 onClick = { L.setLanguage(AppLanguage.ENGLISH) },
                                 label = { Text("English", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                                shape = RoundedCornerShape(16.dp)
+                                shape = RoundedCornerShape(16.dp),
+                                modifier = Modifier.testTag("auth_lang_en")
                             )
                         }
                     }
@@ -127,7 +98,6 @@ fun MandatoryAuthScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // App Brand & Dynamic Event Logo
                 DynamicEventLogo(
                     size = 72.dp,
                     showBadge = true
@@ -153,7 +123,7 @@ fun MandatoryAuthScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Mandatory Auth Alert Badge
+                // Cloud Sync & Account Badge
                 Surface(
                     color = Color(0xFFE8F5E9),
                     shape = RoundedCornerShape(12.dp),
@@ -164,7 +134,7 @@ fun MandatoryAuthScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            Icons.Default.Security,
+                            Icons.Default.CloudDone,
                             contentDescription = null,
                             tint = Color(0xFF2E7D32),
                             modifier = Modifier.size(18.dp)
@@ -172,8 +142,8 @@ fun MandatoryAuthScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = L.t(
-                                "تسجيل الدخول إلزامي بالبريد الإلكتروني ورمز التحقق",
-                                "Email Sign-In & OTP Verification Required"
+                                "مزامنة سحابية فورية لرصيدك وتطبيقاتك عبر الأجهزة",
+                                "Instant Cloud Sync for Your Coins & Testing Projects"
                             ),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
@@ -182,9 +152,8 @@ fun MandatoryAuthScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(22.dp))
 
-                // Step Container Card
                 ElevatedCard(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
@@ -197,378 +166,162 @@ fun MandatoryAuthScreen(
                             .padding(20.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        if (!isOtpStep) {
-                            // ----------------- STEP 1: Enter Email & Name -----------------
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Surface(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    shape = CircleShape,
-                                    modifier = Modifier.size(28.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text("1", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                    }
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        L.t("الخطوة الأولى: بيانات الحساب", "Step 1: Account Details"),
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        L.t(
-                                            "أدخل بريدك الإلكتروني وسيصلك رمز سري لتأكيد التسجيل",
-                                            "Enter your email to receive a secret verification code"
-                                        ),
-                                        fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(18.dp))
-
-                            OutlinedTextField(
-                                value = nameInput,
-                                onValueChange = {
-                                    nameInput = it
-                                    errorMessage = null
-                                },
-                                label = { Text(L.t("الاسم الكامل أو اسم المطور", "Full Name or Developer Name")) },
-                                placeholder = { Text(L.t("مثال: م. أحمد أو استوديو التطوير", "e.g., Alex Morgan or App Studio")) },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                Icons.Default.AccountCircle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(28.dp)
                             )
-
-                            Spacer(modifier = Modifier.height(14.dp))
-
-                            OutlinedTextField(
-                                value = emailInput,
-                                onValueChange = {
-                                    emailInput = it
-                                    errorMessage = null
-                                },
-                                label = { Text(L.t("البريد الإلكتروني المسجل", "Registered Email Address")) },
-                                placeholder = { Text("name@example.com") },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Email,
-                                    imeAction = ImeAction.Done
-                                ),
-                                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-
-                            if (errorMessage != null) {
-                                Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
                                 Text(
-                                    errorMessage!!,
-                                    color = MaterialTheme.colorScheme.error,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium
+                                    L.t("تسجيل الدخول السريع واستعادة الحساب", "Quick Sign-In & Account Restore"),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    L.t(
+                                        "أدخل اسمك وبريدك المرتبط باختبارات جوجل بلاي لفتح لوحتك",
+                                        "Enter your name and Google Play testing email to open your workspace"
+                                    ),
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+                        }
 
-                            Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(18.dp))
 
-                            Button(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(50.dp),
-                                onClick = {
-                                    val email = emailInput.trim()
-                                    val name = nameInput.trim()
-                                    if (email.isBlank() || !email.contains("@") || !email.contains(".")) {
-                                        errorMessage = L.t(
-                                            "يرجى كتابة بريد إلكتروني صالح",
-                                            "Please enter a valid email address (e.g., dev@gmail.com)"
-                                        )
-                                        return@Button
-                                    }
-                                    if (name.isBlank()) {
-                                        errorMessage = L.t(
-                                            "يرجى كتابة اسمك أو اسم حسابك",
-                                            "Please enter your name or account name"
-                                        )
-                                        return@Button
-                                    }
-                                    errorMessage = null
-                                    focusManager.clearFocus()
-                                    viewModel.startEmailVerification(email, name)
-                                    Toast.makeText(
-                                        context,
-                                        L.t("تم إرسال رمز التحقق إلى $email", "Verification code sent to $email"),
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                },
-                                shape = RoundedCornerShape(14.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    L.t("إرسال رمز التحقق إلى البريد", "Send Verification Code via Email"),
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        } else {
-                            // ----------------- STEP 2: Enter & Confirm OTP -----------------
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Surface(
-                                    color = Color(0xFF00875A),
-                                    shape = CircleShape,
-                                    modifier = Modifier.size(28.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text("2", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                    }
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        L.t("الخطوة الثانية: تأكيد رمز البريد", "Step 2: Email Verification (OTP)"),
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        L.t(
-                                            "أدخل الرمز السري المكون من 6 أرقام المرسل إلى بريدك",
-                                            "Enter the 6-digit secret code sent to your email"
-                                        ),
-                                        fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
+                        OutlinedTextField(
+                            value = nameInput,
+                            onValueChange = {
+                                nameInput = it
+                                errorMessage = null
+                            },
+                            label = { Text(L.t("الاسم الكامل أو اسم المطور", "Full Name or Developer Name")) },
+                            placeholder = { Text(L.t("مثال: م. أحمد أو استوديو التطوير", "e.g. Alex Morgan or App Studio")) },
+                            leadingIcon = {
+                                Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("auth_name_input"),
+                            shape = RoundedCornerShape(12.dp)
+                        )
 
-                            Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
-                            // Sent to banner
-                            Surface(
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(Icons.Default.MarkEmailRead, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Column {
-                                        Text(
-                                            L.t("تم الإرسال إلى البريد المسجل:", "Sent to registered email:"),
-                                            fontSize = 11.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        Text(pendingEmail, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                                    }
-                                }
-                            }
+                        OutlinedTextField(
+                            value = emailInput,
+                            onValueChange = {
+                                emailInput = it
+                                errorMessage = null
+                            },
+                            label = { Text(L.t("البريد الإلكتروني للمطور", "Developer Email Address")) },
+                            placeholder = { Text("developer@gmail.com") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Email,
+                                imeAction = ImeAction.Next
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("auth_email_input"),
+                            shape = RoundedCornerShape(12.dp)
+                        )
 
-                            Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
-                            // Live Simulated Email Delivery Card
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
-                                border = BorderStroke(1.dp, Color(0xFF81C784)),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.MarkEmailUnread, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(20.dp))
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Column {
-                                            Text(
-                                                L.t("رمز التحقق الخاص بك:", "Your OTP Verification Code:"),
-                                                fontSize = 11.sp,
-                                                color = Color(0xFF1B5E20)
-                                            )
-                                            Text(
-                                                verificationCode,
-                                                fontSize = 17.sp,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                color = Color(0xFF1B5E20),
-                                                letterSpacing = 2.sp
-                                            )
-                                        }
-                                    }
-                                    Button(
-                                        onClick = {
-                                            otpInput = verificationCode
-                                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                            clipboard.setPrimaryClip(ClipData.newPlainText("OTP", verificationCode))
-                                            Toast.makeText(
-                                                context,
-                                                L.t("تم تعبئة الرمز $verificationCode تلقائياً", "Code $verificationCode auto-filled"),
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        },
-                                        shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
-                                    ) {
-                                        Text(L.t("تعبئة تلقائية", "Auto Fill"), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                            }
+                        OutlinedTextField(
+                            value = referralInput,
+                            onValueChange = {
+                                referralInput = it.uppercase()
+                                errorMessage = null
+                            },
+                            label = { Text(L.t("رمز الدعوة (اختياري • +50 عملة)", "Referral Code (Optional • +50 coins)")) },
+                            placeholder = { Text("PTH-XXXXXX") },
+                            leadingIcon = {
+                                Icon(Icons.Default.CardGiftcard, contentDescription = null, tint = Color(0xFFFF8F00))
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                capitalization = KeyboardCapitalization.Characters,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("auth_referral_input"),
+                            shape = RoundedCornerShape(12.dp)
+                        )
 
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            OutlinedTextField(
-                                value = otpInput,
-                                onValueChange = {
-                                    if (it.length <= 6 && it.all { char -> char.isDigit() }) {
-                                        otpInput = it
-                                        errorMessage = null
-                                    }
-                                },
-                                label = { Text(L.t("أدخل الرمز (6 أرقام)", "Enter 6-Digit Code")) },
-                                placeholder = { Text("• • • • • •") },
-                                singleLine = true,
-                                textStyle = LocalTextStyle.current.copy(
-                                    textAlign = TextAlign.Center,
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    letterSpacing = 6.sp
-                                ),
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Number,
-                                    imeAction = ImeAction.Done
-                                ),
-                                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
+                        if (errorMessage != null) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                errorMessage!!,
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
                             )
+                        }
 
-                            if (errorMessage != null) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    errorMessage!!,
-                                    color = MaterialTheme.colorScheme.error,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
+                        Spacer(modifier = Modifier.height(20.dp))
 
-                            Spacer(modifier = Modifier.height(18.dp))
-
-                            Button(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(50.dp),
-                                onClick = {
-                                    if (otpInput.length != 6) {
-                                        errorMessage = L.t("يرجى إدخال الرمز كاملاً (6 أرقام)", "Please enter the complete 6-digit code")
-                                        return@Button
-                                    }
-                                    val success = viewModel.confirmVerificationCode(otpInput)
+                        Button(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp)
+                                .testTag("auth_submit_button"),
+                            enabled = !isSubmitting,
+                            onClick = {
+                                isSubmitting = true
+                                focusManager.clearFocus()
+                                viewModel.completeQuickSignIn(
+                                    email = emailInput,
+                                    name = nameInput,
+                                    referralCode = referralInput
+                                ) { success, error ->
+                                    isSubmitting = false
                                     if (success) {
-                                        focusManager.clearFocus()
                                         Toast.makeText(
                                             context,
                                             L.t(
-                                                "🎉 تم تأكيد البريد بنجاح ومرحباً بك في منصة مختبري التطبيقات!",
-                                                "🎉 Email verified! Welcome to PlayTester Hub!"
+                                                "تم تسجيل الدخول واستعادة بياناتك بنجاح",
+                                                "Signed in and synced your workspace!"
                                             ),
-                                            Toast.LENGTH_LONG
+                                            Toast.LENGTH_SHORT
                                         ).show()
                                     } else {
-                                        errorMessage = L.t(
-                                            "رمز التحقق غير صحيح، يرجى التأكد وإعادة المحاولة",
-                                            "Invalid verification code. Please check and try again."
-                                        )
+                                        errorMessage = error
                                     }
-                                },
-                                shape = RoundedCornerShape(14.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00875A))
-                            ) {
-                                Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    L.t("تأكيد الرمز والدخول إلى المنصة", "Verify Code & Enter Platform"),
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(14.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                TextButton(
-                                    onClick = {
-                                        viewModel.startEmailVerification("", "")
-                                        otpInput = ""
-                                        errorMessage = null
-                                    }
-                                ) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(L.t("تغيير البريد", "Change Email"), fontSize = 12.sp)
                                 }
-
-                                TextButton(
-                                    onClick = {
-                                        if (canResend) {
-                                            val newCode = viewModel.resendVerificationCode()
-                                            otpInput = ""
-                                            Toast.makeText(
-                                                context,
-                                                L.t("تم إرسال رمز جديد: $newCode", "New code sent: $newCode"),
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                    },
-                                    enabled = canResend
-                                ) {
-                                    Text(
-                                        if (canResend) {
-                                            L.t("إعادة إرسال الرمز", "Resend Code")
-                                        } else {
-                                            L.t("إعادة الإرسال بعد ($resendCountdown ث)", "Resend in (${resendCountdown}s)")
-                                        },
-                                        fontSize = 12.sp,
-                                        color = if (canResend) MaterialTheme.colorScheme.primary else Color.Gray
-                                    )
-                                }
-                            }
+                            },
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00875A))
+                        ) {
+                            Icon(Icons.Default.Login, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                L.t("الدخول ومزامنة الحساب السحابي", "Sign In & Sync Cloud Workspace"),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(22.dp))
 
-                // Security & Privacy Explanatory Points
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
@@ -579,7 +332,7 @@ fun MandatoryAuthScreen(
                             Icon(Icons.Default.GppGood, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                L.t("لماذا التحقق من البريد إلزامي؟", "Why is email verification required?"),
+                                L.t("مميزات ربط حسابك البريدي:", "Benefits of linking your developer email:"),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -588,12 +341,12 @@ fun MandatoryAuthScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             L.t(
-                                "• توثيق حسابات المطورين والمختبرين ومنع الحسابات الوهمية.\n" +
-                                "• ضمان تسجيل 20 مختبراً معتمداً لسياسة متجر جوجل بلاي بنجاح.\n" +
-                                "• حفظ ومزامنة نقاط المكافآت وسجل اختبار التطبيقات اليومي.",
-                                "• Verifies real developer & tester accounts and prevents spam.\n" +
-                                "• Ensures 20 genuine opted-in testers for Google Play closed testing compliance.\n" +
-                                "• Syncs reward coins and daily testing streaks across your sessions."
+                                "• حفظ نقاطك، سلسلة الأيام، ومشاريعك في السحابة دون فقدانها عند تسجيل الخروج.\n" +
+                                "• استقبال إشعارات فورية عندما ينضم مختبر أو يرسل ملاحظة لتطبيقك.\n" +
+                                "• تنسيق تبادل المختبرين الحقيقيين لاجتياز شرط 20 مختبراً و14 يوماً.",
+                                "• Preserves your coins, streaks, and testing projects in the cloud across sessions.\n" +
+                                "• Receive real-time notifications when testers join or report bugs on your app.\n" +
+                                "• Coordinates real developer test swaps to pass Google Play's 20-tester rule."
                             ),
                             fontSize = 11.sp,
                             lineHeight = 17.sp,
